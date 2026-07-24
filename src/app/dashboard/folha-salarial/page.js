@@ -575,6 +575,9 @@ export default function FolhaSalarialPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end">
+                          <button onClick={() => api.downloadPdf("/api/pdf/folha-salarial/" + item.id, "recibo_" + numColab(item) + ".pdf")} className="p-[3px] text-on-surface-variant hover:text-success hover:bg-success/10 rounded transition-all" title="Baixar PDF">
+                            <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
+                          </button>
                           <button onClick={() => abrirVer(item)} className="p-[3px] text-on-surface-variant hover:text-success hover:bg-success/10 rounded transition-all" title="Ver">
                             <span className="material-symbols-outlined text-[15px]">visibility</span>
                           </button>
@@ -790,6 +793,12 @@ export default function FolhaSalarialPage() {
                 {tab === "vencimentos" ? "Detalhes do Vencimento" : "Detalhes do Pagamento"}
               </h3>
               <div className="flex items-center gap-2">
+                {tab === "pagamentos" && (
+                  <button onClick={() => api.downloadPdf("/api/pdf/folha-salarial/" + viewItem.id, "recibo_" + numColab(viewItem) + ".pdf")} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-success/10 text-success text-[12px] font-semibold hover:bg-success/20 transition-all border border-success/10">
+                    <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                    PDF
+                  </button>
+                )}
                 <button onClick={() => { setShowViewModal(false); abrirEditar(viewItem); }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-all border border-primary/10">
                   <span className="material-symbols-outlined text-[16px]">edit</span>
                   Editar

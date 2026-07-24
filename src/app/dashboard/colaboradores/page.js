@@ -6,8 +6,6 @@ import helpers from "@/lib/helpers";
 import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, GENEROS, ESTADOS_CIVIS } from "@/lib/constants";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import FileUpload from "@/components/ui/FileUpload";
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
 
 export default function ColaboradoresPage() {
   const [colaboradores, setColaboradores] = useState([]);
@@ -142,141 +140,14 @@ export default function ColaboradoresPage() {
     }).catch(() => {});
   };
 
-  const gerarPDF = () => {
+  const gerarPDF = async () => {
     var c = colaboradorView;
     if (!c) return;
-    var doc = new jsPDF();
-    var pageWidth = doc.internal.pageSize.getWidth();
-
-    doc.setFillColor(0, 62, 199);
-    doc.rect(0, 0, pageWidth, 35, "F");
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.text("CENFFOR", 15, 15);
-    doc.setFontSize(10);
-    doc.text("Centro de Formacao Profissional", 15, 22);
-    doc.setFontSize(9);
-    doc.text("Ficha do Colaborador", 15, 29);
-
-    doc.setTextColor(50, 50, 50);
-    doc.setFillColor(245, 247, 252);
-    doc.roundedRect(15, 42, pageWidth - 30, 12, 2, 2, "F");
-    doc.setFontSize(13);
-    doc.setTextColor(0, 62, 199);
-    doc.text(c.numero_colaborador || "S/N", 20, 50);
-    doc.setTextColor(50, 50, 50);
-    doc.text(c.nome_completo || "", 65, 50);
-
-    var y = 62;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 62, 199);
-    doc.text("DADOS PESSOAIS", 15, y);
-    y += 7;
-
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
-    var pessoal = [
-      ["Nome Completo", c.nome_completo || "—"],
-      ["Nome Curto", c.nome_curto || "—"],
-      ["Data de Nascimento", c.data_nascimento ? helpers.formatDate(c.data_nascimento) : "—"],
-      ["Genero", c.genero === "M" ? "Masculino" : c.genero === "F" ? "Feminino" : "—"],
-      ["Estado Civil", c.estado_civil || "—"],
-      ["NIF", c.nif || "—"],
-      ["BI", c.bi || "—"],
-      ["Validade BI", c.bi_validade ? helpers.formatDate(c.bi_validade) : "—"],
-      ["Habilitacoes", c.habilitacoes || "—"],
-      ["Formacao Academica", c.formacao_academica || "—"],
-    ];
-    pessoal.forEach(function(row) {
-      doc.setFont(undefined, "bold");
-      doc.text(row[0] + ":", 15, y);
-      doc.setFont(undefined, "normal");
-      doc.text(row[1], 70, y);
-      y += 6;
-    });
-
-    y += 4;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 62, 199);
-    doc.text("CONTACTOS", 15, y);
-    y += 7;
-
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
-    var contactos = [
-      ["Telefone", c.telefone || "—"],
-      ["Telefone Emergencia", c.telefone_emergencia || "—"],
-      ["Email Pessoal", c.email_pessoal || "—"],
-      ["Email Institucional", c.email_institucional || "—"],
-      ["Endereco", c.endereco || "—"],
-      ["Cidade", c.cidade || "—"],
-      ["Provincia", c.provincia || "—"],
-    ];
-    contactos.forEach(function(row) {
-      doc.setFont(undefined, "bold");
-      doc.text(row[0] + ":", 15, y);
-      doc.setFont(undefined, "normal");
-      doc.text(row[1], 70, y);
-      y += 6;
-    });
-
-    y += 4;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 62, 199);
-    doc.text("DADOS PROFISSIONAIS", 15, y);
-    y += 7;
-
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
-    var tipoLabel = (TIPOS_COLABORADOR.find(function(t) { return t.value === c.tipo_colaborador; }) || {}).label || c.tipo_colaborador || "—";
-    var profissional = [
-      ["Número", c.numero_colaborador || "—"],
-      ["Data de Admissão", c.data_admissao ? helpers.formatDate(c.data_admissao) : "—"],
-      ["Tipo", tipoLabel],
-      ["Estado", c.estado || "—"],
-      ["No. Seg. Social", c.numero_seguranca_social || "—"],
-      ["Observacoes", c.observacoes || "—"],
-    ];
-    profissional.forEach(function(row) {
-      doc.setFont(undefined, "bold");
-      doc.text(row[0] + ":", 15, y);
-      doc.setFont(undefined, "normal");
-      doc.text(row[1], 70, y);
-      y += 6;
-    });
-
-    y += 4;
-    doc.setFontSize(11);
-    doc.setTextColor(0, 62, 199);
-    doc.text("DADOS FINANCEIROS", 15, y);
-    y += 7;
-
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
-    var financeiro = [
-      ["Banco", c.banco || "—"],
-      ["Conta Bancaria", c.conta_bancaria || "—"],
-      ["IBAN", c.iban || "—"],
-    ];
-    financeiro.forEach(function(row) {
-      doc.setFont(undefined, "bold");
-      doc.text(row[0] + ":", 15, y);
-      doc.setFont(undefined, "normal");
-      doc.text(row[1], 70, y);
-      y += 6;
-    });
-
-    var footerY = doc.internal.pageSize.getHeight() - 15;
-    doc.setDrawColor(0, 62, 199);
-    doc.setLineWidth(0.3);
-    doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text("CENFFOR - Sistema Integrado de Gestao de Recursos Humanos", 15, footerY);
-    doc.text("Gerado em: " + new Date().toLocaleDateString("pt-AO"), pageWidth - 15, footerY, { align: "right" });
-
-    doc.save("Colaborador_" + (c.numero_colaborador || c.nome_completo || "ficha") + ".pdf");
+    try {
+      await api.downloadPdf("/api/pdf/colaborador/" + c.id, "ficha_" + (c.numero_colaborador || c.nome_completo || "colaborador") + ".pdf");
+    } catch (e) {
+      alert("Erro ao gerar PDF: " + e.message);
+    }
   };
 
   const activeFilters = [];

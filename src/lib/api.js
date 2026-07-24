@@ -100,6 +100,28 @@ var api = {
       throw e;
     }
   },
+
+  downloadPdf: async function (endpoint, filename) {
+    var url = this.baseURL + endpoint;
+    var token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    var headers = {};
+    if (token) {
+      headers["Authorization"] = "Bearer " + token;
+    }
+
+    var response = await fetch(url, { headers: headers });
+    if (!response.ok) throw new Error("Erro ao gerar PDF");
+
+    var blob = await response.blob();
+    var blobUrl = window.URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || "documento.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(blobUrl);
+  },
 };
 
 module.exports = api;

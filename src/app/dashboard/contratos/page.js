@@ -5,8 +5,6 @@ import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { TIPOS_CONTRATO } from "@/lib/constants";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
 
 const ESTADOS_CONTRATO = [
   { value: "Activo", label: "Activo" },
@@ -135,78 +133,14 @@ export default function ContratosPage() {
 
   const tipoLabel = (v) => (TIPOS_CONTRATO.find(t => t.value === v) || {}).label || v || "—";
 
-  const gerarPDF = () => {
+  const gerarPDF = async () => {
     var c = contratoView;
     if (!c) return;
-    var doc = new jsPDF();
-    var pw = doc.internal.pageSize.getWidth();
-
-    doc.setFillColor(0, 62, 199);
-    doc.rect(0, 0, pw, 30, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
-    doc.text("CENFFOR", 15, 13);
-    doc.setFontSize(9);
-    doc.text("Contrato de Trabalho", 15, 20);
-
-    doc.setTextColor(50, 50, 50);
-    doc.setFillColor(245, 247, 252);
-    doc.roundedRect(15, 37, pw - 30, 10, 2, 2, "F");
-    doc.setFontSize(12);
-    doc.setTextColor(0, 62, 199);
-    doc.text(c.numero || "S/N", 20, 44);
-    doc.setTextColor(50, 50, 50);
-    doc.setFontSize(9);
-    doc.text("Estado: " + (c.estado || "—"), 80, 44);
-
-    var y = 55;
-    var sections = [
-      { title: "DADOS DO CONTRATO", rows: [
-        ["Número", c.numero], ["Tipo", tipoLabel(c.tipo)], ["Função", c.funcao],
-        ["Data de Início", c.data_inicio ? helpers.formatDate(c.data_inicio) : null],
-        ["Data Fim", c.data_fim ? helpers.formatDate(c.data_fim) : null],
-        ["Assinatura", c.data_assinatura ? helpers.formatDate(c.data_assinatura) : null],
-      ]},
-      { title: "CONDICOES", rows: [
-        ["Salário Base", c.salario_base ? Number(c.salario_base).toLocaleString("pt-AO") + " " + (c.moeda || "AOA") : null],
-        ["Periodo Experimentacao", c.periodo_experimentacao ? c.periodo_experimentacao + " dias" : null],
-        ["Local Trabalho", c.local_trabalho], ["Horario Trabalho", c.horario_trabalho],
-      ]},
-      { title: "OBSERVACOES", rows: [
-        ["Motivo Rescisao", c.motivo_rescisao],
-        ["Data Rescisao", c.data_rescisao ? helpers.formatDate(c.data_rescisao) : null],
-        ["Observacoes", c.observacoes],
-      ]},
-    ];
-
-    sections.forEach(function(sec) {
-      doc.setFontSize(10);
-      doc.setTextColor(0, 62, 199);
-      doc.text(sec.title, 15, y);
-      y += 7;
-      doc.setFontSize(8);
-      doc.setTextColor(80, 80, 80);
-      sec.rows.forEach(function(row) {
-        if (row[1]) {
-          doc.setFont(undefined, "bold");
-          doc.text(row[0] + ":", 15, y);
-          doc.setFont(undefined, "normal");
-          doc.text(String(row[1]), 65, y);
-          y += 5.5;
-        }
-      });
-      y += 3;
-    });
-
-    var fY = doc.internal.pageSize.getHeight() - 12;
-    doc.setDrawColor(0, 62, 199);
-    doc.setLineWidth(0.3);
-    doc.line(15, fY - 4, pw - 15, fY - 4);
-    doc.setFontSize(7);
-    doc.setTextColor(150, 150, 150);
-    doc.text("CENFFOR - SGHR | Gerado: " + new Date().toLocaleDateString("pt-AO"), 15, fY);
-
-    doc.save("Contrato_" + (c.numero || "documento") + ".pdf");
+    try {
+      await api.downloadPdf("/api/pdf/contrato/" + c.id, "contrato_" + (c.numero || "documento") + ".pdf");
+    } catch (e) {
+      alert("Erro ao gerar PDF: " + e.message);
+    }
   };
 
   const activeFilters = [];
