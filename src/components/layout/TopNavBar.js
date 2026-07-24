@@ -185,7 +185,7 @@ export default function TopNavBar() {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50">
+                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50">
                   <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
                     <span className="text-[13px] font-bold text-on-surface">Notificações</span>
                     {notifCount > 0 && (
@@ -329,9 +329,9 @@ export default function TopNavBar() {
       )}
 
       {notifModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setNotifModal(null); }} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+          <div className="relative bg-white rounded-t-2xl sm:rounded-xl shadow-xl w-full sm:max-w-sm p-5 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className={"p-2 rounded-lg " + (notifModal.tipo === "success" ? "bg-green-50" : notifModal.tipo === "error" ? "bg-red-50" : notifModal.tipo === "warning" ? "bg-amber-50" : "bg-primary/10")}>

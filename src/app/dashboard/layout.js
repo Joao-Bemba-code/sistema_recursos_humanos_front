@@ -40,7 +40,7 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <TopNavBar onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
-      <main className="flex-grow max-w-[1440px] w-full mx-auto px-5 md:px-16 py-8">
+      <main className="flex-grow max-w-[1440px] w-full mx-auto px-4 sm:px-5 md:px-16 py-4 sm:py-8">
         {children}
       </main>
       <footer className="bg-surface border-t border-outline-variant/30 w-full py-8 mt-auto">

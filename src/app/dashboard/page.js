@@ -109,17 +109,17 @@ function WaveChart({ title, subtitle, color, data, months, badgeText, badgeColor
   var gradId = "grad_" + color.replace("#", "");
 
   return (
-    <div className="glass-panel p-10 rounded-[2.5rem] animate-dash" style={{ animationDelay: delay + "s" }}>
-      <div className="flex items-center justify-between mb-8">
+    <div className="glass-panel p-5 sm:p-10 rounded-2xl sm:rounded-[2.5rem] animate-dash" style={{ animationDelay: delay + "s" }}>
+      <div className="flex items-center justify-between mb-4 sm:mb-8">
         <div>
-          <h4 className="text-xl font-bold text-on-surface">{title}</h4>
-          <p className="text-xs text-on-surface-variant/60">{subtitle}</p>
+          <h4 className="text-base sm:text-xl font-bold text-on-surface">{title}</h4>
+          <p className="text-[10px] sm:text-xs text-on-surface-variant/60">{subtitle}</p>
         </div>
         <button className="p-2 hover:bg-white/50 rounded-xl transition-all">
-          <span className="material-symbols-outlined text-outline">more_horiz</span>
+          <span className="material-symbols-outlined text-outline text-[18px] sm:text-[24px]">more_horiz</span>
         </button>
       </div>
-      <div className="h-[280px] relative">
+      <div className="h-[180px] sm:h-[280px] relative">
         <svg className="w-full h-full chart-wave" preserveAspectRatio="none" viewBox="0 0 100 100">
           <defs>
             <linearGradient id={gradId} x1="0%" x2="0%" y1="0%" y2="100%">
@@ -134,13 +134,16 @@ function WaveChart({ title, subtitle, color, data, months, badgeText, badgeColor
           })}
         </svg>
         {badgeText && (
-          <div className={"absolute top-2 right-4 flex items-center gap-2 text-white text-[10px] font-bold px-3 py-1.5 rounded-full shadow-lg " + badgeColor}>
+          <div className={"absolute top-2 right-2 sm:right-4 flex items-center gap-2 text-white text-[8px] sm:text-[10px] font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-lg " + badgeColor}>
             <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" /> {badgeText}
           </div>
         )}
       </div>
-      <div className="flex justify-between mt-4 px-2 text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest">
+      <div className="hidden sm:flex justify-between mt-4 px-2 text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest">
         {months.map(function (m) { return <span key={m}>{m}</span>; })}
+      </div>
+      <div className="flex sm:hidden justify-between mt-4 px-2 text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest">
+        {months.filter(function (_, i) { return i % 3 === 0; }).map(function (m) { return <span key={m}>{m}</span>; })}
       </div>
     </div>
   );
@@ -191,10 +194,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-10">
       <section className="animate-dash" style={{ animationDelay: "0.1s" }}>
-        <div className="relative overflow-hidden rounded-[2.5rem] wave-bg p-10 md:p-14 min-h-[280px] flex flex-col justify-center shadow-2xl shadow-primary/20">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-[2.5rem] wave-bg p-6 sm:p-10 md:p-14 min-h-[200px] sm:min-h-[280px] flex flex-col justify-center shadow-2xl shadow-primary/20">
           <div className="relative z-10 max-w-2xl">
             <p className="text-white/60 font-bold text-[11px] tracking-[0.3em] uppercase mb-4">{dataHoje}</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-[1.1] tracking-tight">{saudacao}{nome}</h2>
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-4 sm:mb-6 leading-[1.1] tracking-tight">{saudacao}{nome}</h2>
             <p className="text-white/80 text-lg leading-relaxed font-light">
               A sua visão geral estratégica para hoje:{" "}
               <span className="font-bold text-white underline decoration-white/30 underline-offset-4">
@@ -210,18 +213,18 @@ export default function DashboardPage() {
       </section>
 
       <section className="animate-dash" style={{ animationDelay: "0.2s" }}>
-        <div className="flex flex-wrap gap-4">
-          <Link href="/dashboard/colaboradores" className="flex items-center gap-3 bg-primary-container text-on-primary px-8 py-4 rounded-2xl hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-95 group">
-            <span className="material-symbols-outlined transition-transform group-hover:rotate-90">add_circle</span>
-            <span className="font-bold text-sm tracking-wide">ADMITIR COLABORADOR</span>
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+          <Link href="/dashboard/colaboradores" className="flex items-center justify-center gap-3 bg-primary-container text-on-primary px-6 sm:px-8 py-3 sm:py-4 rounded-2xl hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-95 group">
+            <span className="material-symbols-outlined transition-transform group-hover:rotate-90 text-[20px]">add_circle</span>
+            <span className="font-bold text-xs sm:text-sm tracking-wide">ADMITIR COLABORADOR</span>
           </Link>
-          <Link href="/dashboard/relatorios" className="flex items-center gap-3 glass-panel text-primary-container px-8 py-4 rounded-2xl glass-panel-hover group">
-            <span className="material-symbols-outlined group-hover:animate-bounce">description</span>
-            <span className="font-bold text-sm tracking-wide">RELATÓRIOS ANALÍTICOS</span>
+          <Link href="/dashboard/relatorios" className="flex items-center justify-center gap-3 glass-panel text-primary-container px-6 sm:px-8 py-3 sm:py-4 rounded-2xl glass-panel-hover group">
+            <span className="material-symbols-outlined text-[20px] group-hover:animate-bounce">description</span>
+            <span className="font-bold text-xs sm:text-sm tracking-wide">RELATÓRIOS ANALÍTICOS</span>
           </Link>
-          <Link href="/dashboard/ferias" className="flex items-center gap-3 glass-panel text-on-surface-variant px-8 py-4 rounded-2xl glass-panel-hover">
-            <span className="material-symbols-outlined">calendar_today</span>
-            <span className="font-bold text-sm tracking-wide">PLANEAMENTO DE FÉRIAS</span>
+          <Link href="/dashboard/ferias" className="flex items-center justify-center gap-3 glass-panel text-on-surface-variant px-6 sm:px-8 py-3 sm:py-4 rounded-2xl glass-panel-hover">
+            <span className="material-symbols-outlined text-[20px]">calendar_today</span>
+            <span className="font-bold text-xs sm:text-sm tracking-wide">PLANEAMENTO DE FÉRIAS</span>
           </Link>
         </div>
       </section>
@@ -256,18 +259,18 @@ export default function DashboardPage() {
       </section>
 
       <section className="animate-dash" style={{ animationDelay: "0.5s" }}>
-        <div className="flex items-center justify-between mb-8 px-2">
-          <h4 className="text-2xl font-bold text-on-surface tracking-tight">Explorar Módulos Corporativos</h4>
-          <span className="text-xs font-bold text-primary-container bg-primary/10 px-4 py-1.5 rounded-full">20 Módulos Ativos</span>
+        <div className="flex items-center justify-between mb-6 sm:mb-8 px-2">
+          <h4 className="text-lg sm:text-2xl font-bold text-on-surface tracking-tight">Explorar Módulos Corporativos</h4>
+          <span className="text-[10px] sm:text-xs font-bold text-primary-container bg-primary/10 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full">20 Módulos Ativos</span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
           {ALL_MODULES.map(function (m) {
             return (
-              <Link key={m.label} href={m.href} className="glass-panel glass-panel-hover p-6 rounded-3xl flex flex-col items-center text-center group">
-                <div className="module-icon-wrap w-14 h-14 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
-                  <span className="material-symbols-outlined text-[28px] text-primary-container">{m.icon}</span>
+              <Link key={m.label} href={m.href} className="glass-panel glass-panel-hover p-4 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col items-center text-center group">
+                <div className="module-icon-wrap w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-primary/5 flex items-center justify-center mb-3 sm:mb-4">
+                  <span className="material-symbols-outlined text-[22px] sm:text-[28px] text-primary-container">{m.icon}</span>
                 </div>
-                <span className="text-xs font-bold text-on-surface tracking-tight">{m.label}</span>
+                <span className="text-[10px] sm:text-xs font-bold text-on-surface tracking-tight">{m.label}</span>
               </Link>
             );
           })}
