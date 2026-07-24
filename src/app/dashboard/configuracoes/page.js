@@ -32,6 +32,9 @@ export default function ConfiguracoesPage() {
   const [orgEmail, setOrgEmail] = useState("");
   const [orgNif, setOrgNif] = useState("");
   const [orgSite, setOrgSite] = useState("");
+  const [orgTemplate, setOrgTemplate] = useState("");
+  const [orgLogoUrl, setOrgLogoUrl] = useState("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   // System state
   var cfg = loadCfg();
@@ -84,6 +87,8 @@ export default function ConfiguracoesPage() {
         setOrgEmail(org.email || "");
         setOrgNif(org.nif || "");
         setOrgSite(org.website || "");
+        setOrgTemplate(org.template_contrato || "");
+        setOrgLogoUrl(org.logo_url || "");
       }
     }).catch(function() {}).finally(function() { setLoadingOrg(false); });
   }, []);
@@ -100,7 +105,7 @@ export default function ConfiguracoesPage() {
     setSaving(true); setMsg(null);
     try {
       if (orgId) {
-        await api.put("/api/organizacoes/" + orgId, { nome: orgNome, nome_curto: orgSigla, endereco: orgEndereco, telefone: orgTelefone, email: orgEmail, nif: orgNif, website: orgSite });
+        await api.put("/api/organizacoes/" + orgId, { nome: orgNome, nome_curto: orgSigla, endereco: orgEndereco, telefone: orgTelefone, email: orgEmail, nif: orgNif, website: orgSite, template_contrato: orgTemplate });
       } else {
         var resp = await api.post("/api/organizacoes", { nome: orgNome || "CENFFOR", nif: orgNif, email: orgEmail, telefone: orgTelefone, endereco: orgEndereco, website: orgSite });
         if (resp.dados) setOrgId(resp.dados.id);
@@ -108,7 +113,26 @@ export default function ConfiguracoesPage() {
       setMsg({ tipo: "sucesso", texto: T.guardar });
     } catch (e) { setMsg({ tipo: "erro", texto: e.message }); }
     finally { setSaving(false); }
-  }, [orgId, orgNome, orgSigla, orgEndereco, orgTelefone, orgEmail, orgNif, orgSite, T]);
+  }, [orgId, orgNome, orgSigla, orgEndereco, orgTelefone, orgEmail, orgNif, orgSite, orgTemplate, T]);
+
+  var handleUploadLogo = useCallback(async function(e) {
+    var file = e.target.files[0];
+    if (!file || !orgId) return;
+    setUploadingLogo(true);
+    try {
+      var formData = new FormData();
+      formData.append("logo", file);
+      var resp = await api.upload("/api/organizacoes/" + orgId + "/logo", formData);
+      if (resp.dados && resp.dados.logo_url) {
+        setOrgLogoUrl(resp.dados.logo_url);
+        setMsg({ tipo: "sucesso", texto: "Logo atualizado com sucesso" });
+      }
+    } catch (err) {
+      setMsg({ tipo: "erro", texto: err.message });
+    } finally {
+      setUploadingLogo(false);
+    }
+  }, [orgId]);
 
   var guardarSistema = useCallback(function() {
     setMsg(null);
@@ -212,6 +236,56 @@ export default function ConfiguracoesPage() {
                   <div><label className="block text-[12px] font-semibold text-on-surface-variant mb-1.5">{T.website}</label><input type="url" value={orgSite} onChange={function(e) { setOrgSite(e.target.value); }} placeholder="https://cenffor.co.ao" className={inputCls} /></div>
                 </div>
               )}
+
+              <div className="border-t border-outline-variant/20 pt-6 mt-6">
+                <h3 className="text-[13px] font-bold text-on-surface uppercase tracking-wider mb-4">Modelo de Contrato de Trabalho</h3>
+                <p className="text-[12px] text-on-surface-variant/70 mb-4">Defina o template do contrato. Use placeholders como {"{NOME_COLABORADOR}"}, {"{NIF}"}, {"{SALARIO}"}, etc. que serao substituidos automaticamente ao gerar o PDF.</p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-3">
+                    <label className="block text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Template do Contrato</label>
+                    <textarea
+                      value={orgTemplate}
+                      onChange={function(e) { setOrgTemplate(e.target.value); }}
+                      placeholder={"Ex:\nENTRE\n{NOME_ORGANIZACAO}, NIF {NIF_ORGANIZACAO}, com sede em {MORADA_ORGANIZACAO}\nE\n{NOME_COLABORADOR}, NIF {NIF_COLABORADOR}, natural de {NATURAL_DE}\n\nCLAUSULA PRIMEIRA - Categoria Profissional\nO trabalhador sera admitido na categoria de {CATEGORIA_PROFISSIONAL}.\n\nCLAUSULA SEGUNDA - Retribuicao\nSalario mensal: {SALARIO_BASE}"}
+                      rows={16}
+                      className="w-full px-4 py-3 bg-surface-container/60 border border-outline-variant/40 rounded-lg text-[13px] text-on-surface outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all font-mono resize-y"
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase">Placeholders:</span>
+                      {["NOME_COLABORADOR","NIF_COLABORADOR","BI_COLABORADOR","ESTADO_CIVIL","NATURAL_DE","RESIDENCIA","NUMERO_CONTRATO","DATA_INICIO","DATA_FIM","CATEGORIA_PROFISSIONAL","LOCAL_TRABALHO","HORARIO_TRABALHO","SALARIO_BASE","NOME_ORGANIZACAO","NIF_ORGANIZACAO","MORADA_ORGANIZACAO"].map(function(p) {
+                        return <span key={p} className="text-[9px] px-1.5 py-0.5 bg-primary/5 text-primary/70 rounded font-mono">{"{" + p + "}"}</span>;
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 mb-2">Logo da Organizacao</label>
+                      <div className="border-2 border-dashed border-outline-variant/40 rounded-xl p-4 text-center hover:border-primary/30 transition-colors">
+                        {orgLogoUrl ? (
+                          <div className="space-y-3">
+                            <div className="w-full h-24 flex items-center justify-center bg-white rounded-lg border border-outline-variant/20 overflow-hidden">
+                              <img src={orgLogoUrl.startsWith("http") ? orgLogoUrl : "http://localhost:8000" + orgLogoUrl} alt="Logo" className="max-h-20 max-w-full object-contain" />
+                            </div>
+                            <label className="cursor-pointer text-[11px] font-semibold text-primary hover:underline block">
+                              <input type="file" accept="image/*" onChange={handleUploadLogo} className="hidden" />
+                              {uploadingLogo ? "A carregar..." : "Alterar Logo"}
+                            </label>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer block">
+                            <input type="file" accept="image/*" onChange={handleUploadLogo} className="hidden" />
+                            <span className="material-symbols-outlined text-[32px] text-outline-variant/40 block mb-1">cloud_upload</span>
+                            <span className="text-[11px] font-semibold text-on-surface-variant/60 block">{uploadingLogo ? "A carregar..." : "Carregar Logo (PNG/JPG)"}</span>
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end"><button onClick={guardarOrganizacao} disabled={saving || loadingOrg} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">{saving ? "hourglass_empty" : "save"}</span>{saving ? T.carregando : T.guardar_3}</button></div>
             </div>
           )}
