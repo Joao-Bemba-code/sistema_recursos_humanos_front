@@ -321,6 +321,21 @@ export default function PedidosPage() {
                 </div>
               )}
 
+              {pedidoDetalhe.documento && (
+                <div>
+                  <p className="text-[11px] text-slate-400 uppercase tracking-wide mb-1">Documento Anexo</p>
+                  {pedidoDetalhe.documento.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <img src={pedidoDetalhe.documento} alt="Documento" className="max-w-full max-h-64 rounded-lg border border-slate-200 object-contain" />
+                  ) : pedidoDetalhe.documento.match(/\.pdf$/i) ? (
+                    <iframe src={pedidoDetalhe.documento} className="w-full h-64 rounded-lg border border-slate-200" title="Documento" />
+                  ) : (
+                    <a href={pedidoDetalhe.documento} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[13px] text-primary hover:underline">
+                      <span className="material-symbols-outlined text-[16px]">description</span> Abrir documento
+                    </a>
+                  )}
+                </div>
+              )}
+
               {pedidoDetalhe.tipo === "ferias" && dadosDetalhe.data_inicio && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>

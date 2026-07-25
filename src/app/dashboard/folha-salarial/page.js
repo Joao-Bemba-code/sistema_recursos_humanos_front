@@ -92,6 +92,20 @@ export default function FolhaSalarialPage() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const handleColaboradorChange = async (e) => {
+    const colabId = e.target.value;
+    setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: "", desconto_faltas: "" }));
+    if (!colabId) return;
+    try {
+      const data = await api.get(`/api/folha-salarial/contrato-actual/${colabId}`);
+      if (data && data.dados && data.dados.salario_base) {
+        setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: data.dados.salario_base || "" }));
+      }
+    } catch (e) {
+      console.error("Erro ao buscar contrato:", e);
+    }
+  };
+
   const calcularTotalBrutoVenc = (f) => {
     var sb = parseFloat(f.salario_base) || 0;
     var sa = parseFloat(f.subsidio_alimentacao) || 0;
@@ -727,7 +741,7 @@ export default function FolhaSalarialPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Colaborador *</label>
-                    <select name="colaborador_id" value={form.colaborador_id || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
+                    <select name="colaborador_id" value={form.colaborador_id || ""} onChange={handleColaboradorChange} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                       <option value="">Selecionar colaborador</option>
                       {colaboradores.map(c => (
                         <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador})</option>
@@ -771,7 +785,7 @@ export default function FolhaSalarialPage() {
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Desconto Faltas</label>
-                    <input type="number" step="0.01" name="desconto_faltas" value={form.desconto_faltas || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <input type="number" step="0.01" name="desconto_faltas" value={form.desconto_faltas || ""} onChange={handleInput} placeholder="Calculado automaticamente" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
 
                   <div className="sm:col-span-2 bg-success/5 border border-success/10 rounded-lg p-3 mt-1">

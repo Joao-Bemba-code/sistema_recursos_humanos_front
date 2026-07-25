@@ -21,9 +21,8 @@ export default function FaltasPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ colaborador_id: "", data: "", estado: "Ausente", hora_entrada: "", hora_saida: "", observacoes: "" });
   const [saving, setSaving] = useState(false);
-  const [justificarModal, setJustificarModal] = useState({ open: false, item: null });
-  const [justForm, setJustForm] = useState({ observacoes: "", documento: null });
-  const [justSaving, setJustSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ open: false, titulo: "", mensagem: "", onConfirm: null });
 
   const carregarResumo = async () => {
     setLoading(true);
@@ -97,42 +96,47 @@ export default function FaltasPage() {
       carregarResumo();
       carregarRegistos(1);
     } catch (e) {
-      alert(e.message);
+      setMsg({ tipo: "erro", texto: e.message });
+      setTimeout(() => setMsg(null), 3000);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleJustificar = async () => {
-    if (!justificarModal.item) return;
-    setJustSaving(true);
-    try {
-      var formData = new FormData();
-      formData.append("justificacao_observacoes", justForm.observacoes || "");
-      if (justForm.documento) {
-        formData.append("documento", justForm.documento);
-      }
-      await api.upload("/api/faltas/justificar/" + justificarModal.item.id, formData);
-      setJustificarModal({ open: false, item: null });
-      setJustForm({ observacoes: "", documento: null });
-      carregarResumo();
-      carregarRegistos(pagina);
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setJustSaving(false);
-    }
+  const handleRemoverJustificacao = async (id) => {
+    setConfirmModal({
+      open: true,
+      titulo: "Remover Justificacao",
+      mensagem: "Tem certeza que deseja remover esta justificacao?",
+      onConfirm: async () => {
+        try {
+          await api.delete("/api/faltas/justificar/" + id);
+          carregarResumo();
+          carregarRegistos(pagina);
+        } catch (e) {
+          setMsg({ tipo: "erro", texto: e.message });
+          setTimeout(() => setMsg(null), 3000);
+        }
+      },
+    });
   };
 
-  const handleRemoverJustificacao = async (id) => {
-    if (!confirm("Tem certeza que deseja remover esta justificacao?")) return;
-    try {
-      await api.delete("/api/faltas/justificar/" + id);
-      carregarResumo();
-      carregarRegistos(pagina);
-    } catch (e) {
-      alert(e.message);
-    }
+  const handleEliminar = async (id) => {
+    setConfirmModal({
+      open: true,
+      titulo: "Eliminar Registo",
+      mensagem: "Tem certeza que deseja eliminar este registo de falta/atraso? Esta accao nao pode ser desfeita.",
+      onConfirm: async () => {
+        try {
+          await api.delete("/api/faltas/eliminar/" + id);
+          carregarResumo();
+          carregarRegistos(pagina);
+        } catch (e) {
+          setMsg({ tipo: "erro", texto: e.message });
+          setTimeout(() => setMsg(null), 3000);
+        }
+      },
+    });
   };
 
   const formatCurrency = (v) => {
@@ -166,6 +170,12 @@ export default function FaltasPage() {
         </button>
       </section>
 
+      {msg && (
+        <div className={"text-[13px] font-medium p-3 rounded-lg " + (msg.tipo === "erro" ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700")}>
+          {msg.texto}
+        </div>
+      )}
+
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-white border border-slate-200 rounded-xl p-4">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Total de Faltas</p>
@@ -181,8 +191,8 @@ export default function FaltasPage() {
         </div>
       </section>
 
-      <section className="bg-white border border-slate-200 rounded-xl p-5">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+      <section className="glass-panel rounded-xl border border-outline-variant/30 shadow-sm p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
             <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Data Inicio</label>
             <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
@@ -206,22 +216,24 @@ export default function FaltasPage() {
         </div>
       </section>
 
-      <section className="bg-white border border-slate-200 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[14px] font-semibold text-slate-700">Resumo por Colaborador</h2>
-          <div className="flex gap-2">
-            <button onClick={() => { setFiltroTipo(""); carregarResumo(); carregarRegistos(1); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (!filtroTipo ? "bg-primary text-white" : "text-slate-500 hover:bg-slate-100")}>Todos</button>
-            <button onClick={() => { setFiltroTipo("faltas"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "faltas" ? "bg-red-100 text-red-700" : "text-slate-500 hover:bg-slate-100")}>Faltas</button>
-            <button onClick={() => { setFiltroTipo("atrasos"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "atrasos" ? "bg-amber-100 text-amber-700" : "text-slate-500 hover:bg-slate-100")}>Atrasos</button>
+      <section className="bg-surface rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-[14px] font-semibold text-slate-700">Resumo por Colaborador</h2>
+            <div className="flex gap-2">
+              <button onClick={() => { setFiltroTipo(""); carregarResumo(); carregarRegistos(1); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (!filtroTipo ? "bg-primary text-white" : "text-slate-500 hover:bg-slate-100")}>Todos</button>
+              <button onClick={() => { setFiltroTipo("faltas"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "faltas" ? "bg-red-100 text-red-700" : "text-slate-500 hover:bg-slate-100")}>Faltas</button>
+              <button onClick={() => { setFiltroTipo("atrasos"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "atrasos" ? "bg-amber-100 text-amber-700" : "text-slate-500 hover:bg-slate-100")}>Atrasos</button>
+            </div>
           </div>
         </div>
 
         {loading ? (
-          <p className="text-[12px] text-slate-400">A carregar...</p>
+          <p className="text-[12px] text-slate-400 p-5">A carregar...</p>
         ) : lista.length === 0 ? (
           <p className="text-[12px] text-slate-400 py-8 text-center">Nenhuma falta ou atraso registado no periodo selecionado</p>
         ) : (
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -263,15 +275,17 @@ export default function FaltasPage() {
         )}
       </section>
 
-      <section className="bg-white border border-slate-200 rounded-xl p-5">
-        <h2 className="text-[14px] font-semibold text-slate-700 mb-4">Registos Individuais</h2>
+      <section className="bg-surface rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
+        <div className="p-5">
+          <h2 className="text-[14px] font-semibold text-slate-700 mb-4">Registos Individuais</h2>
+        </div>
         {registosLoading ? (
-          <p className="text-[12px] text-slate-400">A carregar...</p>
+          <p className="text-[12px] text-slate-400 p-5">A carregar...</p>
         ) : registos.length === 0 ? (
           <p className="text-[12px] text-slate-400 py-4 text-center">Sem registos</p>
         ) : (
           <>
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
@@ -311,22 +325,19 @@ export default function FaltasPage() {
                       <td className="px-4 py-2.5 text-[12px] text-slate-400 max-w-[200px] truncate">{r.observacoes || "—"}</td>
                       <td className="px-4 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          {r.justificado ? (
-                            <>
-                              {r.documento_justificacao && (
-                                <a href={"http://localhost:8000" + r.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-emerald-600 hover:underline px-1.5 py-0.5 rounded hover:bg-emerald-50">
-                                  Ver Doc
-                                </a>
-                              )}
-                              <button onClick={() => handleRemoverJustificacao(r.id)} className="text-[11px] font-medium text-red-500 hover:underline px-1.5 py-0.5 rounded hover:bg-red-50">
-                                Remover
-                              </button>
-                            </>
-                          ) : (
-                            <button onClick={() => { setJustificarModal({ open: true, item: r }); setJustForm({ observacoes: "", documento: null }); }} className="text-[11px] font-medium text-primary hover:underline px-1.5 py-0.5 rounded hover:bg-primary/5">
-                              Justificar
+                          {r.justificado && r.documento_justificacao && (
+                            <a href={r.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-emerald-600 hover:underline px-1.5 py-0.5 rounded hover:bg-emerald-50">
+                              Ver Doc
+                            </a>
+                          )}
+                          {r.justificado && (
+                            <button onClick={() => handleRemoverJustificacao(r.id)} className="text-[11px] font-medium text-amber-600 hover:underline px-1.5 py-0.5 rounded hover:bg-amber-50">
+                              Rem. Just.
                             </button>
                           )}
+                          <button onClick={() => handleEliminar(r.id)} className="text-[11px] font-medium text-red-500 hover:underline px-1.5 py-0.5 rounded hover:bg-red-50">
+                            Eliminar
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -388,7 +399,7 @@ export default function FaltasPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-slate-400">{f.observacoes || ""}</span>
                         {f.justificado && f.documento_justificacao && (
-                          <a href={"http://localhost:8000" + f.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
+                          <a href={f.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
                         )}
                       </div>
                     </div>
@@ -412,7 +423,7 @@ export default function FaltasPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-amber-600 font-medium">+{a.minutos} min</span>
                         {a.justificado && a.documento_justificacao && (
-                          <a href={"http://localhost:8000" + a.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
+                          <a href={a.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
                         )}
                       </div>
                     </div>
@@ -477,34 +488,15 @@ export default function FaltasPage() {
         </div>
       )}
 
-      {justificarModal.open && justificarModal.item && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/30" onClick={() => setJustificarModal({ open: false, item: null })} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-slate-800">Justificar {justificarModal.item.estado === "Ausente" ? "Falta" : "Atraso"}</h3>
-              <button onClick={() => setJustificarModal({ open: false, item: null })} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
-            </div>
-            <div className="space-y-3">
-              <div className="bg-slate-50 rounded-lg p-3 text-[13px] text-slate-600">
-                <p><span className="font-semibold">Data:</span> {formatDate(justificarModal.item.data)}</p>
-                {justificarModal.item.hora_entrada && <p><span className="font-semibold">Entrada:</span> {justificarModal.item.hora_entrada}</p>}
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Observacoes da Justificacao</label>
-                <textarea value={justForm.observacoes} onChange={(e) => setJustForm(Object.assign({}, justForm, { observacoes: e.target.value }))} rows={3} placeholder="Descreva o motivo da justificacao..." className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 resize-none" />
-              </div>
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Documento de Justificacao</label>
-                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(e) => setJustForm(Object.assign({}, justForm, { documento: e.target.files[0] }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[12px] file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
-                <p className="text-[11px] text-slate-400 mt-1">PDF, imagem ou documento (max 10MB)</p>
-              </div>
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setJustificarModal({ open: false, item: null })} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50">Cancelar</button>
-                <button onClick={handleJustificar} disabled={justSaving} className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700 disabled:opacity-40">
-                  {justSaving ? "A guardar..." : "Confirmar Justificacao"}
-                </button>
-              </div>
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/30" onClick={() => setConfirmModal({ open: false, titulo: "", mensagem: "", onConfirm: null })} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+            <h3 className="text-[15px] font-semibold text-slate-800 mb-2">{confirmModal.titulo}</h3>
+            <p className="text-[13px] text-slate-600 mb-5">{confirmModal.mensagem}</p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmModal({ open: false, titulo: "", mensagem: "", onConfirm: null })} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50">Cancelar</button>
+              <button onClick={async () => { var fn = confirmModal.onConfirm; setConfirmModal({ open: false, titulo: "", mensagem: "", onConfirm: null }); if (fn) await fn(); }} className="flex-1 py-2 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600">Confirmar</button>
             </div>
           </div>
         </div>

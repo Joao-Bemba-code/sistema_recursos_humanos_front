@@ -266,7 +266,7 @@ export default function ConfiguracoesPage() {
                         {orgLogoUrl ? (
                           <div className="space-y-3">
                             <div className="w-full h-24 flex items-center justify-center bg-white rounded-lg border border-outline-variant/20 overflow-hidden">
-                              <img src={orgLogoUrl.startsWith("http") ? orgLogoUrl : "http://localhost:8000" + orgLogoUrl} alt="Logo" className="max-h-20 max-w-full object-contain" />
+                              <img src={orgLogoUrl} alt="Logo" className="max-h-20 max-w-full object-contain" />
                             </div>
                             <label className="cursor-pointer text-[11px] font-semibold text-primary hover:underline block">
                               <input type="file" accept="image/*" onChange={handleUploadLogo} className="hidden" />

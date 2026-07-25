@@ -76,7 +76,7 @@ export default function PortalPage() {
   var [showFeriasModal, setShowFeriasModal] = useState(false);
   var [showAdiantamentoModal, setShowAdiantamentoModal] = useState(false);
   var [showPasswordModal, setShowPasswordModal] = useState(false);
-  var [justificacaoForm, setJustificacaoForm] = useState({ data: "", tipo: "Atestado_Medico", ficheiro: null });
+  var [justificacaoForm, setJustificacaoForm] = useState({ falta: null, tipo: "Atestado_Medico", ficheiro: null });
   var [feriasForm, setFeriasForm] = useState({ titulo: "", descricao: "", data_inicio: "", data_fim: "" });
   var [adiantamentoForm, setAdiantamentoForm] = useState({ titulo: "", descricao: "", valor: "" });
   var [passwordForm, setPasswordForm] = useState({ atual: "", nova: "", confirmar: "" });
@@ -150,15 +150,16 @@ export default function PortalPage() {
 
   var handleSubmitJustificacao = function (e) {
     e.preventDefault();
+    if (!justificacaoForm.falta) return;
     setSubmitting(true);
     var formData = new FormData();
     formData.append("tipo", "justificacao");
     formData.append("titulo", "Justificação de Falta");
-    formData.append("descricao", "Tipo: " + justificacaoForm.tipo);
-    formData.append("dados", JSON.stringify({ data: justificacaoForm.data, tipo: justificacaoForm.tipo }));
+    formData.append("descricao", "Tipo: " + justificacaoForm.tipo + " - Data: " + justificacaoForm.falta.data);
+    formData.append("dados", JSON.stringify({ data: justificacaoForm.falta.data, tipo: justificacaoForm.tipo, registos_presenca_id: justificacaoForm.falta.id }));
     if (justificacaoForm.ficheiro) formData.append("ficheiro", justificacaoForm.ficheiro);
     api.upload("/api/pedidos", formData).then(function () {
-      setJustificacaoForm({ data: "", tipo: "Atestado_Medico", ficheiro: null });
+      setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null });
       return api.get("/api/portal/stats");
     }).then(function (res) { if (res && res.dados) setPortalData(res.dados); })
       .catch(function () {}).finally(function () { setSubmitting(false); });
@@ -179,6 +180,8 @@ export default function PortalPage() {
   var ferias = portalData ? portalData.ferias : { disponiveis: 0, gozados: 0, planeados: 0 };
   var avaliacoes = portalData ? portalData.avaliacoes : { pontuacao: 0, ciclos: [] };
   var pedidosRecentes = portalData ? (portalData.pedidos_recentes || []) : [];
+  var faltas = portalData ? (portalData.faltas || []) : [];
+  var faltasNaoJustificadas = faltas.filter(function (f) { return !f.justificado; });
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -247,31 +250,98 @@ export default function PortalPage() {
       </div>
 
       <section className="bg-white border border-slate-200 rounded-xl p-5">
-        <h2 className="text-[14px] font-semibold text-slate-700 mb-3">Justificar Falta</h2>
-        <form onSubmit={handleSubmitJustificacao}>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-            <input type="date" value={justificacaoForm.data} onChange={function (e) { setJustificacaoForm(Object.assign({}, justificacaoForm, { data: e.target.value })); }} required className="px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-            <select value={justificacaoForm.tipo} onChange={function (e) { setJustificacaoForm(Object.assign({}, justificacaoForm, { tipo: e.target.value })); }} className="px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
-              <option value="Atestado_Medico">Atestado Médico</option>
-              <option value="Assuntos_Pessoais">Assuntos Pessoais</option>
-              <option value="Formacao_Externa">Formação Externa</option>
-            </select>
-            <button type="submit" disabled={submitting || !justificacaoForm.data} className="py-2 text-[13px] font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40">
-              {submitting ? "A enviar..." : "Submeter"}
-            </button>
+        <h2 className="text-[14px] font-semibold text-slate-700 mb-3">Faltas e Atrasos</h2>
+        {faltas.length === 0 ? (
+          <p className="text-[12px] text-slate-400">Sem faltas ou atrasos registados</p>
+        ) : (
+          <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Data</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Tipo</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Estado</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Acção</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {faltas.map(function (f, i) {
+                  return (
+                    <tr key={f.id || i} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-2.5 text-[12px] text-slate-600">{formatDate(f.data)}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + (f.estado === "Ausente" ? "bg-red-50 text-red-700 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200")}>
+                          {f.estado === "Ausente" ? "Falta" : "Atraso"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {f.justificado ? (
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Justificado</span>
+                        ) : (
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200">Não justificado</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        {!f.justificado && (
+                          <button onClick={function () { setJustificacaoForm({ falta: f, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[11px] font-medium text-primary hover:underline px-2 py-1 rounded hover:bg-primary/5">
+                            Justificar
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          <div
-            className={"border border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors text-[12px] " + (uploadDrag ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-400 hover:border-slate-300")}
-            onDragOver={function (e) { e.preventDefault(); setUploadDrag(true); }}
-            onDragLeave={function () { setUploadDrag(false); }}
-            onDrop={handleFileDrop}
-            onClick={function () { if (fileInputRef.current) fileInputRef.current.click(); }}
-          >
-            {justificacaoForm.ficheiro ? justificacaoForm.ficheiro.name : "Anexar comprovativo (PDF, imagem)"}
-            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileSelect} />
-          </div>
-        </form>
+        )}
       </section>
+
+      {justificacaoForm.falta && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/30" onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[15px] font-semibold text-slate-800">Justificar {justificacaoForm.falta.estado === "Ausente" ? "Falta" : "Atraso"}</h3>
+              <button onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 text-[13px] text-slate-600 mb-3">
+              <p><span className="font-semibold">Data:</span> {formatDate(justificacaoForm.falta.data)}</p>
+              {justificacaoForm.falta.hora_entrada && <p><span className="font-semibold">Entrada:</span> {justificacaoForm.falta.hora_entrada}</p>}
+              {justificacaoForm.falta.observacoes && <p><span className="font-semibold">Observações:</span> {justificacaoForm.falta.observacoes}</p>}
+            </div>
+            <form onSubmit={handleSubmitJustificacao} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Tipo de Justificação</label>
+                <select value={justificacaoForm.tipo} onChange={function (e) { setJustificacaoForm(Object.assign({}, justificacaoForm, { tipo: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
+                  <option value="Atestado_Medico">Atestado Médico</option>
+                  <option value="Assuntos_Pessoais">Assuntos Pessoais</option>
+                  <option value="Formacao_Externa">Formação Externa</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Comprovativo</label>
+                <div
+                  className={"border border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors text-[12px] " + (uploadDrag ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-400 hover:border-slate-300")}
+                  onDragOver={function (e) { e.preventDefault(); setUploadDrag(true); }}
+                  onDragLeave={function () { setUploadDrag(false); }}
+                  onDrop={handleFileDrop}
+                  onClick={function () { if (fileInputRef.current) fileInputRef.current.click(); }}
+                >
+                  {justificacaoForm.ficheiro ? justificacaoForm.ficheiro.name : "Anexar comprovativo (PDF, imagem)"}
+                  <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileSelect} />
+                </div>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
+                <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700 transition-colors disabled:opacity-40">
+                  {submitting ? "A enviar..." : "Submeter Justificação"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <section className="bg-white border border-slate-200 rounded-xl p-5">
         <h2 className="text-[14px] font-semibold text-slate-700 mb-3">Pedidos Recentes</h2>
