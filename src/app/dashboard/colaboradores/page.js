@@ -9,7 +9,8 @@ import FileUpload from "@/components/ui/FileUpload";
 
 var imageUrl = function (path) {
   if (!path) return "";
-  return path.replace(/&#x2F;/g, "/").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
+  var decoded = path.replace(/&#x2F;/g, "/").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
+  return api.baseURL + decoded;
 };
 
 export default function ColaboradoresPage() {

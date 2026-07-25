@@ -1,4 +1,4 @@
-var API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+var API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api-nexushr.onrender.com";
 
 var api = {
   baseURL: API_BASE,
