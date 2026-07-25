@@ -1,12 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import TopNavBar from "@/components/layout/TopNavBar";
 
+var ADMIN_ROUTES = [
+  "/dashboard",
+  "/dashboard/colaboradores",
+  "/dashboard/contratos",
+  "/dashboard/departamentos",
+  "/dashboard/assiduidade",
+  "/dashboard/faltas",
+  "/dashboard/ferias",
+  "/dashboard/avaliacao",
+  "/dashboard/formacao",
+  "/dashboard/folha-salarial",
+  "/dashboard/relatorios",
+  "/dashboard/configuracoes",
+  "/dashboard/pedidos",
+];
+
 export default function DashboardLayout({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const auth = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -14,13 +31,16 @@ export default function DashboardLayout({ children }) {
     if (auth && !auth.loading && !auth.isAuthenticated) {
       router.push("/login");
     }
+  }, [auth, router]);
+
+  useEffect(() => {
     if (auth && !auth.loading && auth.isAuthenticated && auth.utilizador) {
       const perfilNome = auth.utilizador.perfil ? auth.utilizador.perfil.nome : "";
-      if (perfilNome === "Colaborador" && window.location.pathname === "/dashboard") {
+      if (perfilNome === "Colaborador" && ADMIN_ROUTES.includes(pathname)) {
         router.push("/dashboard/portal");
       }
     }
-  }, [auth, router]);
+  }, [auth, router, pathname]);
 
   if (auth && auth.loading) {
     return (

@@ -21,6 +21,9 @@ export default function FaltasPage() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ colaborador_id: "", data: "", estado: "Ausente", hora_entrada: "", hora_saida: "", observacoes: "" });
   const [saving, setSaving] = useState(false);
+  const [justificarModal, setJustificarModal] = useState({ open: false, item: null });
+  const [justForm, setJustForm] = useState({ observacoes: "", documento: null });
+  const [justSaving, setJustSaving] = useState(false);
 
   const carregarResumo = async () => {
     setLoading(true);
@@ -100,8 +103,48 @@ export default function FaltasPage() {
     }
   };
 
+  const handleJustificar = async () => {
+    if (!justificarModal.item) return;
+    setJustSaving(true);
+    try {
+      var formData = new FormData();
+      formData.append("justificacao_observacoes", justForm.observacoes || "");
+      if (justForm.documento) {
+        formData.append("documento", justForm.documento);
+      }
+      await api.upload("/api/faltas/justificar/" + justificarModal.item.id, formData);
+      setJustificarModal({ open: false, item: null });
+      setJustForm({ observacoes: "", documento: null });
+      carregarResumo();
+      carregarRegistos(pagina);
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setJustSaving(false);
+    }
+  };
+
+  const handleRemoverJustificacao = async (id) => {
+    if (!confirm("Tem certeza que deseja remover esta justificacao?")) return;
+    try {
+      await api.delete("/api/faltas/justificar/" + id);
+      carregarResumo();
+      carregarRegistos(pagina);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
   const formatCurrency = (v) => {
     return parseFloat(v || 0).toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " AOA";
+  };
+
+  const formatHorasDesconto = (horas) => {
+    var h = Math.floor(horas);
+    var m = Math.round((horas - h) * 60);
+    if (h > 0 && m > 0) return h + "h " + m + "min";
+    if (h > 0) return h + "h";
+    return m + "min";
   };
 
   const totais = resumo ? resumo.totais : { total_faltas: 0, total_atrasos: 0, total_desconto: 0 };
@@ -184,8 +227,8 @@ export default function FaltasPage() {
                 <tr>
                   <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Colaborador</th>
                   <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Faltas</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Justificadas</th>
                   <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Atrasos</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Min. Atraso</th>
                   <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Horas Desc.</th>
                   <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-right">Desconto</th>
                   <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Detalhe</th>
@@ -202,10 +245,12 @@ export default function FaltasPage() {
                       {r.total_faltas > 0 ? <span className="text-[13px] font-bold text-red-600">{r.total_faltas}</span> : <span className="text-[12px] text-slate-300">0</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center">
+                      {r.total_faltas_justificadas > 0 ? <span className="text-[13px] font-bold text-emerald-600">{r.total_faltas_justificadas}</span> : <span className="text-[12px] text-slate-300">0</span>}
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
                       {r.total_atrasos > 0 ? <span className="text-[13px] font-bold text-amber-600">{r.total_atrasos}</span> : <span className="text-[12px] text-slate-300">0</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-center text-[12px] text-slate-500">{r.minutos_atraso_total} min</td>
-                    <td className="px-4 py-2.5 text-center text-[12px] text-slate-500">{r.horas_descontar.toFixed(1)} h</td>
+                    <td className="px-4 py-2.5 text-center text-[12px] text-slate-500">{formatHorasDesconto(r.horas_descontar)}</td>
                     <td className="px-4 py-2.5 text-right text-[13px] font-semibold text-slate-700">{formatCurrency(r.desconto_previsto)}</td>
                     <td className="px-4 py-2.5 text-center">
                       <button onClick={() => { setDetalhe(r); setDetalheOpen(true); }} className="text-[12px] font-medium text-primary hover:underline">Ver</button>
@@ -233,9 +278,11 @@ export default function FaltasPage() {
                     <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Colaborador</th>
                     <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Data</th>
                     <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Tipo</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Estado</th>
                     <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Entrada</th>
                     <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Saida</th>
                     <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Observacoes</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Acções</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -248,9 +295,40 @@ export default function FaltasPage() {
                           {r.estado === "Ausente" ? "Falta" : "Atraso"}
                         </span>
                       </td>
+                      <td className="px-4 py-2.5">
+                        {r.justificado ? (
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Justificado
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200">
+                            Nao justificado
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-2.5 text-[12px] text-slate-500">{r.hora_entrada || "—"}</td>
                       <td className="px-4 py-2.5 text-[12px] text-slate-500">{r.hora_saida || "—"}</td>
                       <td className="px-4 py-2.5 text-[12px] text-slate-400 max-w-[200px] truncate">{r.observacoes || "—"}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          {r.justificado ? (
+                            <>
+                              {r.documento_justificacao && (
+                                <a href={"http://localhost:8000" + r.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-emerald-600 hover:underline px-1.5 py-0.5 rounded hover:bg-emerald-50">
+                                  Ver Doc
+                                </a>
+                              )}
+                              <button onClick={() => handleRemoverJustificacao(r.id)} className="text-[11px] font-medium text-red-500 hover:underline px-1.5 py-0.5 rounded hover:bg-red-50">
+                                Remover
+                              </button>
+                            </>
+                          ) : (
+                            <button onClick={() => { setJustificarModal({ open: true, item: r }); setJustForm({ observacoes: "", documento: null }); }} className="text-[11px] font-medium text-primary hover:underline px-1.5 py-0.5 rounded hover:bg-primary/5">
+                              Justificar
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -272,7 +350,7 @@ export default function FaltasPage() {
       {detalheOpen && detalhe && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setDetalheOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg p-5">
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-semibold text-slate-800">{detalhe.nome_completo}</h3>
               <button onClick={() => setDetalheOpen(false)} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
@@ -287,8 +365,8 @@ export default function FaltasPage() {
                 <p className="text-[11px] text-slate-400">Atrasos</p>
               </div>
               <div className="bg-slate-50 rounded-lg p-3 text-center">
-                <p className="text-[20px] font-bold text-slate-700">{detalhe.horas_descontar.toFixed(1)}h</p>
-                <p className="text-[11px] text-slate-400">Horas a Descontar</p>
+                <p className="text-[20px] font-bold text-emerald-600">{detalhe.total_faltas_justificadas + detalhe.total_atrasos_justificados}</p>
+                <p className="text-[11px] text-slate-400">Justificados</p>
               </div>
               <div className="bg-slate-50 rounded-lg p-3 text-center">
                 <p className="text-[20px] font-bold text-primary">{formatCurrency(detalhe.desconto_previsto)}</p>
@@ -300,9 +378,19 @@ export default function FaltasPage() {
                 <h4 className="text-[12px] font-semibold text-slate-600 mb-2">Faltas</h4>
                 <div className="space-y-1">
                   {detalhe.faltas_detalhe.map((f, i) => (
-                    <div key={i} className="flex justify-between text-[12px] text-slate-500 py-1 border-b border-slate-100 last:border-0">
-                      <span>{formatDate(f.data)}</span>
-                      <span className="text-slate-400">{f.observacoes || "Sem obs."}</span>
+                    <div key={i} className="flex items-center justify-between text-[12px] text-slate-500 py-1.5 border-b border-slate-100 last:border-0">
+                      <div className="flex items-center gap-2">
+                        <span>{formatDate(f.data)}</span>
+                        {f.justificado && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200">Justificado</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400">{f.observacoes || ""}</span>
+                        {f.justificado && f.documento_justificacao && (
+                          <a href={"http://localhost:8000" + f.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -313,10 +401,20 @@ export default function FaltasPage() {
                 <h4 className="text-[12px] font-semibold text-slate-600 mb-2">Atrasos</h4>
                 <div className="space-y-1">
                   {detalhe.atrasos_detalhe.map((a, i) => (
-                    <div key={i} className="flex justify-between text-[12px] text-slate-500 py-1 border-b border-slate-100 last:border-0">
-                      <span>{formatDate(a.data)}</span>
-                      <span>Entrada: {a.hora_entrada}</span>
-                      <span className="text-amber-600 font-medium">+{a.minutos} min</span>
+                    <div key={i} className="flex items-center justify-between text-[12px] text-slate-500 py-1.5 border-b border-slate-100 last:border-0">
+                      <div className="flex items-center gap-2">
+                        <span>{formatDate(a.data)}</span>
+                        <span>Entrada: {a.hora_entrada}</span>
+                        {a.justificado && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200">Justificado</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-amber-600 font-medium">+{a.minutos} min</span>
+                        {a.justificado && a.documento_justificacao && (
+                          <a href={"http://localhost:8000" + a.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -375,6 +473,39 @@ export default function FaltasPage() {
                 <button type="submit" disabled={saving || !form.colaborador_id || !form.data} className="flex-1 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 disabled:opacity-40">{saving ? "A guardar..." : "Guardar"}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {justificarModal.open && justificarModal.item && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/30" onClick={() => setJustificarModal({ open: false, item: null })} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[15px] font-semibold text-slate-800">Justificar {justificarModal.item.estado === "Ausente" ? "Falta" : "Atraso"}</h3>
+              <button onClick={() => setJustificarModal({ open: false, item: null })} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
+            </div>
+            <div className="space-y-3">
+              <div className="bg-slate-50 rounded-lg p-3 text-[13px] text-slate-600">
+                <p><span className="font-semibold">Data:</span> {formatDate(justificarModal.item.data)}</p>
+                {justificarModal.item.hora_entrada && <p><span className="font-semibold">Entrada:</span> {justificarModal.item.hora_entrada}</p>}
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Observacoes da Justificacao</label>
+                <textarea value={justForm.observacoes} onChange={(e) => setJustForm(Object.assign({}, justForm, { observacoes: e.target.value }))} rows={3} placeholder="Descreva o motivo da justificacao..." className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 resize-none" />
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Documento de Justificacao</label>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(e) => setJustForm(Object.assign({}, justForm, { documento: e.target.files[0] }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[12px] file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                <p className="text-[11px] text-slate-400 mt-1">PDF, imagem ou documento (max 10MB)</p>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setJustificarModal({ open: false, item: null })} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50">Cancelar</button>
+                <button onClick={handleJustificar} disabled={justSaving} className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700 disabled:opacity-40">
+                  {justSaving ? "A guardar..." : "Confirmar Justificacao"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

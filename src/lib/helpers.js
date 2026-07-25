@@ -152,7 +152,7 @@ var debounce = function (fn, delay) {
   };
 };
 
-module.exports = {
+export {
   formatCurrency,
   formatDate,
   formatDateTime,
@@ -162,3 +162,16 @@ module.exports = {
   truncate,
   debounce,
 };
+
+var helpers = {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatPhone,
+  getInitials,
+  getEstadoBadgeClass,
+  truncate,
+  debounce,
+};
+
+export default helpers;

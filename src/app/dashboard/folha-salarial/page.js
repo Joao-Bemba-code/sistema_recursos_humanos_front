@@ -31,6 +31,7 @@ export default function FolhaSalarialPage() {
   const [editando, setEditando] = useState(null);
   const [viewItem, setViewItem] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, nome: "" });
+  const [recalculando, setRecalculando] = useState(false);
 
   const [form, setForm] = useState({});
 
@@ -44,7 +45,7 @@ export default function FolhaSalarialPage() {
   const defaultFormPag = {
     colaborador_id: "", mes: "", ano: "", salario_base: "",
     subsidios: "", horas_extras: "", descontos: "", irt: "",
-    seguranca_social: "", data_pagamento: "", estado: "Pendente"
+    seguranca_social: "", desconto_faltas: "", data_pagamento: "", estado: "Pendente"
   };
 
   const loadColaboradores = async () => {
@@ -115,7 +116,8 @@ export default function FolhaSalarialPage() {
     var desc = parseFloat(f.descontos) || 0;
     var irt = parseFloat(f.irt) || 0;
     var ss = parseFloat(f.seguranca_social) || 0;
-    return sb + sub + he - desc - irt - ss;
+    var df = parseFloat(f.desconto_faltas) || 0;
+    return sb + sub + he - desc - irt - ss - df;
   };
 
   const abrirNovo = () => {
@@ -153,6 +155,7 @@ export default function FolhaSalarialPage() {
         descontos: item.descontos || "",
         irt: item.irt || "",
         seguranca_social: item.seguranca_social || "",
+        desconto_faltas: item.desconto_faltas || "",
         data_pagamento: item.data_pagamento ? item.data_pagamento.substring(0, 10) : "",
         estado: item.estado || "Pendente"
       });
@@ -209,6 +212,22 @@ export default function FolhaSalarialPage() {
       carregar(paginacao.pagina);
     } catch (e) {
       setMsg({ tipo: "erro", texto: e.message });
+    }
+  };
+
+  const recalcularFaltas = async (id) => {
+    setRecalculando(true);
+    try {
+      var data = await api.post(`/api/folha-salarial/pagamentos/${id}/recalcular-faltas`);
+      setMsg({ tipo: "sucesso", texto: "Desconto de faltas recalculado com sucesso" });
+      if (viewItem && viewItem.id === id) {
+        setViewItem(data.dados);
+      }
+      carregar(paginacao.pagina);
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message });
+    } finally {
+      setRecalculando(false);
     }
   };
 
@@ -562,6 +581,7 @@ export default function FolhaSalarialPage() {
                           <span>Descontos: {helpers.formatCurrency(item.descontos)}</span>
                           <span>IRT: {helpers.formatCurrency(item.irt)}</span>
                           <span>SS: {helpers.formatCurrency(item.seguranca_social)}</span>
+                          {(parseFloat(item.desconto_faltas) || 0) > 0 && <span className="text-red-600 font-semibold">Faltas: -{helpers.formatCurrency(item.desconto_faltas)}</span>}
                         </div>
                       </td>
                       <td className="px-4 py-4">
@@ -748,6 +768,10 @@ export default function FolhaSalarialPage() {
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Seguranca Social</label>
                     <input type="number" step="0.01" name="seguranca_social" value={form.seguranca_social || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Desconto Faltas</label>
+                    <input type="number" step="0.01" name="desconto_faltas" value={form.desconto_faltas || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
 
                   <div className="sm:col-span-2 bg-success/5 border border-success/10 rounded-lg p-3 mt-1">
@@ -940,6 +964,7 @@ export default function FolhaSalarialPage() {
                         ["Descontos", helpers.formatCurrency(viewItem.descontos)],
                         ["IRT", helpers.formatCurrency(viewItem.irt)],
                         ["Seguranca Social", helpers.formatCurrency(viewItem.seguranca_social)],
+                        ["Desconto Faltas", helpers.formatCurrency(viewItem.desconto_faltas)],
                       ].map(function(pair) {
                         return (
                           <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -956,6 +981,13 @@ export default function FolhaSalarialPage() {
                       <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Total Liquido</span>
                       <span className="text-[20px] font-bold text-primary">{helpers.formatCurrency(viewItem.total_liquido)}</span>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => recalcularFaltas(viewItem.id)} disabled={recalculando} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-50 text-amber-700 text-[12px] font-semibold hover:bg-amber-100 transition-all border border-amber-200 disabled:opacity-50">
+                      <span className="material-symbols-outlined text-[16px]">refresh</span>
+                      {recalculando ? "A recalcular..." : "Recalcular Desconto Faltas"}
+                    </button>
                   </div>
 
                   {viewItem.recibo && (

@@ -120,23 +120,19 @@ export default function DepartamentosPage() {
     var doc = new jsPDF();
     var pw = doc.internal.pageSize.getWidth();
 
-    doc.setFillColor(0, 62, 199);
-    doc.rect(0, 0, pw, 30, "F");
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(30, 30, 30);
     doc.setFontSize(16);
-    doc.text("CENFFOR", 15, 13);
-    doc.setFontSize(9);
-    doc.text("Ficha do Departamento", 15, 20);
+    doc.text("CENFFOR", 15, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Ficha do Departamento", 15, 28);
 
-    doc.setTextColor(50, 50, 50);
-    doc.setFillColor(245, 247, 252);
-    doc.roundedRect(15, 37, pw - 30, 10, 2, 2, "F");
-    doc.setFontSize(12);
-    doc.setTextColor(0, 62, 199);
-    doc.text(d.nome || "Sem Nome", 20, 44);
-    doc.setTextColor(50, 50, 50);
+    doc.setFontSize(14);
+    doc.setTextColor(30, 30, 30);
+    doc.text(d.nome || "Sem Nome", 15, 42);
     doc.setFontSize(9);
-    doc.text("Código: " + (d.codigo || "—"), 80, 44);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Código: " + (d.codigo || "—"), 15, 50);
 
     var y = 58;
     var rows = [
@@ -150,7 +146,7 @@ export default function DepartamentosPage() {
     }
 
     doc.setFontSize(10);
-    doc.setTextColor(0, 62, 199);
+    doc.setTextColor(60, 60, 60);
     doc.text("DADOS DO DEPARTAMENTO", 15, y);
     y += 7;
     doc.setFontSize(8);
@@ -164,9 +160,6 @@ export default function DepartamentosPage() {
     });
 
     var fY = doc.internal.pageSize.getHeight() - 12;
-    doc.setDrawColor(0, 62, 199);
-    doc.setLineWidth(0.3);
-    doc.line(15, fY - 4, pw - 15, fY - 4);
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
     doc.text("CENFFOR - SGHR | Gerado: " + new Date().toLocaleDateString("pt-AO"), 15, fY);

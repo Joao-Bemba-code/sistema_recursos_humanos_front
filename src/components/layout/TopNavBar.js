@@ -144,7 +144,7 @@ export default function TopNavBar() {
             >
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            <Link href="/dashboard" className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
+            <Link href={isColaborador ? "/dashboard/portal" : "/dashboard"} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
             <nav className="hidden lg:flex items-center gap-8">
               {mainItems.map((item) => {
                 const isActive = pathname === item.href;
@@ -250,7 +250,7 @@ export default function TopNavBar() {
                     <p className="text-[13px] font-semibold text-on-surface">{utilizador ? utilizador.nome_completo : ""}</p>
                     <p className="text-[11px] text-on-surface-variant/60">{utilizador ? utilizador.email : ""}</p>
                   </div>
-                  <Link href="/dashboard/configuracoes" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
+                  <Link href={isColaborador ? "/dashboard/portal" : "/dashboard/configuracoes"} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
                     <span className="material-symbols-outlined text-[18px]">person</span>
                     {isColaborador ? "Os Meus Dados" : "Meu Perfil"}
                   </Link>
@@ -277,7 +277,7 @@ export default function TopNavBar() {
           <div className="fixed inset-0 bg-scrim/50" onClick={() => setMobileOpen(false)} />
           <div className="fixed inset-y-0 left-0 w-72 bg-surface shadow-2xl flex flex-col animate-slide-in">
             <div className="px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between">
-              <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
+              <Link href={isColaborador ? "/dashboard/portal" : "/dashboard"} onClick={() => setMobileOpen(false)} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
               <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-black/5 text-on-surface-variant">
                 <span className="material-symbols-outlined text-[22px]">close</span>
               </button>

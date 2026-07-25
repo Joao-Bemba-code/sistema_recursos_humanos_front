@@ -19,23 +19,21 @@ var TIPOS_DEPT = [
 function buildPdfHeader(title) {
   var doc = new jsPDF();
   var pw = doc.internal.pageSize.getWidth();
-  doc.setFillColor(0, 62, 199);
-  doc.rect(0, 0, pw, 30, "F");
-  doc.setTextColor(255, 255, 255);
+  doc.setTextColor(30, 30, 30);
   doc.setFontSize(16);
-  doc.text("CENFFOR", 15, 13);
+  doc.text("CENFFOR", 15, 18);
   doc.setFontSize(9);
-  doc.text("Centro de Formacao Profissional", 15, 20);
-  doc.text(title, 15, 26);
+  doc.setTextColor(100, 100, 100);
+  doc.text("Centro de Formacao Profissional", 15, 25);
+  doc.setFontSize(14);
+  doc.setTextColor(30, 30, 30);
+  doc.text(title, 15, 35);
   return { doc: doc, pw: pw };
 }
 
 function addPdfFooter(doc) {
   var pw = doc.internal.pageSize.getWidth();
   var fY = doc.internal.pageSize.getHeight() - 12;
-  doc.setDrawColor(0, 62, 199);
-  doc.setLineWidth(0.3);
-  doc.line(15, fY - 4, pw - 15, fY - 4);
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
   doc.text("CENFFOR - SGHR | Gerado em: " + new Date().toLocaleDateString("pt-AO"), 15, fY);
@@ -103,7 +101,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " colaborador(es)", 15, 37);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " colaborador(es)", 15, 44);
 
     var rows = dados.map(function (c) {
       return [
@@ -116,11 +114,11 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 42,
+      startY: 52,
       head: [["Número", "Nome Completo", "Tipo", "Estado", "Admissão"]],
       body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [0, 62, 199], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
+      headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
       alternateRowStyles: { fillColor: [245, 247, 252] },
       columnStyles: {
         0: { cellWidth: 25 },
@@ -144,7 +142,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " contrato(s)", 15, 37);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " contrato(s)", 15, 44);
 
     var rows = dados.map(function (c) {
       return [
@@ -159,11 +157,11 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 42,
+      startY: 52,
       head: [["Número", "Colaborador", "Tipo", "Início", "Fim", "Salário", "Estado"]],
       body: rows,
-      styles: { fontSize: 7, cellPadding: 2.5 },
-      headStyles: { fillColor: [0, 62, 199], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 7, cellPadding: 2.5, lineWidth: 0 },
+      headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
       alternateRowStyles: { fillColor: [245, 247, 252] },
       columnStyles: {
         0: { cellWidth: 22 },
@@ -189,7 +187,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " departamento(s)", 15, 37);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " departamento(s)", 15, 44);
 
     var rows = dados.map(function (d) {
       return [
@@ -203,11 +201,11 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 42,
+      startY: 52,
       head: [["Nome", "Código", "Tipo", "Responsável", "Telefone", "Email"]],
       body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [0, 62, 199], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
+      headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
       alternateRowStyles: { fillColor: [245, 247, 252] },
       columnStyles: {
         0: { cellWidth: 35 },
@@ -232,7 +230,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", 15, 37);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", 15, 44);
 
     var rows = dados.map(function (f) {
       var nome = "—";
@@ -253,11 +251,11 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 42,
+      startY: 52,
       head: [["Colaborador", "Data de Início", "Data de Fim", "Dias", "Estado"]],
       body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [0, 62, 199], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
+      headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
       alternateRowStyles: { fillColor: [245, 247, 252] },
       columnStyles: {
         0: { cellWidth: 50 },
@@ -281,7 +279,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", 15, 37);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", 15, 44);
 
     var rows = dados.map(function (a) {
       var nome = "—";
@@ -301,11 +299,11 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 42,
+      startY: 52,
       head: [["Colaborador", "Data", "Horas", "Estado"]],
       body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [0, 62, 199], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
+      headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
       alternateRowStyles: { fillColor: [245, 247, 252] },
       columnStyles: {
         0: { cellWidth: 55 },
@@ -328,7 +326,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " curso(s)", 15, 37);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " curso(s)", 15, 44);
 
     var rows = dados.map(function (f) {
       return [
@@ -342,11 +340,11 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 42,
+      startY: 52,
       head: [["Nome", "Tipo", "Início", "Fim", "Horas", "Estado"]],
       body: rows,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [0, 62, 199], textColor: [255, 255, 255], fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
+      headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
       alternateRowStyles: { fillColor: [245, 247, 252] },
       columnStyles: {
         0: { cellWidth: 40 },

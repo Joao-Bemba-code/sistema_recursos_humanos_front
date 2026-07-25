@@ -7,6 +7,11 @@ import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, GENEROS, ESTADOS_CIVIS } from "
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import FileUpload from "@/components/ui/FileUpload";
 
+var imageUrl = function (path) {
+  if (!path) return "";
+  return path.replace(/&#x2F;/g, "/").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
+};
+
 export default function ColaboradoresPage() {
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -286,7 +291,7 @@ export default function ColaboradoresPage() {
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full overflow-hidden border border-outline-variant/30 shadow-sm bg-primary/10 flex items-center justify-center flex-shrink-0">
                           {c.fotografia ? (
-                            <img src={c.fotografia} alt="" className="w-full h-full object-cover" />
+                            <img src={imageUrl(c.fotografia)} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-[12px] font-bold text-primary">{helpers.getInitials(c.nome_completo)}</span>
                           )}
@@ -599,7 +604,7 @@ export default function ColaboradoresPage() {
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-outline-variant/30 shadow-md bg-primary/10 flex items-center justify-center shrink-0">
                   {colaboradorView.fotografia ? (
-                    <img src={colaboradorView.fotografia} alt="" className="w-full h-full object-cover" />
+                    <img src={imageUrl(colaboradorView.fotografia)} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-2xl font-bold text-primary">{helpers.getInitials(colaboradorView.nome_completo)}</span>
                   )}
@@ -738,7 +743,7 @@ export default function ColaboradoresPage() {
                   <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
                     <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Fotografia</p>
                     {colaboradorView.fotografia ? (
-                      <a href={colaboradorView.fotografia} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
+                      <a href={imageUrl(colaboradorView.fotografia)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
                         <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                         Ver Ficheiro
                       </a>
