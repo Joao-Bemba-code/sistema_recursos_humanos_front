@@ -52,50 +52,50 @@
 }
 
 .dark {
-  --color-primary: #7c9aff;
-  --color-primary-hover: #8ba7ff;
-  --color-primary-light: #1a2744;
-  --color-primary-container: #004dd6;
-  --color-on-primary: #001b5e;
+  --color-primary: #58a6ff;
+  --color-primary-hover: #79c0ff;
+  --color-primary-light: #0d1f3c;
+  --color-primary-container: #1f6feb;
+  --color-on-primary: #0d1117;
 
-  --color-secondary: #a3a5ff;
-  --color-secondary-container: #2e2f9e;
-  --color-on-secondary: #1a1b6e;
+  --color-secondary: #bc8cff;
+  --color-secondary-container: #6e40c9;
+  --color-on-secondary: #0d1117;
 
-  --color-surface: #111318;
-  --color-surface-card: #1a1d24;
-  --color-surface-container: #1e2129;
-  --color-surface-container-low: #191c22;
-  --color-surface-container-lowest: #0c0e12;
-  --color-surface-container-high: #292d36;
-  --color-surface-container-highest: #343842;
-  --color-surface-dim: #111318;
-  --color-surface-variant: #292d36;
+  --color-surface: #0d1117;
+  --color-surface-card: #161b22;
+  --color-surface-container: #21262d;
+  --color-surface-container-low: #161b22;
+  --color-surface-container-lowest: #0d1117;
+  --color-surface-container-high: #30363d;
+  --color-surface-container-highest: #30363d;
+  --color-surface-dim: #0d1117;
+  --color-surface-variant: #21262d;
 
-  --color-on-surface: #e2e2e9;
-  --color-on-surface-variant: #a0a3b0;
-  --color-on-background: #e2e2e9;
+  --color-on-surface: #e6edf3;
+  --color-on-surface-variant: #8b949e;
+  --color-on-background: #e6edf3;
 
-  --color-outline: #8a8d9a;
-  --color-outline-variant: #3d404a;
+  --color-outline: #8b949e;
+  --color-outline-variant: #30363d;
 
-  --color-error: #ffb4ab;
-  --color-error-container: #93000a;
+  --color-error: #f85149;
+  --color-error-container: #3d1214;
 
-  --color-success: #6dd68c;
-  --color-success-container: #0e5324;
+  --color-success: #3fb950;
+  --color-success-container: #0f2d14;
 
-  --color-warning: #f5c842;
-  --color-warning-container: #6b4d00;
+  --color-warning: #d29922;
+  --color-warning-container: #3d2e00;
 
-  --color-background: #111318;
-  --color-foreground: #e2e2e9;
+  --color-background: #0d1117;
+  --color-foreground: #e6edf3;
   --color-scrim: #000000;
 
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-card-hover: 0 10px 25px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.2);
-  --shadow-modal: 0 25px 50px rgba(0,0,0,0.5);
-  --shadow-dropdown: 0 4px 16px rgba(0,0,0,0.3);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-card-hover: 0 8px 24px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.4);
+  --shadow-modal: 0 16px 48px rgba(0,0,0,0.7);
+  --shadow-dropdown: 0 8px 24px rgba(0,0,0,0.6);
 }
 
 * {
@@ -141,8 +141,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 .dark .glass-panel {
-  background: rgba(30, 33, 41, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(22, 27, 34, 0.8);
+  border: 1px solid rgba(48, 54, 61, 0.6);
 }
 
 .glass-panel-hover {
@@ -202,11 +202,11 @@ input:focus, select:focus, textarea:focus {
 .badge-danger { background-color: rgba(186, 26, 26, 0.1); color: var(--color-error); }
 .badge-primary { background-color: rgba(0, 43, 146, 0.1); color: var(--color-primary); }
 .badge-secondary { background-color: rgba(70, 72, 212, 0.1); color: var(--color-secondary); }
-.dark .badge-success { background-color: rgba(109, 214, 140, 0.15); }
-.dark .badge-warning { background-color: rgba(245, 200, 66, 0.15); }
-.dark .badge-danger { background-color: rgba(255, 180, 171, 0.15); }
-.dark .badge-primary { background-color: rgba(124, 154, 255, 0.15); }
-.dark .badge-secondary { background-color: rgba(163, 165, 255, 0.15); }
+.dark .badge-success { background-color: rgba(63, 185, 80, 0.15); }
+.dark .badge-warning { background-color: rgba(210, 153, 34, 0.15); }
+.dark .badge-danger { background-color: rgba(248, 81, 73, 0.15); }
+.dark .badge-primary { background-color: rgba(88, 166, 255, 0.15); }
+.dark .badge-secondary { background-color: rgba(188, 140, 255, 0.15); }
 
 /* ===== CARD ===== */
 
@@ -522,3 +522,21 @@ table tr:hover td {
 .chart-wave {
   animation: chartWaveDrift 8s ease-in-out infinite;
 }
+
+/* ===== FADE IN STAGGER ===== */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
