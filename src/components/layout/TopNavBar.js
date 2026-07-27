@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import api from "@/lib/api";
 import { NAV_ITEMS } from "@/lib/constants";
 import { getT, getNavLabel, getGroupLabel } from "@/lib/translations";
@@ -22,6 +23,7 @@ export default function TopNavBar() {
   const [notifModal, setNotifModal] = useState(null);
   const menuRef = useRef(null);
   const notifRef = useRef(null);
+  var theme = useTheme();
   var T = getT();
 
   const allItems = NAV_ITEMS.flatMap((g) => g.items);
@@ -166,6 +168,9 @@ export default function TopNavBar() {
           </div>
 
           <div className="flex items-center gap-3 md:gap-5">
+            <button onClick={theme.toggle} className="p-1.5 rounded-lg hover:bg-black/5 text-on-surface-variant transition-colors" title={theme.dark ? "Modo Claro" : "Modo Escuro"}>
+              <span className="material-symbols-outlined text-[22px]">{theme.dark ? "light_mode" : "dark_mode"}</span>
+            </button>
             {!isColaborador && (
               <Link href="/dashboard/configuracoes" className="p-1.5 rounded-lg hover:bg-black/5 text-on-surface-variant transition-colors">
                 <span className="material-symbols-outlined text-[22px]">settings</span>

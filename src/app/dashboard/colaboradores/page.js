@@ -4,8 +4,14 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, GENEROS, ESTADOS_CIVIS } from "@/lib/constants";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import Badge from "@/components/ui/Badge";
+import Modal from "@/components/ui/Modal";
+import EmptyState from "@/components/ui/EmptyState";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import FileUpload from "@/components/ui/FileUpload";
+import { useToast } from "@/components/ui/Toast";
 
 var imageUrl = function (path) {
   if (!path) return "";
@@ -15,6 +21,7 @@ var imageUrl = function (path) {
 };
 
 export default function ColaboradoresPage() {
+  const toast = useToast();
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -25,7 +32,6 @@ export default function ColaboradoresPage() {
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, nome: "" });
   const [aba, setAba] = useState("pessoal");
   const [showViewModal, setShowViewModal] = useState(false);
@@ -44,7 +50,7 @@ export default function ColaboradoresPage() {
       setColaboradores(data.dados);
       setPaginacao(data.paginacao);
     } catch (e) {
-      setMsg({ tipo: "erro", texto: e.message });
+      toast.addToast("error", e.message);
     } finally {
       setLoading(false);
     }
@@ -97,15 +103,15 @@ export default function ColaboradoresPage() {
     try {
       if (editando) {
         await api.put(`/api/colaboradores/${editando.id}`, form);
-        setMsg({ tipo: "sucesso", texto: "Colaborador atualizado com sucesso" });
+        toast.addToast("success", "Colaborador atualizado com sucesso");
       } else {
         await api.post("/api/colaboradores", form);
-        setMsg({ tipo: "sucesso", texto: "Colaborador criado com sucesso" });
+        toast.addToast("success", "Colaborador criado com sucesso");
       }
       setShowModal(false);
       carregar(paginacao.pagina);
     } catch (e) {
-      setMsg({ tipo: "erro", texto: e.message });
+      toast.addToast("error", e.message);
     } finally {
       setSaving(false);
     }
@@ -114,22 +120,22 @@ export default function ColaboradoresPage() {
   const eliminar = async () => {
     try {
       await api.delete(`/api/colaboradores/${confirmDelete.id}`);
-      setMsg({ tipo: "sucesso", texto: "Colaborador desligado com sucesso" });
+      toast.addToast("success", "Colaborador desligado com sucesso");
       setConfirmDelete({ open: false, id: null, nome: "" });
       carregar(paginacao.pagina);
     } catch (e) {
-      setMsg({ tipo: "erro", texto: e.message });
+      toast.addToast("error", e.message);
     }
   };
 
   const mudarStatus = async (id, novoEstado) => {
     try {
       await api.put(`/api/colaboradores/${id}/status`, { estado: novoEstado });
-      setMsg({ tipo: "sucesso", texto: `Estado alterado para "${novoEstado}" com sucesso` });
+      toast.addToast("success", `Estado alterado para "${novoEstado}" com sucesso`);
       setStatusDropdown({ open: false, id: null });
       carregar(paginacao.pagina);
     } catch (e) {
-      setMsg({ tipo: "erro", texto: e.message });
+      toast.addToast("error", e.message);
       setStatusDropdown({ open: false, id: null });
     }
   };
@@ -199,17 +205,7 @@ export default function ColaboradoresPage() {
         </div>
       </section>
 
-      {msg && (
-        <div className={`p-3 rounded-lg text-[13px] font-medium flex items-center gap-2 ${msg.tipo === "sucesso" ? "badge-success border border-success/10" : "badge-danger border border-error/10"}`}>
-          <span className="material-symbols-outlined text-[18px]">{msg.tipo === "sucesso" ? "check_circle" : "error"}</span>
-          {msg.texto}
-          <button onClick={() => setMsg(null)} className="ml-auto hover:opacity-60">
-            <span className="material-symbols-outlined text-[16px]">close</span>
-          </button>
-        </div>
-      )}
-
-      <section className="glass-panel p-5 rounded-xl border border-outline-variant/30 shadow-sm">
+      <section className="card p-5">
         <div className="flex flex-col lg:flex-row gap-4 items-end">
           <div className="flex-grow space-y-2 w-full lg:w-auto">
             <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Buscar Colaborador</label>

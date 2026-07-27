@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import TopNavBar from "@/components/layout/TopNavBar";
+import { ToastProvider } from "@/components/ui/Toast";
 
 var ADMIN_ROUTES = [
   "/dashboard",
@@ -61,7 +62,7 @@ export default function DashboardLayout({ children }) {
     <div className="min-h-screen bg-background flex flex-col">
       <TopNavBar onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
       <main className="flex-grow max-w-[1440px] w-full mx-auto px-4 sm:px-5 md:px-16 py-4 sm:py-8">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </main>
       <footer className="bg-surface border-t border-outline-variant/30 w-full py-8 mt-auto">
         <div className="flex flex-col md:flex-row justify-between items-center px-5 md:px-16 w-full max-w-[1440px] mx-auto gap-6">
