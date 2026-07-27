@@ -1,17 +1,16 @@
 "use client";
 
-import helpers from "@/lib/helpers";
+import Card from "./Card";
+import EmptyState from "./EmptyState";
 
-export default function Table({ columns, data = [], loading, emptyMessage = "Nenhum registro encontrado", onRowClick }) {
+export default function Table({ columns, data = [], loading, emptyMessage = "Nenhum registo encontrado", onRowClick }) {
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-8 text-center">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mx-auto" />
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mx-auto" />
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mx-auto" />
-          </div>
+      <div className="table-wrap">
+        <div className="p-8 space-y-4">
+          <div className="skeleton h-4 w-1/4" />
+          <div className="skeleton h-4 w-1/2" />
+          <div className="skeleton h-4 w-1/3" />
         </div>
       </div>
     );
@@ -19,59 +18,50 @@ export default function Table({ columns, data = [], loading, emptyMessage = "Nen
 
   if (data.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
-        <div className="text-gray-400 text-5xl mb-4">📋</div>
-        <p className="text-gray-500 dark:text-gray-400">{emptyMessage}</p>
+      <div className="table-wrap">
+        <EmptyState icon="inbox" title={emptyMessage} />
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-              {columns.map((col, idx) => (
-                <th
-                  key={idx}
-                  className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                  style={col.width ? { width: col.width } : {}}
-                >
+    <div className="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            {columns.map(function (col, idx) {
+              return (
+                <th key={idx} style={col.width ? { width: col.width } : {}}>
                   {col.header}
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {data.map((row, rowIdx) => (
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map(function (row, rowIdx) {
+            return (
               <tr
                 key={row.id || rowIdx}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={onRowClick ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" : ""}
+                onClick={onRowClick ? function () { onRowClick(row); } : undefined}
+                className={onRowClick ? "cursor-pointer" : ""}
               >
-                {columns.map((col, colIdx) => {
-                  const value = row[col.accessor];
+                {columns.map(function (col, colIdx) {
+                  var value = row[col.accessor];
                   return (
-                    <td key={colIdx} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                    <td key={colIdx}>
                       {col.render
                         ? col.render(value, row)
-                        : col.accessor === "estado"
-                          ? (
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${helpers.getEstadoBadgeClass(value)}`}>
-                              {value}
-                            </span>
-                          )
-                          : value || "—"
+                        : value || "—"
                       }
                     </td>
                   );
                 })}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
