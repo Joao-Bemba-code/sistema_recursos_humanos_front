@@ -10,7 +10,6 @@ import FileUpload from "@/components/ui/FileUpload";
 var imageUrl = function (path) {
   if (!path) return "";
   var decoded = path.replace(/&#x2F;/g, "/").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
-  if (decoded.startsWith("http")) return decoded;
   return api.baseURL + decoded;
 };
 
