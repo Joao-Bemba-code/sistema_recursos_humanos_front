@@ -34,7 +34,7 @@ export default function LoginForm() {
         router.push(perfilNome === "Colaborador" ? "/dashboard/portal" : "/dashboard");
       }
     } catch (err) {
-      setError(err.message || "Credenciais invalidas");
+      setError(err.message || "Credenciais inválidas");
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function LoginForm() {
           </div>
           <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">SGHR</h1>
           <p className="text-lg text-white/70 leading-relaxed max-w-sm mx-auto">
-            Sistema de Gestao de Recursos Humanos
+            Sistema de Gestão de Recursos Humanos
           </p>
           <div className="mt-8 flex items-center justify-center gap-2">
             <div className="h-px w-12 bg-white/20" />
@@ -80,7 +80,7 @@ export default function LoginForm() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-on-surface tracking-tight mb-1">Iniciar sessao</h2>
+            <h2 className="text-2xl font-bold text-on-surface tracking-tight mb-1">Iniciar sessão</h2>
             <p className="text-[14px] text-on-surface-variant/70">Insira as suas credenciais para aceder ao sistema.</p>
           </div>
 
@@ -138,7 +138,7 @@ export default function LoginForm() {
                 </>
               ) : (
                 <>
-                  Aceder a Plataforma
+                  Aceder à Plataforma
                   <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </>
               )}
