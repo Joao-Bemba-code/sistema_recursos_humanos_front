@@ -81,7 +81,7 @@ export default function FeriasPage() {
       const data = await api.get("/api/colaboradores?limit=200");
       setColaboradores(data.dados);
     } catch (e) {
-      // silent
+      // silêncio
     }
   };
 
@@ -131,10 +131,10 @@ export default function FeriasPage() {
       };
       if (editando) {
         await api.put(`/api/ferias/${editando.id}`, body);
-        setMsg({ tipo: "sucesso", texto: "Ferias actualizadas com sucesso" });
+        setMsg({ tipo: "sucesso", texto: "Férias atualizadas com sucesso" });
       } else {
         await api.post("/api/ferias", body);
-        setMsg({ tipo: "sucesso", texto: "Solicitacao de ferias criada com sucesso" });
+        setMsg({ tipo: "sucesso", texto: "Solicitação de férias criada com sucesso" });
       }
       setShowModal(false);
       carregar(paginacao.pagina);
@@ -148,7 +148,7 @@ export default function FeriasPage() {
   const eliminar = async () => {
     try {
       await api.delete(`/api/ferias/${confirmDelete.id}`);
-      setMsg({ tipo: "sucesso", texto: "Solicitacao de ferias eliminada com sucesso" });
+      setMsg({ tipo: "sucesso", texto: "Solicitação de férias eliminada com sucesso" });
       setConfirmDelete({ open: false, id: null, nome: "" });
       carregar(paginacao.pagina);
     } catch (e) {
@@ -186,8 +186,8 @@ export default function FeriasPage() {
     <div className="space-y-6">
       <ConfirmDialog
         open={confirmDelete.open}
-        titulo="Eliminar Solicitacao de Ferias"
-        mensagem={`Tem certeza que deseja eliminar as ferias de ${confirmDelete.nome}? Esta ação não pode ser desfeita.`}
+        titulo="Eliminar Solicitação de Férias"
+        mensagem={`Tem certeza que deseja eliminar as férias de ${confirmDelete.nome}? Esta ação não pode ser desfeita.`}
         textoConfirmar="Sim, Eliminar"
         textoCancelar="Cancelar"
         variante="perigo"
@@ -198,16 +198,16 @@ export default function FeriasPage() {
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <nav className="flex items-center gap-2 text-[12px] text-on-surface-variant/60 font-medium uppercase tracking-wide">
-            <span>{t.tempoPresenca || "Tempo e Presenca"}</span>
+            <span>{t.tempoPresenca || "Tempo e Presença"}</span>
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-primary/70">{t.ferias || "Ferias"}</span>
+            <span className="text-primary/70">{t.ferias || "Férias"}</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">{t.gestaoFerias || "Gestao de Ferias"}</h1>
+          <h1 className="text-2xl font-bold text-on-surface tracking-tight">{t.gestaoFerias || "Gestão de Férias"}</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            Nova Solicitacao
+            Nova Solicitação
           </button>
         </div>
       </section>
@@ -225,7 +225,7 @@ export default function FeriasPage() {
       <section className="glass-panel p-5 rounded-xl border border-outline-variant/30 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4 items-end">
           <div className="flex-grow space-y-2 w-full lg:w-auto">
-            <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Buscar Ferias</label>
+            <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Buscar Férias</label>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
               <input
@@ -265,7 +265,7 @@ export default function FeriasPage() {
         </div>
         {activeFilters.length > 0 && (
           <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros activos:</span>
+            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
             {activeFilters.map((f, i) => (
               <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
                 {f.label}
@@ -283,7 +283,7 @@ export default function FeriasPage() {
             <thead>
               <tr className="bg-background/50 border-b border-outline-variant/20">
                 <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider w-[260px]">Colaborador</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Periodo</th>
+                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Período</th>
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Dias</th>
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Motivo</th>
@@ -298,8 +298,8 @@ export default function FeriasPage() {
               ) : ferias.length === 0 ? (
                 <tr><td colSpan={6} className="px-6 py-12 text-center">
                   <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">calendar_month</span>
-                  <p className="text-on-surface-variant font-medium">Nenhuma solicitação de ferias encontrada</p>
-                  <p className="text-[13px] text-outline mt-1">Clique em &quot;Nova Solicitacao&quot; para adicionar</p>
+                  <p className="text-on-surface-variant font-medium">Nenhuma solicitação de férias encontrada</p>
+                  <p className="text-[13px] text-outline mt-1">Clique em &quot;Nova Solicitação&quot; para adicionar</p>
                 </td></tr>
               ) : (
                 ferias.map((f) => (
@@ -356,7 +356,7 @@ export default function FeriasPage() {
         </div>
         <div className="px-6 py-4 border-t border-outline-variant/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-[12px] font-semibold text-on-surface-variant/70 uppercase tracking-wide">
-            Exibindo {ferias.length} de {paginacao.total} solicitacoes
+            Exibindo {ferias.length} de {paginacao.total} solicitações
           </div>
           {paginacao.total_paginas > 1 && (
             <div className="flex items-center gap-1.5">
@@ -375,7 +375,7 @@ export default function FeriasPage() {
           <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowModal(false)} />
           <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
             <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
-              <h3 className="text-lg font-bold text-on-surface tracking-tight">{editando ? "Editar Solicitacao" : "Nova Solicitacao de Ferias"}</h3>
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">{editando ? "Editar Solicitação" : "Nova Solicitação de Férias"}</h3>
               <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -412,7 +412,7 @@ export default function FeriasPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Motivo</label>
-                  <textarea name="motivo" value={form.motivo || ""} onChange={handleInput} rows={3} placeholder="Descreva o motivo da solicitação de ferias..." className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                  <textarea name="motivo" value={form.motivo || ""} onChange={handleInput} rows={3} placeholder="Descreva o motivo da solicitação de férias..." className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
               </div>
 
@@ -420,7 +420,7 @@ export default function FeriasPage() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                 <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">{saving ? "hourglass_empty" : "save"}</span>
-                  {saving ? "A guardar..." : editando ? "Actualizar" : "Criar Solicitacao"}
+                  {saving ? "A guardar..." : editando ? "Atualizar" : "Criar Solicitação"}
                 </button>
               </div>
             </form>
@@ -433,7 +433,7 @@ export default function FeriasPage() {
           <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowViewModal(false)} />
           <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
             <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
-              <h3 className="text-lg font-bold text-on-surface tracking-tight">Detalhes da Solicitacao</h3>
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">Detalhes da Solicitação</h3>
               <button onClick={() => setShowViewModal(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -461,7 +461,7 @@ export default function FeriasPage() {
               <div>
                 <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-primary">calendar_month</span>
-                  Periodo de Ferias
+                  Período de Férias
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[
@@ -482,7 +482,7 @@ export default function FeriasPage() {
               <div>
                 <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-primary">info</span>
-                  Informacoes Adicionais
+                  Informações Adicionais
                 </h4>
                 <div className="grid grid-cols-1 gap-3">
                   <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -495,7 +495,7 @@ export default function FeriasPage() {
                   </div>
                   {feriasView.createdAt && (
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Data de Criacao</p>
+                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Data de Criação</p>
                       <p className="text-[13px] text-on-surface">{helpers.formatDate(feriasView.createdAt)}</p>
                     </div>
                   )}

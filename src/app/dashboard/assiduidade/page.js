@@ -4,20 +4,22 @@ import { useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { getT } from "@/lib/translations";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 var ESTADOS_ASSIDUIDADE = [
   { value: "Presente", label: "Presente" },
   { value: "Ausente", label: "Ausente" },
   { value: "Atrasado", label: "Atrasado" },
-  { value: "Licenca", label: "Licenca" },
-  { value: "Ferias", label: "Ferias" },
+  { value: "Licença", label: "Licença" },
+  { value: "Férias", label: "Férias" },
   { value: "Fim_semana", label: "Fim de Semana" },
 ];
 
 var METODOS_REGISTO = [
   { value: "Manual", label: "Manual" },
-  { value: "Biometrico", label: "Biometrico" },
+  { value: "Biométrico", label: "Biométrico" },
   { value: "GPS", label: "GPS" },
   { value: "QR_Code", label: "QR Code" },
 ];
@@ -27,8 +29,8 @@ var estadoBadgeClass = function (estado) {
     Presente: "badge-success",
     Atrasado: "badge-warning",
     Ausente: "badge-danger",
-    Licenca: "badge-info",
-    Ferias: "badge-info",
+    Licença: "badge-info",
+    Férias: "badge-info",
     Fim_semana: "badge-secondary",
   };
   return map[estado] || "badge-secondary";
@@ -39,8 +41,8 @@ var estadoDot = function (estado) {
     Presente: "bg-success",
     Atrasado: "bg-warning",
     Ausente: "bg-error",
-    Licenca: "bg-info",
-    Ferias: "bg-info",
+    Licença: "bg-info",
+    Férias: "bg-info",
     Fim_semana: "bg-outline",
   };
   return map[estado] || "bg-outline";
@@ -82,7 +84,7 @@ export default function AssiduidadePage() {
       var data = await api.get("/api/colaboradores?limit=200");
       setColaboradores(data.dados || []);
     } catch (e) {
-      // silent
+      // silêncio
     }
   }, []);
 
@@ -245,7 +247,7 @@ export default function AssiduidadePage() {
     activeFilters.push({ label: "Colaborador: " + (fc ? fc.nome_completo : filtroColaborador), onClear: function () { setFiltroColaborador(""); } });
   }
   if (filtroDataInicio) activeFilters.push({ label: "De: " + filtroDataInicio, onClear: function () { setFiltroDataInicio(""); } });
-  if (filtroDataFim) activeFilters.push({ label: "Ate: " + filtroDataFim, onClear: function () { setFiltroDataFim(""); } });
+  if (filtroDataFim) activeFilters.push({ label: "Até: " + filtroDataFim, onClear: function () { setFiltroDataFim(""); } });
 
   return (
     <div className="space-y-6">
@@ -267,7 +269,7 @@ export default function AssiduidadePage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Assiduidade</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestao de Assiduidade e Presenca</h1>
+          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão de Assiduidade e Presença</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
@@ -340,7 +342,7 @@ export default function AssiduidadePage() {
         </div>
         {activeFilters.length > 0 && (
           <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros activos:</span>
+            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
             {activeFilters.map(function (f, i) {
               return (
                 <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
@@ -367,7 +369,7 @@ export default function AssiduidadePage() {
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Saída</th>
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Horas</th>
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Metodo</th>
+                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Método</th>
                 <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
               </tr>
             </thead>
@@ -533,7 +535,7 @@ export default function AssiduidadePage() {
                 )}
 
                 <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Metodo de Registo</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Método de Registo</label>
                   <select name="metodo" value={form.metodo || "Manual"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                     {METODOS_REGISTO.map(function (m) {
                       return <option key={m.value} value={m.value}>{m.label}</option>;
@@ -541,7 +543,7 @@ export default function AssiduidadePage() {
                   </select>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observacoes</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observações</label>
                   <textarea name="observacoes" value={form.observacoes || ""} onChange={handleInput} rows={3} placeholder="Notas adicionais sobre a assiduidade..." className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
               </div>
@@ -550,7 +552,7 @@ export default function AssiduidadePage() {
                 <button type="button" onClick={function () { setShowModal(false); }} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                 <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">{saving ? "hourglass_empty" : "save"}</span>
-                  {saving ? "A guardar..." : editando ? "Actualizar" : "Criar Registo"}
+                  {saving ? "A guardar..." : editando ? "Atualizar" : "Criar Registo"}
                 </button>
               </div>
             </form>
@@ -598,7 +600,7 @@ export default function AssiduidadePage() {
                     ["Hora Saída", registoView.hora_saida || null],
                     ["Horas Trabalhadas", registoView.horas_trabalhadas || calcularHoras(registoView.hora_entrada, registoView.hora_saida) || null],
                     ["Horas Extras", registoView.horas_extras || null],
-                    ["Metodo", registoView.metodo || null],
+                    ["Método", registoView.metodo || null],
                   ].map(function (pair) {
                     return (
                       <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -610,7 +612,7 @@ export default function AssiduidadePage() {
                 </div>
                 {registoView.observacoes && (
                   <div className="mt-3 bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Observacoes</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Observações</p>
                     <p className="text-[13px] text-on-surface">{registoView.observacoes}</p>
                   </div>
                 )}

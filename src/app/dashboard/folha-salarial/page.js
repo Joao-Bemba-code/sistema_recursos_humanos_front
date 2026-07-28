@@ -6,7 +6,7 @@ import helpers from "@/lib/helpers";
 import { getT } from "@/lib/translations";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
-const MESES = ["Janeiro","Fevereiro","Marco","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
 export default function FolhaSalarialPage() {
   var t = getT();
@@ -39,7 +39,7 @@ export default function FolhaSalarialPage() {
     colaborador_id: "", salario_base: "", subsidio_alimentacao: "",
     subsidio_transporte: "", subsidio_educacao: "", outros_subsidios: "",
     desconto_irt: "", desconto_seguranca_social: "", outros_descontos: "",
-    data_inicio: "", data_fim: "", estado: "Activo"
+    data_inicio: "", data_fim: "", estado: "Ativo"
   };
 
   const defaultFormPag = {
@@ -53,7 +53,7 @@ export default function FolhaSalarialPage() {
       const data = await api.get("/api/colaboradores?limit=200");
       setColaboradores(data.dados || []);
     } catch (e) {
-      // silent
+      // silêncio
     }
   };
 
@@ -156,7 +156,7 @@ export default function FolhaSalarialPage() {
         outros_descontos: item.outros_descontos || "",
         data_inicio: item.data_inicio ? item.data_inicio.substring(0, 10) : "",
         data_fim: item.data_fim ? item.data_fim.substring(0, 10) : "",
-        estado: item.estado || "Activo"
+        estado: item.estado || "Ativo"
       });
     } else {
       setForm({
@@ -274,7 +274,7 @@ export default function FolhaSalarialPage() {
   const renderBadgeEstado = (estado) => {
     var cls = "";
     if (tab === "vencimentos") {
-      cls = estado === "Activo" ? "badge-success" : "badge-secondary";
+      cls = estado === "Ativo" ? "badge-success" : "badge-secondary";
     } else {
       if (estado === "Pago") cls = "badge-success";
       else if (estado === "Pendente") cls = "badge-warning";
@@ -312,7 +312,7 @@ export default function FolhaSalarialPage() {
     activeFilters.push({ label: `Colaborador: ${cn ? cn.nome_completo : filtroColaborador}`, onClear: () => setFiltroColaborador("") });
   }
   if (tab === "pagamentos") {
-    if (filtroMes) activeFilters.push({ label: `Mes: ${MESES[parseInt(filtroMes) - 1] || filtroMes}`, onClear: () => setFiltroMes("") });
+    if (filtroMes) activeFilters.push({ label: `Mês: ${MESES[parseInt(filtroMes) - 1] || filtroMes}`, onClear: () => setFiltroMes("") });
     if (filtroAno) activeFilters.push({ label: `Ano: ${filtroAno}`, onClear: () => setFiltroAno("") });
   }
 
@@ -351,7 +351,7 @@ export default function FolhaSalarialPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Folha Salarial</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestao de Folha Salarial</h1>
+          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão de Folha Salarial</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
@@ -404,7 +404,7 @@ export default function FolhaSalarialPage() {
             {tab === "pagamentos" && (
               <>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Mes</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Mês</label>
                   <select value={filtroMes} onChange={(e) => setFiltroMes(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                     <option value="">Todos</option>
                     {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
@@ -422,8 +422,8 @@ export default function FolhaSalarialPage() {
                 <option value="">Todos</option>
                 {tab === "vencimentos" ? (
                   <>
-                    <option value="Activo">Activo</option>
-                    <option value="Inactivo">Inactivo</option>
+                    <option value="Ativo">Ativo</option>
+                    <option value="Inativo">Inativo</option>
                   </>
                 ) : (
                   <>
@@ -453,7 +453,7 @@ export default function FolhaSalarialPage() {
         </div>
         {activeFilters.length > 0 && (
           <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros activos:</span>
+            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
             {activeFilters.map((f, i) => (
               <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
                 {f.label}
@@ -473,10 +473,10 @@ export default function FolhaSalarialPage() {
                 <tr className="bg-background/50 border-b border-outline-variant/20">
                   <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider w-[280px]">Colaborador</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Salário Base</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsidios</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsídios</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Bruto</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Descontos</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Liquido</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Líquido</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
                   <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
                 </tr>
@@ -553,11 +553,11 @@ export default function FolhaSalarialPage() {
               <thead>
                 <tr className="bg-background/50 border-b border-outline-variant/20">
                   <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider w-[280px]">Colaborador</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Mes/Ano</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Mês/Ano</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Salário Base</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsidios+Extras</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsídios+Extras</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Descontos+IRT+SS</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Liquido</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Líquido</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Data Pagamento</th>
                   <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
@@ -586,7 +586,7 @@ export default function FolhaSalarialPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col text-[12px] text-on-surface-variant">
-                          <span>Subsidios: {helpers.formatCurrency(item.subsidios)}</span>
+                          <span>Subsídios: {helpers.formatCurrency(item.subsidios)}</span>
                           <span>Extras: {helpers.formatCurrency(item.horas_extras)}</span>
                         </div>
                       </td>
@@ -666,23 +666,23 @@ export default function FolhaSalarialPage() {
                   <div className="sm:col-span-2">
                     <div className="flex items-center gap-2 mb-2 mt-1">
                       <span className="material-symbols-outlined text-[16px] text-success">trending_up</span>
-                      <span className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsidios</span>
+                      <span className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsídios</span>
                     </div>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsidio Alimentacao</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídio Alimentação</label>
                     <input type="number" step="0.01" name="subsidio_alimentacao" value={form.subsidio_alimentacao || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsidio Transporte</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídio Transporte</label>
                     <input type="number" step="0.01" name="subsidio_transporte" value={form.subsidio_transporte || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsidio Educacao</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídio Educação</label>
                     <input type="number" step="0.01" name="subsidio_educacao" value={form.subsidio_educacao || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Outros Subsidios</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Outros Subsídios</label>
                     <input type="number" step="0.01" name="outros_subsidios" value={form.outros_subsidios || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
 
@@ -714,7 +714,7 @@ export default function FolhaSalarialPage() {
 
                   <div className="sm:col-span-2 bg-error/5 border border-error/10 rounded-lg p-3 mt-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-error uppercase tracking-wider">Total Liquido</span>
+                      <span className="text-[11px] font-bold text-error uppercase tracking-wider">Total Líquido</span>
                       <span className={`text-[16px] font-bold ${calcularTotalLiquidoVenc(form) >= 0 ? "text-success" : "text-error"}`}>{helpers.formatCurrency(calcularTotalLiquidoVenc(form))}</span>
                     </div>
                   </div>
@@ -729,9 +729,9 @@ export default function FolhaSalarialPage() {
                   </div>
                   <div className="sm:col-span-2">
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado</label>
-                    <select name="estado" value={form.estado || "Activo"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
-                      <option value="Activo">Activo</option>
-                      <option value="Inactivo">Inactivo</option>
+                    <select name="estado" value={form.estado || "Ativo"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                      <option value="Ativo">Ativo</option>
+                      <option value="Inativo">Inativo</option>
                     </select>
                   </div>
                 </div>
@@ -749,9 +749,9 @@ export default function FolhaSalarialPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Mes *</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Mês *</label>
                     <select name="mes" value={form.mes || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
-                      <option value="">Selecionar mes</option>
+                      <option value="">Selecionar mês</option>
                       {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                     </select>
                   </div>
@@ -764,7 +764,7 @@ export default function FolhaSalarialPage() {
                     <input type="number" step="0.01" name="salario_base" value={form.salario_base || ""} onChange={handleInput} required placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsidios</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídios</label>
                     <input type="number" step="0.01" name="subsidios" value={form.subsidios || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
@@ -780,7 +780,7 @@ export default function FolhaSalarialPage() {
                     <input type="number" step="0.01" name="irt" value={form.irt || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Seguranca Social</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Segurança Social</label>
                     <input type="number" step="0.01" name="seguranca_social" value={form.seguranca_social || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
@@ -790,7 +790,7 @@ export default function FolhaSalarialPage() {
 
                   <div className="sm:col-span-2 bg-success/5 border border-success/10 rounded-lg p-3 mt-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-success uppercase tracking-wider">Total Liquido</span>
+                      <span className="text-[11px] font-bold text-success uppercase tracking-wider">Total Líquido</span>
                       <span className={`text-[16px] font-bold ${calcularTotalLiquidoPag(form) >= 0 ? "text-success" : "text-error"}`}>{helpers.formatCurrency(calcularTotalLiquidoPag(form))}</span>
                     </div>
                   </div>
@@ -814,7 +814,7 @@ export default function FolhaSalarialPage() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                 <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">{saving ? "hourglass_empty" : "save"}</span>
-                  {saving ? "A guardar..." : editando ? "Actualizar" : "Criar"}
+                  {saving ? "A guardar..." : editando ? "Atualizar" : "Criar"}
                 </button>
               </div>
             </form>
@@ -871,10 +871,10 @@ export default function FolhaSalarialPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {[
                         ["Salário Base", helpers.formatCurrency(viewItem.salario_base)],
-                        ["Sub. Alimentacao", helpers.formatCurrency(viewItem.subsidio_alimentacao)],
+                        ["Sub. Alimentação", helpers.formatCurrency(viewItem.subsidio_alimentacao)],
                         ["Sub. Transporte", helpers.formatCurrency(viewItem.subsidio_transporte)],
-                        ["Sub. Educacao", helpers.formatCurrency(viewItem.subsidio_educacao)],
-                        ["Outros Subsidios", helpers.formatCurrency(viewItem.outros_subsidios)],
+                        ["Sub. Educação", helpers.formatCurrency(viewItem.subsidio_educacao)],
+                        ["Outros Subsídios", helpers.formatCurrency(viewItem.outros_subsidios)],
                         ["Total Bruto", helpers.formatCurrency(viewItem.total_bruto)],
                       ].map(function(pair) {
                         return (
@@ -910,7 +910,7 @@ export default function FolhaSalarialPage() {
 
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Total Liquido</span>
+                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Total Líquido</span>
                       <span className="text-[20px] font-bold text-primary">{helpers.formatCurrency(viewItem.total_liquido)}</span>
                     </div>
                   </div>
@@ -918,7 +918,7 @@ export default function FolhaSalarialPage() {
                   <div>
                     <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-primary">calendar_today</span>
-                      Periodo
+                      Período
                     </h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -938,7 +938,7 @@ export default function FolhaSalarialPage() {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Periodo</p>
+                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Período</p>
                       <p className="text-[14px] font-bold text-on-surface">{MESES[parseInt(viewItem.mes) - 1] || viewItem.mes}/{viewItem.ano}</p>
                     </div>
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -955,7 +955,7 @@ export default function FolhaSalarialPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {[
                         ["Salário Base", helpers.formatCurrency(viewItem.salario_base)],
-                        ["Subsidios", helpers.formatCurrency(viewItem.subsidios)],
+                        ["Subsídios", helpers.formatCurrency(viewItem.subsidios)],
                         ["Horas Extras", helpers.formatCurrency(viewItem.horas_extras)],
                       ].map(function(pair) {
                         return (
@@ -977,7 +977,7 @@ export default function FolhaSalarialPage() {
                       {[
                         ["Descontos", helpers.formatCurrency(viewItem.descontos)],
                         ["IRT", helpers.formatCurrency(viewItem.irt)],
-                        ["Seguranca Social", helpers.formatCurrency(viewItem.seguranca_social)],
+                        ["Segurança Social", helpers.formatCurrency(viewItem.seguranca_social)],
                         ["Desconto Faltas", helpers.formatCurrency(viewItem.desconto_faltas)],
                       ].map(function(pair) {
                         return (
@@ -992,7 +992,7 @@ export default function FolhaSalarialPage() {
 
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Total Liquido</span>
+                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Total Líquido</span>
                       <span className="text-[20px] font-bold text-primary">{helpers.formatCurrency(viewItem.total_liquido)}</span>
                     </div>
                   </div>

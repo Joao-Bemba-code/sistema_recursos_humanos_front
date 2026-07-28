@@ -289,10 +289,10 @@ export default function AvaliacaoPage() {
       };
       if (avalEditando) {
         await api.put("/api/avaliacao/avaliacoes/" + avalEditando.id, body);
-        setMsgAval({ tipo: "sucesso", texto: "Avaliacao actualizada com sucesso" });
+        setMsgAval({ tipo: "sucesso", texto: "Avaliação atualizada com sucesso" });
       } else {
         await api.post("/api/avaliacao/avaliacoes", body);
-        setMsgAval({ tipo: "sucesso", texto: "Avaliacao criada com sucesso" });
+        setMsgAval({ tipo: "sucesso", texto: "Avaliação criada com sucesso" });
       }
       setShowAvalModal(false);
       carregarAvaliacoes(avaliacoesPaginacao.pagina);
@@ -306,7 +306,7 @@ export default function AvaliacaoPage() {
   var eliminarAvaliacao = async function () {
     try {
       await api.delete("/api/avaliacao/avaliacoes/" + confirmDeleteAval.id);
-      setMsgAval({ tipo: "sucesso", texto: "Avaliacao eliminada com sucesso" });
+      setMsgAval({ tipo: "sucesso", texto: "Avaliação eliminada com sucesso" });
       setConfirmDeleteAval({ open: false, id: null, nome: "" });
       carregarAvaliacoes(avaliacoesPaginacao.pagina);
     } catch (e) {
@@ -335,7 +335,7 @@ export default function AvaliacaoPage() {
 
       <ConfirmDialog
         open={confirmDeleteAval.open}
-        titulo="Eliminar Avaliacao"
+        titulo="Eliminar Avaliação"
         mensagem={"Tem certeza que deseja eliminar esta avaliação? Esta ação não pode ser desfeita."}
         textoConfirmar="Sim, Eliminar"
         textoCancelar="Manter"
@@ -349,9 +349,9 @@ export default function AvaliacaoPage() {
           <nav className="flex items-center gap-2 text-[12px] text-on-surface-variant/60 font-medium uppercase tracking-wide">
             <span>Desenvolvimento</span>
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-primary/70">Avaliacao</span>
+            <span className="text-primary/70">Avaliação</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Avaliacao de Desempenho</h1>
+          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Avaliação de Desempenho</h1>
         </div>
         <div className="flex items-center gap-3">
           {aba === "ciclos" && (
@@ -363,7 +363,7 @@ export default function AvaliacaoPage() {
           {aba === "avaliacoes" && (
             <button onClick={abrirNovaAvaliacao} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
               <span className="material-symbols-outlined text-[18px]">add_circle</span>
-              Nova Avaliacao
+              Nova Avaliação
             </button>
           )}
         </div>
@@ -382,7 +382,7 @@ export default function AvaliacaoPage() {
           className={"flex items-center gap-1.5 px-4 py-2.5 text-[13px] font-semibold transition-colors whitespace-nowrap border-b-2 " + (aba === "avaliacoes" ? "text-primary border-primary bg-primary/5" : "text-on-surface-variant hover:text-on-surface border-transparent")}
         >
           <span className="material-symbols-outlined text-[18px]">star</span>
-          Avaliacoes
+          Avaliações
         </button>
       </div>
 
@@ -438,7 +438,7 @@ export default function AvaliacaoPage() {
                 <thead>
                   <tr className="bg-background/50 border-b border-outline-variant/20">
                     <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Nome</th>
-                    <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Periodo</th>
+                    <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Período</th>
                     <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
                     <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
                   </tr>
@@ -556,7 +556,7 @@ export default function AvaliacaoPage() {
                 </select>
               </div>
               <div className="space-y-2 w-full lg:w-auto">
-                <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Classificacao</label>
+                <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Classificação</label>
                 <select value={filtroClassificacao} onChange={function (e) { setFiltroClassificacao(e.target.value); }} className={inputClass}>
                   <option value="">Todas</option>
                   {classificacaoOptions.map(function (c) { return <option key={c} value={c}>{c}</option>; })}
@@ -579,7 +579,7 @@ export default function AvaliacaoPage() {
                     <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider w-[220px]">Colaborador</th>
                     <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Ciclo</th>
                     <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Nota Final</th>
-                    <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Classificacao</th>
+                    <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Classificação</th>
                     <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
                     <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
                   </tr>
@@ -595,7 +595,7 @@ export default function AvaliacaoPage() {
                     <tr><td colSpan={6} className="px-6 py-12 text-center">
                       <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">star</span>
                       <p className="text-on-surface-variant font-medium">Nenhuma avaliação encontrada</p>
-                      <p className="text-[13px] text-outline mt-1">Clique em "Nova Avaliacao" para adicionar</p>
+                      <p className="text-[13px] text-outline mt-1">Clique em "Nova Avaliação" para adicionar</p>
                     </td></tr>
                   ) : (
                     avaliacoes.map(function (a) {
@@ -649,7 +649,7 @@ export default function AvaliacaoPage() {
             </div>
             <div className="px-6 py-4 border-t border-outline-variant/10 flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="text-[12px] font-semibold text-on-surface-variant/70 uppercase tracking-wide">
-                Exibindo {avaliacoes.length} de {avaliacoesPaginacao.total} avaliacoes
+                Exibindo {avaliacoes.length} de {avaliacoesPaginacao.total} avaliações
               </div>
               {avaliacoesPaginacao.total_paginas > 1 && (
                 <div className="flex items-center gap-1.5">
@@ -681,7 +681,7 @@ export default function AvaliacaoPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nome *</label>
-                  <input name="nome" value={cicloForm.nome} onChange={handleCicloInput} required className={inputClass} placeholder="Ex: Avaliacao Trimestral Q1 2026" />
+                  <input name="nome" value={cicloForm.nome} onChange={handleCicloInput} required className={inputClass} placeholder="Ex: Avaliação Trimestral Q1 2026" />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Descrição</label>
@@ -706,7 +706,7 @@ export default function AvaliacaoPage() {
                 <button type="button" onClick={function () { setShowCicloModal(false); }} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                 <button type="submit" disabled={savingCiclo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">{savingCiclo ? "hourglass_empty" : "save"}</span>
-                  {savingCiclo ? "A guardar..." : cicloEditando ? "Actualizar" : "Criar Ciclo"}
+                  {savingCiclo ? "A guardar..." : cicloEditando ? "Atualizar" : "Criar Ciclo"}
                 </button>
               </div>
             </form>
@@ -743,7 +743,7 @@ export default function AvaliacaoPage() {
               <div>
                 <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-primary">info</span>
-                  Informacoes
+                  Informações
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[
@@ -787,7 +787,7 @@ export default function AvaliacaoPage() {
           <div className="fixed inset-0 bg-scrim/40" onClick={function () { setShowAvalModal(false); }} />
           <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
             <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
-              <h3 className="text-lg font-bold text-on-surface tracking-tight">{avalEditando ? "Editar Avaliacao" : "Nova Avaliacao"}</h3>
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">{avalEditando ? "Editar Avaliação" : "Nova Avaliação"}</h3>
               <button onClick={function () { setShowAvalModal(false); }} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -809,7 +809,7 @@ export default function AvaliacaoPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nota Tecnica (0-20) *</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nota Técnica (0-20) *</label>
                   <input name="nota_tecnica" type="number" min="0" max="20" step="0.1" value={avalForm.nota_tecnica} onChange={handleAvalInput} required className={inputClass} placeholder="0.0" />
                 </div>
                 <div>
@@ -844,7 +844,7 @@ export default function AvaliacaoPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Plano de Melhoria</label>
-                  <textarea name="plano_melhoria" value={avalForm.plano_melhoria} onChange={handleAvalInput} rows={3} className={inputClass} placeholder="Plano de accao para desenvolvimento..." />
+                  <textarea name="plano_melhoria" value={avalForm.plano_melhoria} onChange={handleAvalInput} rows={3} className={inputClass} placeholder="Plano de ação para desenvolvimento..." />
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Feedback do Avaliador</label>
@@ -859,7 +859,7 @@ export default function AvaliacaoPage() {
                 <button type="button" onClick={function () { setShowAvalModal(false); }} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                 <button type="submit" disabled={savingAval} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">{savingAval ? "hourglass_empty" : "save"}</span>
-                  {savingAval ? "A guardar..." : avalEditando ? "Actualizar" : "Criar Avaliacao"}
+                  {savingAval ? "A guardar..." : avalEditando ? "Atualizar" : "Criar Avaliação"}
                 </button>
               </div>
             </form>
@@ -872,7 +872,7 @@ export default function AvaliacaoPage() {
           <div className="fixed inset-0 bg-scrim/40" onClick={function () { setShowAvalView(false); }} />
           <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-lg md:max-w-3xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
             <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
-              <h3 className="text-lg font-bold text-on-surface tracking-tight">Detalhes da Avaliacao</h3>
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">Detalhes da Avaliação</h3>
               <button onClick={function () { setShowAvalView(false); }} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -902,11 +902,11 @@ export default function AvaliacaoPage() {
               <div>
                 <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-primary">calculate</span>
-                  Notas e Classificacao
+                  Notas e Classificação
                 </h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Nota Tecnica</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Nota Técnica</p>
                     <p className="text-[15px] font-bold text-on-surface">{avalView.nota_tecnica != null ? parseFloat(avalView.nota_tecnica).toFixed(1) : "—"}<span className="text-[11px] text-on-surface-variant/60 ml-0.5">/20</span></p>
                   </div>
                   <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -918,7 +918,7 @@ export default function AvaliacaoPage() {
                     <p className="text-[18px] font-bold text-primary">{avalView.nota_final != null ? parseFloat(avalView.nota_final).toFixed(1) : getNotaFinal(avalView.nota_tecnica, avalView.nota_comportamental)}<span className="text-[11px] text-primary/60 ml-0.5">/20</span></p>
                   </div>
                   <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 flex flex-col items-center justify-center">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Classificacao</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Classificação</p>
                     <span className={"inline-flex items-center px-2.5 py-1 rounded text-[12px] font-bold uppercase tracking-wider " + classificacaoBadge(avalView.classificacao || getClassificacao(avalView.nota_final != null ? avalView.nota_final : getNotaFinal(avalView.nota_tecnica, avalView.nota_comportamental)))}>
                       {avalView.classificacao || getClassificacao(avalView.nota_final != null ? avalView.nota_final : getNotaFinal(avalView.nota_tecnica, avalView.nota_comportamental))}
                     </span>

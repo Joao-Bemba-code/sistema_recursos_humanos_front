@@ -106,8 +106,8 @@ export default function FaltasPage() {
   const handleRemoverJustificacao = async (id) => {
     setConfirmModal({
       open: true,
-      titulo: "Remover Justificacao",
-      mensagem: "Tem certeza que deseja remover esta justificacao?",
+      titulo: "Remover Justificação",
+      mensagem: "Tem certeza que deseja remover esta justificação?",
       onConfirm: async () => {
         try {
           await api.delete("/api/faltas/justificar/" + id);
@@ -125,7 +125,7 @@ export default function FaltasPage() {
     setConfirmModal({
       open: true,
       titulo: "Eliminar Registo",
-      mensagem: "Tem certeza que deseja eliminar este registo de falta/atraso? Esta accao nao pode ser desfeita.",
+      mensagem: "Tem certeza que deseja eliminar este registo de falta/atraso? Esta ação não pode ser desfeita.",
       onConfirm: async () => {
         try {
           await api.delete("/api/faltas/eliminar/" + id);
@@ -158,12 +158,12 @@ export default function FaltasPage() {
     <div className="space-y-6">
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <nav className="flex items-center gap-2 text-[12px] text-slate-400 font-medium uppercase tracking-wide">
-            <span>Tempo e Presenca</span>
+          <nav className="flex items-center gap-2 text-[12px] text-outline font-medium uppercase tracking-wide">
+            <span>Tempo e Presença</span>
             <span>/</span>
-            <span className="text-slate-600">Faltas e Atrasos</span>
+            <span className="text-on-surface-variant">Faltas e Atrasos</span>
           </nav>
-          <h1 className="text-2xl font-bold text-slate-800">Gestao de Faltas e Atrasos</h1>
+          <h1 className="text-2xl font-bold text-on-surface">Gestão de Faltas e Atrasos</h1>
         </div>
         <button onClick={() => setShowModal(true)} className="px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg hover:bg-primary/90 transition-all">
           Novo Registo
@@ -177,33 +177,33 @@ export default function FaltasPage() {
       )}
 
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Total de Faltas</p>
+        <div className="bg-surface-card border border-outline-variant rounded-xl p-4">
+          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Total de Faltas</p>
           <p className="text-[24px] font-bold text-red-600 mt-1">{loading ? "..." : totais.total_faltas}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Total de Atrasos</p>
+        <div className="bg-surface-card border border-outline-variant rounded-xl p-4">
+          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Total de Atrasos</p>
           <p className="text-[24px] font-bold text-amber-600 mt-1">{loading ? "..." : totais.total_atrasos}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Desconto Previsto</p>
-          <p className="text-[24px] font-bold text-slate-800 mt-1">{loading ? "..." : formatCurrency(totais.total_desconto)}</p>
+        <div className="bg-surface-card border border-outline-variant rounded-xl p-4">
+          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Desconto Previsto</p>
+          <p className="text-[24px] font-bold text-on-surface mt-1">{loading ? "..." : formatCurrency(totais.total_desconto)}</p>
         </div>
       </section>
 
       <section className="glass-panel rounded-xl border border-outline-variant/30 shadow-sm p-5">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
-            <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Data Inicio</label>
-            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
+            <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Data Início</label>
+            <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Data Fim</label>
-            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
+            <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Data Fim</label>
+            <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
           </div>
           <div>
-            <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Colaborador</label>
-            <select value={filtroColab} onChange={(e) => setFiltroColab(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50">
+            <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Colaborador</label>
+            <select value={filtroColab} onChange={(e) => setFiltroColab(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50">
               <option value="">Todos</option>
               {colaboradores.map((c) => <option key={c.id} value={c.id}>{c.nome_completo}</option>)}
             </select>
@@ -219,51 +219,51 @@ export default function FaltasPage() {
       <section className="bg-surface rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
         <div className="p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[14px] font-semibold text-slate-700">Resumo por Colaborador</h2>
+            <h2 className="text-[14px] font-semibold text-on-surface">Resumo por Colaborador</h2>
             <div className="flex gap-2">
-              <button onClick={() => { setFiltroTipo(""); carregarResumo(); carregarRegistos(1); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (!filtroTipo ? "bg-primary text-white" : "text-slate-500 hover:bg-slate-100")}>Todos</button>
-              <button onClick={() => { setFiltroTipo("faltas"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "faltas" ? "bg-red-100 text-red-700" : "text-slate-500 hover:bg-slate-100")}>Faltas</button>
-              <button onClick={() => { setFiltroTipo("atrasos"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "atrasos" ? "bg-amber-100 text-amber-700" : "text-slate-500 hover:bg-slate-100")}>Atrasos</button>
+              <button onClick={() => { setFiltroTipo(""); carregarResumo(); carregarRegistos(1); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (!filtroTipo ? "bg-primary text-white" : "text-on-surface-variant hover:bg-surface-container-high")}>Todos</button>
+              <button onClick={() => { setFiltroTipo("faltas"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "faltas" ? "bg-red-100 text-red-700" : "text-on-surface-variant hover:bg-surface-container-high")}>Faltas</button>
+              <button onClick={() => { setFiltroTipo("atrasos"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "atrasos" ? "bg-amber-100 text-amber-700" : "text-on-surface-variant hover:bg-surface-container-high")}>Atrasos</button>
             </div>
           </div>
         </div>
 
         {loading ? (
-          <p className="text-[12px] text-slate-400 p-5">A carregar...</p>
+          <p className="text-[12px] text-outline p-5">A carregar...</p>
         ) : lista.length === 0 ? (
-          <p className="text-[12px] text-slate-400 py-8 text-center">Nenhuma falta ou atraso registado no periodo selecionado</p>
+          <p className="text-[12px] text-outline py-8 text-center">Nenhuma falta ou atraso registado no período selecionado</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-surface-container border-b border-outline-variant">
                 <tr>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Colaborador</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Faltas</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Justificadas</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Atrasos</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Horas Desc.</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-right">Desconto</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Detalhe</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Colaborador</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Faltas</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Justificadas</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Atrasos</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Horas Desc.</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-right">Desconto</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Detalhe</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-outline-variant/30">
                 {lista.map((r) => (
-                  <tr key={r.colaborador_id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={r.colaborador_id} className="hover:bg-surface-container/50 transition-colors">
                     <td className="px-4 py-2.5">
-                      <p className="text-[13px] font-medium text-slate-700">{r.nome_completo}</p>
-                      <p className="text-[11px] text-slate-400">{r.numero_colaborador}</p>
+                      <p className="text-[13px] font-medium text-on-surface">{r.nome_completo}</p>
+                      <p className="text-[11px] text-outline">{r.numero_colaborador}</p>
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      {r.total_faltas > 0 ? <span className="text-[13px] font-bold text-red-600">{r.total_faltas}</span> : <span className="text-[12px] text-slate-300">0</span>}
+                      {r.total_faltas > 0 ? <span className="text-[13px] font-bold text-red-600">{r.total_faltas}</span> : <span className="text-[12px] text-outline/50">0</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      {r.total_faltas_justificadas > 0 ? <span className="text-[13px] font-bold text-emerald-600">{r.total_faltas_justificadas}</span> : <span className="text-[12px] text-slate-300">0</span>}
+                      {r.total_faltas_justificadas > 0 ? <span className="text-[13px] font-bold text-emerald-600">{r.total_faltas_justificadas}</span> : <span className="text-[12px] text-outline/50">0</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      {r.total_atrasos > 0 ? <span className="text-[13px] font-bold text-amber-600">{r.total_atrasos}</span> : <span className="text-[12px] text-slate-300">0</span>}
+                      {r.total_atrasos > 0 ? <span className="text-[13px] font-bold text-amber-600">{r.total_atrasos}</span> : <span className="text-[12px] text-outline/50">0</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-center text-[12px] text-slate-500">{formatHorasDesconto(r.horas_descontar)}</td>
-                    <td className="px-4 py-2.5 text-right text-[13px] font-semibold text-slate-700">{formatCurrency(r.desconto_previsto)}</td>
+                    <td className="px-4 py-2.5 text-center text-[12px] text-on-surface-variant">{formatHorasDesconto(r.horas_descontar)}</td>
+                    <td className="px-4 py-2.5 text-right text-[13px] font-semibold text-on-surface">{formatCurrency(r.desconto_previsto)}</td>
                     <td className="px-4 py-2.5 text-center">
                       <button onClick={() => { setDetalhe(r); setDetalheOpen(true); }} className="text-[12px] font-medium text-primary hover:underline">Ver</button>
                     </td>
@@ -277,33 +277,33 @@ export default function FaltasPage() {
 
       <section className="bg-surface rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
         <div className="p-5">
-          <h2 className="text-[14px] font-semibold text-slate-700 mb-4">Registos Individuais</h2>
+          <h2 className="text-[14px] font-semibold text-on-surface mb-4">Registos Individuais</h2>
         </div>
         {registosLoading ? (
-          <p className="text-[12px] text-slate-400 p-5">A carregar...</p>
+          <p className="text-[12px] text-outline p-5">A carregar...</p>
         ) : registos.length === 0 ? (
-          <p className="text-[12px] text-slate-400 py-4 text-center">Sem registos</p>
+          <p className="text-[12px] text-outline py-4 text-center">Sem registos</p>
         ) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-surface-container border-b border-outline-variant">
                   <tr>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Colaborador</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Data</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Tipo</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Estado</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Entrada</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Saida</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Observacoes</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Acções</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Colaborador</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Data</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Tipo</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Estado</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Entrada</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Saída</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Observações</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-outline-variant/30">
                   {registos.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-2.5 text-[13px] font-medium text-slate-700">{r.colaborador ? r.colaborador.nome_completo : "—"}</td>
-                      <td className="px-4 py-2.5 text-[12px] text-slate-500">{formatDate(r.data)}</td>
+                    <tr key={r.id} className="hover:bg-surface-container/50 transition-colors">
+                      <td className="px-4 py-2.5 text-[13px] font-medium text-on-surface">{r.colaborador ? r.colaborador.nome_completo : "—"}</td>
+                      <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{formatDate(r.data)}</td>
                       <td className="px-4 py-2.5">
                         <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + (r.estado === "Ausente" ? "bg-red-50 text-red-700 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200")}>
                           {r.estado === "Ausente" ? "Falta" : "Atraso"}
@@ -316,13 +316,13 @@ export default function FaltasPage() {
                           </span>
                         ) : (
                           <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200">
-                            Nao justificado
+                            Não justificado
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-2.5 text-[12px] text-slate-500">{r.hora_entrada || "—"}</td>
-                      <td className="px-4 py-2.5 text-[12px] text-slate-500">{r.hora_saida || "—"}</td>
-                      <td className="px-4 py-2.5 text-[12px] text-slate-400 max-w-[200px] truncate">{r.observacoes || "—"}</td>
+                      <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{r.hora_entrada || "—"}</td>
+                      <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{r.hora_saida || "—"}</td>
+                      <td className="px-4 py-2.5 text-[12px] text-outline max-w-[200px] truncate">{r.observacoes || "—"}</td>
                       <td className="px-4 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-1">
                           {r.justificado && r.documento_justificacao && (
@@ -346,11 +346,11 @@ export default function FaltasPage() {
               </table>
             </div>
             {paginacao.total_paginas > 1 && (
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-                <p className="text-[12px] text-slate-400">Pagina {pagina} de {paginacao.total_paginas} ({paginacao.total} registos)</p>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-outline-variant/30">
+                <p className="text-[12px] text-outline">Página {pagina} de {paginacao.total_paginas} ({paginacao.total} registos)</p>
                 <div className="flex gap-2">
-                  <button onClick={() => carregarRegistos(pagina - 1)} disabled={pagina <= 1} className="px-3 py-1.5 text-[12px] font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30">Anterior</button>
-                  <button onClick={() => carregarRegistos(pagina + 1)} disabled={pagina >= paginacao.total_paginas} className="px-3 py-1.5 text-[12px] font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30">Proximo</button>
+                  <button onClick={() => carregarRegistos(pagina - 1)} disabled={pagina <= 1} className="px-3 py-1.5 text-[12px] font-medium text-on-surface-variant border border-outline-variant rounded-lg hover:bg-surface-container disabled:opacity-30">Anterior</button>
+                  <button onClick={() => carregarRegistos(pagina + 1)} disabled={pagina >= paginacao.total_paginas} className="px-3 py-1.5 text-[12px] font-medium text-on-surface-variant border border-outline-variant rounded-lg hover:bg-surface-container disabled:opacity-30">Próximo</button>
                 </div>
               </div>
             )}
@@ -361,35 +361,35 @@ export default function FaltasPage() {
       {detalheOpen && detalhe && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setDetalheOpen(false)} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto">
+          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-slate-800">{detalhe.nome_completo}</h3>
-              <button onClick={() => setDetalheOpen(false)} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
+              <h3 className="text-[15px] font-semibold text-on-surface">{detalhe.nome_completo}</h3>
+              <button onClick={() => setDetalheOpen(false)} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-slate-50 rounded-lg p-3 text-center">
+              <div className="bg-surface-container rounded-lg p-3 text-center">
                 <p className="text-[20px] font-bold text-red-600">{detalhe.total_faltas}</p>
-                <p className="text-[11px] text-slate-400">Faltas</p>
+                <p className="text-[11px] text-outline">Faltas</p>
               </div>
-              <div className="bg-slate-50 rounded-lg p-3 text-center">
+              <div className="bg-surface-container rounded-lg p-3 text-center">
                 <p className="text-[20px] font-bold text-amber-600">{detalhe.total_atrasos}</p>
-                <p className="text-[11px] text-slate-400">Atrasos</p>
+                <p className="text-[11px] text-outline">Atrasos</p>
               </div>
-              <div className="bg-slate-50 rounded-lg p-3 text-center">
+              <div className="bg-surface-container rounded-lg p-3 text-center">
                 <p className="text-[20px] font-bold text-emerald-600">{detalhe.total_faltas_justificadas + detalhe.total_atrasos_justificados}</p>
-                <p className="text-[11px] text-slate-400">Justificados</p>
+                <p className="text-[11px] text-outline">Justificados</p>
               </div>
-              <div className="bg-slate-50 rounded-lg p-3 text-center">
+              <div className="bg-surface-container rounded-lg p-3 text-center">
                 <p className="text-[20px] font-bold text-primary">{formatCurrency(detalhe.desconto_previsto)}</p>
-                <p className="text-[11px] text-slate-400">Desconto Previsto</p>
+                <p className="text-[11px] text-outline">Desconto Previsto</p>
               </div>
             </div>
             {detalhe.faltas_detalhe.length > 0 && (
               <div className="mb-4">
-                <h4 className="text-[12px] font-semibold text-slate-600 mb-2">Faltas</h4>
+                <h4 className="text-[12px] font-semibold text-on-surface-variant mb-2">Faltas</h4>
                 <div className="space-y-1">
                   {detalhe.faltas_detalhe.map((f, i) => (
-                    <div key={i} className="flex items-center justify-between text-[12px] text-slate-500 py-1.5 border-b border-slate-100 last:border-0">
+                    <div key={i} className="flex items-center justify-between text-[12px] text-on-surface-variant py-1.5 border-b border-outline-variant/30 last:border-0">
                       <div className="flex items-center gap-2">
                         <span>{formatDate(f.data)}</span>
                         {f.justificado && (
@@ -397,7 +397,7 @@ export default function FaltasPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-slate-400">{f.observacoes || ""}</span>
+                        <span className="text-outline">{f.observacoes || ""}</span>
                         {f.justificado && f.documento_justificacao && (
                           <a href={f.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
                         )}
@@ -409,10 +409,10 @@ export default function FaltasPage() {
             )}
             {detalhe.atrasos_detalhe.length > 0 && (
               <div>
-                <h4 className="text-[12px] font-semibold text-slate-600 mb-2">Atrasos</h4>
+                <h4 className="text-[12px] font-semibold text-on-surface-variant mb-2">Atrasos</h4>
                 <div className="space-y-1">
                   {detalhe.atrasos_detalhe.map((a, i) => (
-                    <div key={i} className="flex items-center justify-between text-[12px] text-slate-500 py-1.5 border-b border-slate-100 last:border-0">
+                    <div key={i} className="flex items-center justify-between text-[12px] text-on-surface-variant py-1.5 border-b border-outline-variant/30 last:border-0">
                       <div className="flex items-center gap-2">
                         <span>{formatDate(a.data)}</span>
                         <span>Entrada: {a.hora_entrada}</span>
@@ -438,49 +438,49 @@ export default function FaltasPage() {
       {showModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setShowModal(false)} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-md p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-slate-800">Novo Registo de Falta/Atraso</h3>
-              <button onClick={() => setShowModal(false)} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
+              <h3 className="text-[15px] font-semibold text-on-surface">Novo Registo de Falta/Atraso</h3>
+              <button onClick={() => setShowModal(false)} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
             </div>
             <form onSubmit={handleSave} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Colaborador *</label>
-                <select value={form.colaborador_id} onChange={(e) => setForm(Object.assign({}, form, { colaborador_id: e.target.value }))} required className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50">
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Colaborador *</label>
+                <select value={form.colaborador_id} onChange={(e) => setForm(Object.assign({}, form, { colaborador_id: e.target.value }))} required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50">
                   <option value="">Selecionar...</option>
                   {colaboradores.map((c) => <option key={c.id} value={c.id}>{c.nome_completo}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Data *</label>
-                <input type="date" value={form.data} onChange={(e) => setForm(Object.assign({}, form, { data: e.target.value }))} required className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Data *</label>
+                <input type="date" value={form.data} onChange={(e) => setForm(Object.assign({}, form, { data: e.target.value }))} required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Estado *</label>
-                <select value={form.estado} onChange={(e) => setForm(Object.assign({}, form, { estado: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50">
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Estado *</label>
+                <select value={form.estado} onChange={(e) => setForm(Object.assign({}, form, { estado: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50">
                   <option value="Ausente">Falta (Ausente)</option>
                   <option value="Atrasado">Atraso</option>
                   <option value="Presente">Presente</option>
-                  <option value="Licenca">Licenca</option>
-                  <option value="Ferias">Ferias</option>
+                  <option value="Licença">Licença</option>
+                  <option value="Férias">Férias</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Hora Entrada</label>
-                  <input type="time" value={form.hora_entrada} onChange={(e) => setForm(Object.assign({}, form, { hora_entrada: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
+                  <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Hora Entrada</label>
+                  <input type="time" value={form.hora_entrada} onChange={(e) => setForm(Object.assign({}, form, { hora_entrada: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Hora Saida</label>
-                  <input type="time" value={form.hora_saida} onChange={(e) => setForm(Object.assign({}, form, { hora_saida: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
+                  <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Hora Saída</label>
+                  <input type="time" value={form.hora_saida} onChange={(e) => setForm(Object.assign({}, form, { hora_saida: e.target.value }))} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50" />
                 </div>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Observacoes</label>
-                <textarea value={form.observacoes} onChange={(e) => setForm(Object.assign({}, form, { observacoes: e.target.value }))} rows={2} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 resize-none" />
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Observações</label>
+                <textarea value={form.observacoes} onChange={(e) => setForm(Object.assign({}, form, { observacoes: e.target.value }))} rows={2} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 resize-none" />
               </div>
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50">Cancelar</button>
+                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container">Cancelar</button>
                 <button type="submit" disabled={saving || !form.colaborador_id || !form.data} className="flex-1 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 disabled:opacity-40">{saving ? "A guardar..." : "Guardar"}</button>
               </div>
             </form>
@@ -491,11 +491,11 @@ export default function FaltasPage() {
       {confirmModal.open && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setConfirmModal({ open: false, titulo: "", mensagem: "", onConfirm: null })} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
-            <h3 className="text-[15px] font-semibold text-slate-800 mb-2">{confirmModal.titulo}</h3>
-            <p className="text-[13px] text-slate-600 mb-5">{confirmModal.mensagem}</p>
+          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-sm p-5">
+            <h3 className="text-[15px] font-semibold text-on-surface mb-2">{confirmModal.titulo}</h3>
+            <p className="text-[13px] text-on-surface-variant mb-5">{confirmModal.mensagem}</p>
             <div className="flex gap-2">
-              <button onClick={() => setConfirmModal({ open: false, titulo: "", mensagem: "", onConfirm: null })} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50">Cancelar</button>
+              <button onClick={() => setConfirmModal({ open: false, titulo: "", mensagem: "", onConfirm: null })} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container">Cancelar</button>
               <button onClick={async () => { var fn = confirmModal.onConfirm; setConfirmModal({ open: false, titulo: "", mensagem: "", onConfirm: null }); if (fn) await fn(); }} className="flex-1 py-2 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600">Confirmar</button>
             </div>
           </div>

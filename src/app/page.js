@@ -19,10 +19,10 @@ export default function Home() {
   }, [auth, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
-        <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-sm text-gray-500 dark:text-gray-400">A carregar sistema...</p>
+        <div className="w-16 h-16 border-4 border-[var(--color-primary-container)] border-t-[var(--color-primary)] rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-sm text-on-surface-variant">A carregar sistema...</p>
       </div>
     </div>
   );

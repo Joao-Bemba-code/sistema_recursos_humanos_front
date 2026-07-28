@@ -1,18 +1,66 @@
-"use client";
+import { cn } from "@/lib/utils";
 
-export default function Card({ children, title, subtitle, className = "", headerRight, noPadding = false, hover = false }) {
+function Card({ className, ...props }) {
   return (
-    <div className={`card ${hover ? "cursor-pointer" : ""} ${className}`}>
-      {(title || headerRight) && (
-        <div className="card-header flex items-center justify-between gap-4">
-          <div>
-            {title && <h3 className="text-base font-bold text-on-surface">{title}</h3>}
-            {subtitle && <p className="mt-0.5 text-[13px] text-on-surface-variant/70">{subtitle}</p>}
-          </div>
-          {headerRight || null}
-        </div>
+    <div
+      className={cn(
+        "rounded-2xl border bg-card text-card-foreground shadow-sm",
+        className
       )}
-      <div className={noPadding ? "" : "card-body"}>{children}</div>
-    </div>
+      {...props}
+    />
   );
 }
+
+function CardHeader({ className, ...props }) {
+  return (
+    <div
+      className={cn("flex flex-col space-y-1.5 p-6", className)}
+      {...props}
+    />
+  );
+}
+
+function CardTitle({ className, ...props }) {
+  return (
+    <h3
+      className={cn(
+        "text-lg font-semibold leading-none tracking-tight",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+function CardDescription({ className, ...props }) {
+  return (
+    <p
+      className={cn("text-sm text-muted-foreground", className)}
+      {...props}
+    />
+  );
+}
+
+function CardContent({ className, ...props }) {
+  return <div className={cn("p-6 pt-0", className)} {...props} />;
+}
+
+function CardFooter({ className, ...props }) {
+  return (
+    <div
+      className={cn("flex items-center p-6 pt-0", className)}
+      {...props}
+    />
+  );
+}
+
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+};
+export default Card;

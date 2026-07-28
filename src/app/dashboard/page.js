@@ -5,6 +5,9 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { getT } from "@/lib/translations";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Card, CardContent } from "@/components/ui/Card";
 
 var ALL_MODULES = [
   { label: "Colaboradores", href: "/dashboard/colaboradores", icon: "badge" },
@@ -23,9 +26,9 @@ var ALL_MODULES = [
 
 var statsConfig = [
   { label: "Total de Colaboradores", icon: "groups_3", borderColor: "stat-card-primary", trendLabel: "ATIVO" },
-  { label: "Contratos Ativos", icon: "rule", borderColor: "stat-card-success", trendLabel: "ESTÁVEL" },
-  { label: "Departamentos", icon: "corporate_fare", borderColor: "stat-card-secondary", trendLabel: "ATIVO" },
-  { label: "Férias Pendentes", icon: "beach_access", borderColor: "stat-card-warning", trendLabel: "PENDENTE" },
+  { label: "Contratos Ativos", icon: "rule", borderColor: "stat-card-success", trendLabel: "ATIVOS" },
+  { label: "Departamentos", icon: "corporate_fare", borderColor: "stat-card-secondary", trendLabel: "ATIVOS" },
+  { label: "Férias Pendentes", icon: "beach_access", borderColor: "stat-card-warning", trendLabel: "PENDENTES" },
 ];
 
 function useAnimatedCounter(target, duration, enabled) {
@@ -70,10 +73,16 @@ function StatCard({ label, value, icon, borderColor, trendLabel, index, loading 
   );
 }
 
+var CONTRATO_COLORS = { "Efetivo": "bg-primary", "Termo Certo": "bg-secondary", "Estágio": "bg-success", "Prestação Serviço": "bg-warning", "Temporário": "bg-error" };
+
+var TIPO_LABEL = { "Determinado": "Termo Certo", "Indeterminado": "Efetivo", "Prestacao_Servicos": "Prestação Serviço", "Estagio": "Estágio", "Temporario": "Temporário" };
+
 export default function DashboardPage() {
   var auth = useAuth();
   var utilizador = auth ? auth.utilizador : null;
   var [stats, setStats] = useState(null);
+  var [deptData, setDeptData] = useState([]);
+  var [contratoData, setContratoData] = useState([]);
   var [loading, setLoading] = useState(true);
   var T = getT();
 
@@ -92,10 +101,42 @@ export default function DashboardPage() {
           departamentos: resDep.paginacao ? resDep.paginacao.total : 0,
           ferias: resFer.paginacao ? resFer.paginacao.total : 0,
         });
-      } catch (e) { /* silent */ }
+      } catch (e) { /* silêncio */ }
       setLoading(false);
     };
     load();
+  }, []);
+
+  useEffect(function () {
+    var loadDepts = async function () {
+      try {
+        var res = await api.get("/api/departamentos?limit=100");
+        var rows = res.dados || [];
+        var counts = {};
+        rows.forEach(function (d) { counts[d.nome] = (counts[d.nome] || 0) + 1; });
+        var total = rows.length || 1;
+        setDeptData(Object.entries(counts).map(function (entry) {
+          return { nome: entry[0], pct: Math.round((entry[1] / total) * 100), count: entry[1] };
+        }));
+      } catch (e) { /* silêncio */ }
+    };
+    loadDepts();
+  }, []);
+
+  useEffect(function () {
+    var loadContratos = async function () {
+      try {
+        var res = await api.get("/api/contratos?limit=100");
+        var rows = res.dados || [];
+        var counts = {};
+        rows.forEach(function (c) { counts[c.tipo] = (counts[c.tipo] || 0) + 1; });
+        var total = rows.length || 1;
+        setContratoData(Object.entries(counts).map(function (entry) {
+          return { label: TIPO_LABEL[entry[0]] || entry[0], pct: Math.round((entry[1] / total) * 100), count: entry[1], tipo: entry[0] };
+        }));
+      } catch (e) { /* silêncio */ }
+    };
+    loadContratos();
   }, []);
 
   var now = new Date();
@@ -128,18 +169,23 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="flex flex-wrap gap-3">
-        <Link href="/dashboard/colaboradores" className="btn btn-primary flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">add_circle</span>
-          Admitir Colaborador
+      <section className="flex flex-wrap gap-3">          <Link href="/dashboard/colaboradores">
+            <Button variant="default">
+              <span className="material-symbols-outlined text-[18px]">add_circle</span>
+              Admitir Colaborador
+            </Button>
+          </Link>
+        <Link href="/dashboard/relatorios">
+          <Button variant="outline">
+            <span className="material-symbols-outlined text-[18px]">description</span>
+            Relatórios
+          </Button>
         </Link>
-        <Link href="/dashboard/relatorios" className="btn btn-secondary flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">description</span>
-          Relatórios
-        </Link>
-        <Link href="/dashboard/ferias" className="btn btn-secondary flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px]">calendar_today</span>
-          Planeamento de Férias
+        <Link href="/dashboard/ferias">
+          <Button variant="outline">
+            <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+            Planeamento de Férias
+          </Button>
         </Link>
       </section>
 
@@ -164,40 +210,60 @@ export default function DashboardPage() {
         <div className="card p-6">
           <h3 className="text-base font-bold text-on-surface mb-1">Distribuição por Departamento</h3>
           <p className="text-[13px] text-on-surface-variant/70 mb-6">Composição atual da equipa</p>
-          <div className="space-y-4">
-            {["Direção", "RH", "Financeiro", "TI", "Operações"].map(function (dept, i) {
-              var pct = [30, 25, 15, 20, 10][i];
-              return (
-                <div key={dept}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[13px] font-semibold text-on-surface">{dept}</span>
-                    <span className="text-[12px] font-bold text-primary">{pct}%</span>
+          {loading ? (
+            <div className="space-y-3">
+              <div className="skeleton w-full h-6" />
+              <div className="skeleton w-full h-6" />
+              <div className="skeleton w-3/4 h-6" />
+            </div>
+          ) : deptData.length === 0 ? (
+            <div className="flex items-center justify-center py-8 text-on-surface-variant/40 text-sm">Sem dados de departamentos</div>
+          ) : (
+            <div className="space-y-4">
+              {deptData.map(function (dept, i) {
+                return (
+                  <div key={dept.nome}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[13px] font-semibold text-on-surface">{dept.nome}</span>
+                      <span className="text-[12px] font-bold text-primary">{dept.pct}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                      <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: dept.pct + "%", animationDelay: i * 0.1 + "s" }} />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: pct + "%", animationDelay: i * 0.1 + "s" }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
         <div className="card p-6">
           <h3 className="text-base font-bold text-on-surface mb-1">Tipos de Contrato</h3>
           <p className="text-[13px] text-on-surface-variant/70 mb-6">Distribuição por vínculo</p>
-          <div className="space-y-4">
-            {[{ label: "Efetivo", pct: 45, color: "bg-primary" }, { label: "Termo Certo", pct: 30, color: "bg-secondary" }, { label: "Estágio", pct: 15, color: "bg-success" }, { label: "Prestação Serviço", pct: 10, color: "bg-warning" }].map(function (item) {
-              return (
-                <div key={item.label} className="flex items-center gap-3">
-                  <div className={"w-3 h-3 rounded-full " + item.color.replace("bg-", "bg-")} />
-                  <span className="flex-1 text-[13px] font-medium text-on-surface">{item.label}</span>
-                  <span className="text-[12px] font-bold text-on-surface-variant">{item.pct}%</span>
-                  <div className="w-24 sm:w-32 h-1.5 bg-surface-container rounded-full overflow-hidden">
-                    <div className={"h-full rounded-full " + item.color} style={{ width: item.pct + "%" }} />
+          {loading ? (
+            <div className="space-y-3">
+              <div className="skeleton w-full h-6" />
+              <div className="skeleton w-full h-6" />
+              <div className="skeleton w-3/4 h-6" />
+            </div>
+          ) : contratoData.length === 0 ? (
+            <div className="flex items-center justify-center py-8 text-on-surface-variant/40 text-sm">Sem dados de contratos</div>
+          ) : (
+            <div className="space-y-4">
+              {contratoData.map(function (item) {
+                var colorClass = CONTRATO_COLORS[item.label] || "bg-primary";
+                return (
+                  <div key={item.tipo} className="flex items-center gap-3">
+                    <div className={"w-3 h-3 rounded-full " + colorClass} />
+                    <span className="flex-1 text-[13px] font-medium text-on-surface">{item.label}</span>
+                    <span className="text-[12px] font-bold text-on-surface-variant">{item.pct}%</span>
+                    <div className="w-24 sm:w-32 h-1.5 bg-surface-container rounded-full overflow-hidden">
+                      <div className={"h-full rounded-full " + colorClass} style={{ width: item.pct + "%" }} />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

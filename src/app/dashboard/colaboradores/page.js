@@ -69,7 +69,7 @@ export default function ColaboradoresPage() {
     nome_completo: "", data_admissao: "", genero: "", estado_civil: "",
     nif: "", bi: "", bi_validade: "", telefone: "", email_pessoal: "",
     email_institucional: "", telefone_emergencia: "", tipo_colaborador: "Interno",
-    estado: "Activo", endereco: "", cidade: "", provincia: "",
+    estado: "Ativo", endereco: "", cidade: "", provincia: "",
     data_nascimento: "", nome_curto: "",
     habilitacoes: "", formacao_academica: "", conta_bancaria: "", banco: "", iban: "",
     numero_seguranca_social: "", fotografia: "", curriculo: "", observacoes: "",
@@ -80,7 +80,6 @@ export default function ColaboradoresPage() {
     setForm({ ...defaultForm });
     setAba("pessoal");
     setShowModal(true);
-    setMsg(null);
   };
 
   const abrirEditar = (c) => {
@@ -93,13 +92,11 @@ export default function ColaboradoresPage() {
     setForm(f);
     setAba("pessoal");
     setShowModal(true);
-    setMsg(null);
   };
 
   const guardar = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setMsg(null);
     try {
       if (editando) {
         await api.put(`/api/colaboradores/${editando.id}`, form);
@@ -180,7 +177,7 @@ export default function ColaboradoresPage() {
       <ConfirmDialog
         open={confirmDelete.open}
         titulo="Desligar Colaborador"
-        mensagem={`Tem certeza que deseja desligar ${confirmDelete.nome}? O colaborador sera marcado como "Desligado".`}
+        mensagem={`Tem certeza que deseja desligar ${confirmDelete.nome}? O colaborador será marcado como "Desligado".`}
         textoConfirmar="Sim, Desligar"
         textoCancelar="Manter"
         variante="perigo"
@@ -195,13 +192,13 @@ export default function ColaboradoresPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Colaboradores</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestao Estrategica de Colaboradores</h1>
+          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão Estratégica de Colaboradores</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
+          <Button onClick={abrirNovo} variant="default">
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             Novo Colaborador
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -213,7 +210,7 @@ export default function ColaboradoresPage() {
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
               <input
                 type="text"
-                placeholder="Nome, numero, NIF..."
+                placeholder="Nome, número, NIF..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && carregar(1)}
@@ -237,16 +234,16 @@ export default function ColaboradoresPage() {
               </select>
             </div>
             <div className="flex items-end pb-0.5">
-              <button onClick={() => carregar(1)} className="w-full px-4 py-2.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors">
+              <Button onClick={() => carregar(1)} variant="outline" className="w-full">
                 <span className="material-symbols-outlined text-[18px]">filter_alt</span>
                 Filtrar
-              </button>
+              </Button>
             </div>
           </div>
         </div>
         {activeFilters.length > 0 && (
           <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros activos:</span>
+            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
             {activeFilters.map((f, i) => (
               <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
                 {f.label}
@@ -310,29 +307,29 @@ export default function ColaboradoresPage() {
                       <span className="text-on-surface">{(TIPOS_COLABORADOR.find(t => t.value === c.tipo_colaborador) || {}).label || c.tipo_colaborador}</span>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${c.estado === "Activo" ? "badge-success" : "badge-secondary"}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${c.estado === "Activo" ? "bg-success" : "bg-outline"}`} />
+                      <Badge variant={c.estado === "Ativo" ? "success" : "secondary"} className="gap-1.5 uppercase">
+                        <span className={`w-1.5 h-1.5 rounded-full ${c.estado === "Ativo" ? "bg-current" : "bg-current opacity-60"}`} />
                         {c.estado}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-4 py-4">
                       <span className="text-on-surface-variant">{helpers.formatDate(c.data_admissao)}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end">
-                        <button onClick={() => abrirVer(c)} className="p-[3px] text-on-surface-variant hover:text-success hover:bg-success/10 rounded transition-all" title="Ver">
+                        <Button onClick={() => abrirVer(c)} variant="ghost" size="icon-sm" title="Ver">
                           <span className="material-symbols-outlined text-[15px]">visibility</span>
-                        </button>
-                        <button onClick={() => abrirEditar(c)} className="p-[3px] text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-all" title="Editar">
+                        </Button>
+                        <Button onClick={() => abrirEditar(c)} variant="ghost" size="icon-sm" title="Editar">
                           <span className="material-symbols-outlined text-[15px]">edit</span>
-                        </button>
+                        </Button>
                         <div className="relative">
-                          <button onClick={(e) => { e.stopPropagation(); setStatusDropdown({ open: statusDropdown.open && statusDropdown.id === c.id ? false : true, id: c.id }); }} className="p-[3px] text-on-surface-variant hover:text-amber-600 hover:bg-amber-600/10 rounded transition-all" title="Alterar Status">
+                          <Button onClick={(e) => { e.stopPropagation(); setStatusDropdown({ open: statusDropdown.open && statusDropdown.id === c.id ? false : true, id: c.id }); }} variant="ghost" size="icon-sm" title="Alterar Status">
                             <span className="material-symbols-outlined text-[15px]">swap_vert</span>
-                          </button>
+                          </Button>
                           {statusDropdown.open && statusDropdown.id === c.id && (
                             <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-xl z-50 min-w-[160px] py-1">
-                              {["Activo", "Inactivo", "Suspenso", "Aposentado"].map(function(estado) {
+                              {["Ativo", "Inativo", "Suspenso", "Aposentado"].map(function(estado) {
                                 return (
                                   <button
                                     key={estado}
@@ -344,8 +341,8 @@ export default function ColaboradoresPage() {
                                     }`}
                                   >
                                     <span className={`w-1.5 h-1.5 rounded-full ${
-                                      estado === "Activo" ? "bg-green-500" :
-                                      estado === "Inactivo" ? "bg-gray-400" :
+                                      estado === "Ativo" ? "bg-green-500" :
+                                      estado === "Inativo" ? "bg-gray-400" :
                                       estado === "Suspenso" ? "bg-amber-500" :
                                       "bg-blue-500"
                                     }`} />
@@ -357,9 +354,9 @@ export default function ColaboradoresPage() {
                             </div>
                           )}
                         </div>
-                        <button onClick={() => setConfirmDelete({ open: true, id: c.id, nome: c.nome_completo })} className="p-[3px] text-on-surface-variant hover:text-error hover:bg-error/10 rounded transition-all" title="Desligar">
+                        <Button onClick={() => setConfirmDelete({ open: true, id: c.id, nome: c.nome_completo })} variant="ghost" size="icon-sm" title="Desligar">
                           <span className="material-symbols-outlined text-[15px]">person_off</span>
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -375,9 +372,9 @@ export default function ColaboradoresPage() {
           {paginacao.total_paginas > 1 && (
             <div className="flex items-center gap-1.5">
               {Array.from({ length: Math.min(paginacao.total_paginas, 5) }, (_, i) => i + 1).map((p) => (
-                <button key={p} onClick={() => carregar(p)} className={`w-8 h-8 rounded-lg text-[13px] font-medium transition-all ${p === paginacao.pagina ? "bg-primary text-white font-bold" : "hover:bg-primary/5 text-on-surface-variant"}`}>
+                <Button key={p} onClick={() => carregar(p)} variant={p === paginacao.pagina ? "default" : "outline"} size="sm" className="min-w-[32px]">
                   {p}
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -428,7 +425,7 @@ export default function ColaboradoresPage() {
                     <input name="data_nascimento" type="date" value={form.data_nascimento || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Genero</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Género</label>
                     <select name="genero" value={form.genero || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       <option value="">Selecionar</option>
                       {GENEROS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
@@ -454,12 +451,12 @@ export default function ColaboradoresPage() {
                     <input name="bi_validade" type="date" value={form.bi_validade || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Habilitacoes</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Habilitações</label>
                     <input name="habilitacoes" value={form.habilitacoes || ""} onChange={handleInput} placeholder="Ex: Licenciatura em Engenharia" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Formacao Academica</label>
-                    <textarea name="formacao_academica" value={form.formacao_academica || ""} onChange={handleInput} rows={2} placeholder="Historico de formacao academica" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Formação Académica</label>
+                    <textarea name="formacao_academica" value={form.formacao_academica || ""} onChange={handleInput} rows={2} placeholder="Histórico de formação académica" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                 </div>
               )}
@@ -471,7 +468,7 @@ export default function ColaboradoresPage() {
                     <input name="telefone" value={form.telefone || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Telefone Emergencia</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Telefone Emergência</label>
                     <input name="telefone_emergencia" value={form.telefone_emergencia || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
@@ -483,7 +480,7 @@ export default function ColaboradoresPage() {
                     <input name="email_institucional" type="email" value={form.email_institucional || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Endereco</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Endereço</label>
                     <input name="endereco" value={form.endereco || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
@@ -491,7 +488,7 @@ export default function ColaboradoresPage() {
                     <input name="cidade" value={form.cidade || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Provincia</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Província</label>
                     <input name="provincia" value={form.provincia || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                 </div>
@@ -516,11 +513,11 @@ export default function ColaboradoresPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">No. Seguranca Social</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nº Segurança Social</label>
                     <input name="numero_seguranca_social" value={form.numero_seguranca_social || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observacoes</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observações</label>
                     <textarea name="observacoes" value={form.observacoes || ""} onChange={handleInput} rows={3} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                 </div>
@@ -533,7 +530,7 @@ export default function ColaboradoresPage() {
                     <input name="banco" value={form.banco || ""} onChange={handleInput} placeholder="Ex: BAI, BFA, Millennium" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Conta Bancaria</label>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Conta Bancária</label>
                     <input name="conta_bancaria" value={form.conta_bancaria || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div className="sm:col-span-2">
@@ -557,7 +554,7 @@ export default function ColaboradoresPage() {
                   </div>
                   <div className="sm:col-span-2">
                     <FileUpload
-                      label="Curriculo (CV)"
+                      label="Currículo (CV)"
                       value={form.curriculo || ""}
                       onChange={(url) => setForm({ ...form, curriculo: url })}
                       pasta="curriculos"
@@ -570,11 +567,11 @@ export default function ColaboradoresPage() {
               )}
 
               <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-outline-variant/20">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
-                <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
+                <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancelar</Button>
+                <Button type="submit" disabled={saving} variant="default">
                   <span className="material-symbols-outlined text-[18px]">{saving ? "hourglass_empty" : "save"}</span>
-                  {saving ? "A guardar..." : editando ? "Actualizar" : "Criar Colaborador"}
-                </button>
+                  {saving ? "A guardar..." : editando ? "Atualizar" : "Criar Colaborador"}
+                </Button>
               </div>
             </form>
           </div>
@@ -611,8 +608,8 @@ export default function ColaboradoresPage() {
                   <h2 className="text-xl font-bold text-on-surface">{colaboradorView.nome_completo}</h2>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-[13px] text-on-surface-variant/70">{colaboradorView.numero_colaborador}</span>
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${colaboradorView.estado === "Activo" ? "badge-success" : "badge-secondary"}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${colaboradorView.estado === "Activo" ? "bg-success" : "bg-outline"}`} />
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${colaboradorView.estado === "Ativo" ? "badge-success" : "badge-secondary"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${colaboradorView.estado === "Ativo" ? "bg-success" : "bg-outline"}`} />
                       {colaboradorView.estado}
                     </span>
                     <span className="text-[12px] text-on-surface-variant/60 badge-primary px-2 py-0.5 rounded">
@@ -632,12 +629,12 @@ export default function ColaboradoresPage() {
                     ["Nome Completo", colaboradorView.nome_completo],
                     ["Nome Curto", colaboradorView.nome_curto],
                     ["Data de Nascimento", colaboradorView.data_nascimento ? helpers.formatDate(colaboradorView.data_nascimento) : null],
-                    ["Genero", colaboradorView.genero === "M" ? "Masculino" : colaboradorView.genero === "F" ? "Feminino" : null],
+                    ["Género", colaboradorView.genero === "M" ? "Masculino" : colaboradorView.genero === "F" ? "Feminino" : null],
                     ["Estado Civil", colaboradorView.estado_civil],
                     ["NIF", colaboradorView.nif],
                     ["BI", colaboradorView.bi],
                     ["Validade BI", colaboradorView.bi_validade ? helpers.formatDate(colaboradorView.bi_validade) : null],
-                    ["Habilitacoes", colaboradorView.habilitacoes],
+                    ["Habilitações", colaboradorView.habilitacoes],
                   ].map(function(pair) {
                     return (
                       <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -649,7 +646,7 @@ export default function ColaboradoresPage() {
                 </div>
                 {colaboradorView.formacao_academica && (
                   <div className="mt-3 bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Formacao Academica</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Formação Académica</p>
                     <p className="text-[13px] text-on-surface">{colaboradorView.formacao_academica}</p>
                   </div>
                 )}
@@ -663,11 +660,11 @@ export default function ColaboradoresPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[
                     ["Telefone", colaboradorView.telefone],
-                    ["Telefone Emergencia", colaboradorView.telefone_emergencia],
+                    ["Telefone Emergência", colaboradorView.telefone_emergencia],
                     ["Email Pessoal", colaboradorView.email_pessoal],
                     ["Email Institucional", colaboradorView.email_institucional],
                     ["Cidade", colaboradorView.cidade],
-                    ["Provincia", colaboradorView.provincia],
+                    ["Província", colaboradorView.provincia],
                   ].map(function(pair) {
                     return (
                       <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -679,7 +676,7 @@ export default function ColaboradoresPage() {
                 </div>
                 {colaboradorView.endereco && (
                   <div className="mt-3 bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Endereco</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Endereço</p>
                     <p className="text-[13px] text-on-surface">{colaboradorView.endereco}</p>
                   </div>
                 )}
@@ -693,7 +690,7 @@ export default function ColaboradoresPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[
                     ["Data de Admissão", colaboradorView.data_admissao ? helpers.formatDate(colaboradorView.data_admissao) : null],
-                    ["No. Seguranca Social", colaboradorView.numero_seguranca_social],
+                    ["Nº Segurança Social", colaboradorView.numero_seguranca_social],
                   ].map(function(pair) {
                     return (
                       <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -705,7 +702,7 @@ export default function ColaboradoresPage() {
                 </div>
                 {colaboradorView.observacoes && (
                   <div className="mt-3 bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Observacoes</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Observações</p>
                     <p className="text-[13px] text-on-surface">{colaboradorView.observacoes}</p>
                   </div>
                 )}
@@ -719,7 +716,7 @@ export default function ColaboradoresPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[
                     ["Banco", colaboradorView.banco],
-                    ["Conta Bancaria", colaboradorView.conta_bancaria],
+                    ["Conta Bancária", colaboradorView.conta_bancaria],
                     ["IBAN", colaboradorView.iban],
                   ].map(function(pair) {
                     return (
@@ -750,7 +747,7 @@ export default function ColaboradoresPage() {
                     )}
                   </div>
                   <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Curriculo</p>
+                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Currículo</p>
                     {colaboradorView.curriculo ? (
                       <a href={colaboradorView.curriculo} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
                         <span className="material-symbols-outlined text-[14px]">open_in_new</span>
@@ -783,7 +780,7 @@ export default function ColaboradoresPage() {
                             <p className="text-[12px] font-bold text-on-surface">{av.nota_final != null ? parseFloat(av.nota_final).toFixed(1) : "—"}</p>
                             <p className="text-[10px] text-on-surface-variant/50 uppercase">Nota Final</p>
                           </div>
-                          <span className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded ${av.estado === "Concluida" ? "badge-success" : av.estado === "Em Progresso" ? "badge-warning" : "badge-secondary"}`}>
+                          <span className={`text-[11px] font-bold uppercase px-2 py-0.5 rounded ${av.estado === "Concluída" ? "badge-success" : av.estado === "Em Progresso" ? "badge-warning" : "badge-secondary"}`}>
                             {av.estado || "Rascunho"}
                           </span>
                         </div>

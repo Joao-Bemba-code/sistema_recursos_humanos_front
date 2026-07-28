@@ -39,7 +39,7 @@ export default function ConfiguracoesPage() {
   // System state
   var cfg = loadCfg();
   var sys = cfg.sistema || {};
-  const [sistemaIdioma, setSistemaIdioma] = useState("Portugues");
+  const [sistemaIdioma, setSistemaIdioma] = useState("Português");
   const [sistemaData, setSistemaData] = useState("DD/MM/AAAA");
   const [sistemaMoeda, setSistemaMoeda] = useState("Kwanza (AOA)");
   const [sistemaFuso, setSistemaFuso] = useState("Africa/Luanda (GMT+1)");
@@ -170,7 +170,7 @@ export default function ConfiguracoesPage() {
   var handleAlterarSenha = useCallback(async function() {
     setMsg(null);
     if (!senhaActual || !novaSenha || !confirmarSenha) { setMsg({ tipo: "erro", texto: "Preencha todos os campos" }); return; }
-    if (novaSenha !== confirmarSenha) { setMsg({ tipo: "erro", texto: "As senhas nao coincidem" }); return; }
+    if (novaSenha !== confirmarSenha) { setMsg({ tipo: "erro", texto: "As senhas não coincidem" }); return; }
     if (novaSenha.length < 6) { setMsg({ tipo: "erro", texto: "A senha deve ter pelo menos 6 caracteres" }); return; }
     try {
       await api.put("/api/users/" + userId + "/password", { current_password: senhaActual, new_password: novaSenha });
@@ -239,7 +239,7 @@ export default function ConfiguracoesPage() {
 
               <div className="border-t border-outline-variant/20 pt-6 mt-6">
                 <h3 className="text-[13px] font-bold text-on-surface uppercase tracking-wider mb-4">Modelo de Contrato de Trabalho</h3>
-                <p className="text-[12px] text-on-surface-variant/70 mb-4">Defina o template do contrato. Use placeholders como {"{NOME_COLABORADOR}"}, {"{NIF}"}, {"{SALARIO}"}, etc. que serao substituidos automaticamente ao gerar o PDF.</p>
+                <p className="text-[12px] text-on-surface-variant/70 mb-4">Defina o template do contrato. Use placeholders como {"{NOME_COLABORADOR}"}, {"{NIF}"}, {"{SALARIO}"}, etc. que serão substituídos automaticamente ao gerar o PDF.</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2 space-y-3">
@@ -247,7 +247,7 @@ export default function ConfiguracoesPage() {
                     <textarea
                       value={orgTemplate}
                       onChange={function(e) { setOrgTemplate(e.target.value); }}
-                      placeholder={"Ex:\nENTRE\n{NOME_ORGANIZACAO}, NIF {NIF_ORGANIZACAO}, com sede em {MORADA_ORGANIZACAO}\nE\n{NOME_COLABORADOR}, NIF {NIF_COLABORADOR}, natural de {NATURAL_DE}\n\nCLAUSULA PRIMEIRA - Categoria Profissional\nO trabalhador sera admitido na categoria de {CATEGORIA_PROFISSIONAL}.\n\nCLAUSULA SEGUNDA - Retribuicao\nSalario mensal: {SALARIO_BASE}"}
+                      placeholder={"Ex:\nENTRE\n{NOME_ORGANIZACAO}, NIF {NIF_ORGANIZACAO}, com sede em {MORADA_ORGANIZACAO}\nE\n{NOME_COLABORADOR}, NIF {NIF_COLABORADOR}, natural de {NATURAL_DE}\n\nCLÁUSULA PRIMEIRA - Categoria Profissional\nO trabalhador será admitido na categoria de {CATEGORIA_PROFISSIONAL}.\n\nCLÁUSULA SEGUNDA - Remuneração\nSalário mensal: {SALARIO_BASE}"}
                       rows={16}
                       className="w-full px-4 py-3 bg-surface-container/60 border border-outline-variant/40 rounded-lg text-[13px] text-on-surface outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all font-mono resize-y"
                     />
@@ -261,7 +261,7 @@ export default function ConfiguracoesPage() {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 mb-2">Logo da Organizacao</label>
+                      <label className="block text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 mb-2">Logo da Organização</label>
                       <div className="border-2 border-dashed border-outline-variant/40 rounded-xl p-4 text-center hover:border-primary/30 transition-colors">
                         {orgLogoUrl ? (
                           <div className="space-y-3">
@@ -295,9 +295,9 @@ export default function ConfiguracoesPage() {
             <div className="space-y-6">
               <h3 className="text-[13px] font-bold text-on-surface uppercase tracking-wider mb-4">{T.parametrosSistema}</h3>
               <div className="space-y-4">
-                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"><label className="text-[13px] font-semibold text-on-surface-variant md:w-64 shrink-0">{T.idiomaSistema}</label><select value={sistemaIdioma} onChange={function(e) { setSistemaIdioma(e.target.value); }} className={inputClsSmall}><option>Portugues</option><option>English</option></select></div>
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"><label className="text-[13px] font-semibold text-on-surface-variant md:w-64 shrink-0">{T.idiomaSistema}</label><select value={sistemaIdioma} onChange={function(e) { setSistemaIdioma(e.target.value); }} className={inputClsSmall}><option>Português</option><option>English</option></select></div>
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"><label className="text-[13px] font-semibold text-on-surface-variant md:w-64 shrink-0">{T.formatoData}</label><select value={sistemaData} onChange={function(e) { setSistemaData(e.target.value); }} className={inputClsSmall}><option>DD/MM/AAAA</option><option>MM/DD/AAAA</option><option>AAAA-MM-DD</option></select></div>
-                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"><label className="text-[13px] font-semibold text-on-surface-variant md:w-64 shrink-0">{T.moeda}</label><select value={sistemaMoeda} onChange={function(e) { setSistemaMoeda(e.target.value); }} className={inputClsSmall}><option>Kwanza (AOA)</option><option>Euro (EUR)</option><option>Dolar (USD)</option></select></div>
+                <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"><label className="text-[13px] font-semibold text-on-surface-variant md:w-64 shrink-0">{T.moeda}</label><select value={sistemaMoeda} onChange={function(e) { setSistemaMoeda(e.target.value); }} className={inputClsSmall}><option>Kwanza (AOA)</option><option>Euro (EUR)</option><option>Dólar (USD)</option></select></div>
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"><label className="text-[13px] font-semibold text-on-surface-variant md:w-64 shrink-0">{T.fusoHorario}</label><select value={sistemaFuso} onChange={function(e) { setSistemaFuso(e.target.value); }} className={inputClsSmall}><option>Africa/Luanda (GMT+1)</option></select></div>
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"><label className="text-[13px] font-semibold text-on-surface-variant md:w-64 shrink-0">{T.diasAvisoFerias}</label><input type="number" value={sistemaDiasFerias} onChange={function(e) { setSistemaDiasFerias(e.target.value); }} className={inputClsSmall} /></div>
                 <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"><label className="text-[13px] font-semibold text-on-surface-variant md:w-64 shrink-0">{T.limiteFicheiros}</label><input type="number" value={sistemaLimiteFicheiros} onChange={function(e) { setSistemaLimiteFicheiros(e.target.value); }} className={inputClsSmall} /></div>
@@ -313,10 +313,10 @@ export default function ConfiguracoesPage() {
                 <h3 className="text-[13px] font-bold text-on-surface uppercase tracking-wider mb-4">{T.segurancaAcesso}</h3>
                 <div className="space-y-4">
                   {[
-                    { label: "2FA", desc: "Require additional code during login", value: seg2fa, key: "duasFactores" },
-                    { label: T.alterarSenha, desc: "Force password change every 90 days", value: segExpiracao, key: "expiracaoSenha" },
-                    { label: "Brute Force Block", desc: "Block after 5 failed login attempts", value: segBloqueio, key: "bloqueioTentativas" },
-                    { label: "Idle Session", desc: "End session after 30 minutes of inactivity", value: segSessao, key: "sessaoInactiva" },
+                    { label: "2FA", desc: "Requerer código adicional durante o login", value: seg2fa, key: "duasFactores" },
+                    { label: T.alterarSenha, desc: "Forçar mudança de senha a cada 90 dias", value: segExpiracao, key: "expiracaoSenha" },
+                    { label: "Bloqueio de Força Bruta", desc: "Bloquear após 5 tentativas de login falhadas", value: segBloqueio, key: "bloqueioTentativas" },
+                    { label: "Sessão Inativa", desc: "Encerrar sessão após 30 minutos de inatividade", value: segSessao, key: "sessaoInactiva" },
                   ].map(function(item) {
                     return (
                       <div key={item.key} className="glass-panel p-4 rounded-xl border border-outline-variant/30 flex items-center justify-between gap-4">

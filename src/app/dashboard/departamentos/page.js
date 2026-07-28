@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 
 const TIPOS_DEPT = [
-  { value: "Direccao", label: "Direccao" },
+  { value: "Direcção", label: "Direcção" },
   { value: "Departamento", label: "Departamento" },
   { value: "Sector", label: "Sector" },
-  { value: "Seccao", label: "Secção" },
+  { value: "Secção", label: "Secção" },
   { value: "Gabinete", label: "Gabinete" },
 ];
 
@@ -243,7 +245,7 @@ export default function DepartamentosPage() {
         </div>
         {activeFilters.length > 0 && (
           <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros activos:</span>
+            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
             {activeFilters.map((f, i) => (
               <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
                 {f.label}
@@ -403,7 +405,7 @@ export default function DepartamentosPage() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                 <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">{saving ? "hourglass_empty" : "save"}</span>
-                  {saving ? "A guardar..." : editando ? "Actualizar" : "Criar Departamento"}
+                  {saving ? "A guardar..." : editando ? "Atualizar" : "Criar Departamento"}
                 </button>
               </div>
             </form>
@@ -435,7 +437,7 @@ export default function DepartamentosPage() {
                 <div>
                   <h2 className="text-lg font-bold text-on-surface">{deptView.nome}</h2>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[12px] text-on-surface-variant/60">{deptView.codigo || "Sem codigo"}</span>
+                    <span className="text-[12px] text-on-surface-variant/60">{deptView.codigo || "Sem código"}</span>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold uppercase ${deptView.activo ? "badge-success" : "badge-secondary"}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${deptView.activo ? "bg-success" : "bg-outline"}`} />
                       {deptView.activo ? "Ativo" : "Inativo"}

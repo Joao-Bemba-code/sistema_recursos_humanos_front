@@ -30,8 +30,8 @@ function FeriasWaveChart({ data }) {
   var waveFill = waveLine + " " + w + "," + h + " 0," + h;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5">
-      <h2 className="text-[14px] font-semibold text-slate-700 mb-3">Mapa de Férias</h2>
+    <div className="bg-surface-card border border-outline-variant rounded-xl p-5">
+      <h2 className="text-[14px] font-semibold text-on-surface mb-3">Mapa de Férias</h2>
       <div className="relative mb-3">
         <svg viewBox={"0 0 " + w + " " + h} className="w-full h-16">
           <polygon points={waveFill} fill="url(#portalWave)" opacity="0.12" />
@@ -49,9 +49,9 @@ function FeriasWaveChart({ data }) {
           return (
             <div key={i} className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
-              <span className="text-[11px] text-slate-500">{s.label}</span>
-              <span className="text-[11px] font-semibold text-slate-700">{s.value}</span>
-              <span className="text-[10px] text-slate-400">({Math.round(pct[i])}%)</span>
+              <span className="text-[11px] text-on-surface-variant">{s.label}</span>
+              <span className="text-[11px] font-semibold text-on-surface">{s.value}</span>
+              <span className="text-[10px] text-outline">({Math.round(pct[i])}%)</span>
             </div>
           );
         })}
@@ -64,7 +64,7 @@ function estadoClasses(estado) {
   if (estado === "aprovado") return "bg-green-50 text-green-700 border border-green-200";
   if (estado === "pendente") return "bg-amber-50 text-amber-700 border border-amber-200";
   if (estado === "rejeitado") return "bg-red-50 text-red-700 border border-red-200";
-  return "bg-slate-50 text-slate-500 border border-slate-200";
+  return "bg-surface-container text-on-surface-variant border border-outline-variant";
 }
 
 export default function PortalPage() {
@@ -186,27 +186,27 @@ export default function PortalPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="pt-2">
-        <p className="text-[11px] text-slate-400 uppercase tracking-widest mb-1">{dataHoje}</p>
-        <h1 className="text-[22px] font-semibold text-slate-800">{saudacao}{nome}</h1>
+        <p className="text-[11px] text-outline uppercase tracking-widest mb-1">{dataHoje}</p>
+        <h1 className="text-[22px] font-semibold text-on-surface">{saudacao}{nome}</h1>
       </div>
 
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[14px] font-semibold text-slate-700">Férias</h2>
+          <h2 className="text-[14px] font-semibold text-on-surface">Férias</h2>
           <button onClick={function () { setShowFeriasModal(true); }} className="text-[12px] font-medium text-primary hover:underline">+ Solicitar</button>
         </div>
-        <div className="grid grid-cols-3 gap-px bg-slate-200 rounded-lg overflow-hidden mb-4">
-          <div className="bg-white p-4 text-center">
-            <p className="text-[20px] font-bold text-slate-800">{ferias.disponiveis}</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Disponíveis</p>
+        <div className="grid grid-cols-3 gap-px bg-outline-variant rounded-lg overflow-hidden mb-4">
+          <div className="bg-surface-card p-4 text-center">
+            <p className="text-[20px] font-bold text-on-surface">{ferias.disponiveis}</p>
+            <p className="text-[11px] text-outline mt-0.5">Disponíveis</p>
           </div>
-          <div className="bg-white p-4 text-center">
-            <p className="text-[20px] font-bold text-slate-800">{ferias.gozados}</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Gozados</p>
+          <div className="bg-surface-card p-4 text-center">
+            <p className="text-[20px] font-bold text-on-surface">{ferias.gozados}</p>
+            <p className="text-[11px] text-outline mt-0.5">Gozados</p>
           </div>
-          <div className="bg-white p-4 text-center">
-            <p className="text-[20px] font-bold text-slate-800">{ferias.planeados}</p>
-            <p className="text-[11px] text-slate-400 mt-0.5">Planeados</p>
+          <div className="bg-surface-card p-4 text-center">
+            <p className="text-[20px] font-bold text-on-surface">{ferias.planeados}</p>
+            <p className="text-[11px] text-outline mt-0.5">Planeados</p>
           </div>
         </div>
       </section>
@@ -214,61 +214,61 @@ export default function PortalPage() {
       <FeriasWaveChart data={ferias} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <section className="bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="text-[14px] font-semibold text-slate-700 mb-3">Adiantamento Salarial</h2>
-          <button onClick={function () { setShowAdiantamentoModal(true); }} className="w-full py-2.5 text-[13px] font-medium text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+        <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+          <h2 className="text-[14px] font-semibold text-on-surface mb-3">Adiantamento Salarial</h2>
+          <button onClick={function () { setShowAdiantamentoModal(true); }} className="w-full py-2.5 text-[13px] font-medium text-on-surface border border-outline-variant rounded-lg hover:bg-surface-container transition-colors">
             Pedir adiantamento
           </button>
         </section>
 
-        <section className="bg-white border border-slate-200 rounded-xl p-5">
-          <h2 className="text-[14px] font-semibold text-slate-700 mb-3">Avaliações</h2>
+        <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+          <h2 className="text-[14px] font-semibold text-on-surface mb-3">Avaliações</h2>
           <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-[28px] font-bold text-slate-800">{avaliacoes.pontuacao > 0 ? avaliacoes.pontuacao.toFixed(1) : "0.0"}</span>
-            {avaliacoes.pontuacao > 0 && <span className="text-[12px] text-slate-400">/ 20</span>}
+            <span className="text-[28px] font-bold text-on-surface">{avaliacoes.pontuacao > 0 ? avaliacoes.pontuacao.toFixed(1) : "0.0"}</span>
+            {avaliacoes.pontuacao > 0 && <span className="text-[12px] text-outline">/ 20</span>}
           </div>
           {avaliacoes.ciclos.length > 0 ? (
             <div className="space-y-2">
               {avaliacoes.ciclos.slice(0, 3).map(function (ciclo, i) {
                 return (
                   <div key={i}>
-                    <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+                    <div className="flex justify-between text-[11px] text-on-surface-variant mb-1">
                       <span>{ciclo.nome}</span>
-                      <span className="font-medium text-slate-600">{ciclo.progresso}%</span>
+                      <span className="font-medium text-on-surface-variant">{ciclo.progresso}%</span>
                     </div>
-                    <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
-                      <div className={"h-full rounded-full " + (ciclo.progresso >= 100 ? "bg-green-500" : ciclo.progresso >= 50 ? "bg-amber-500" : "bg-slate-300")} style={{ width: ciclo.progresso + "%" }} />
+                    <div className="h-1 bg-outline-variant/50 rounded-full overflow-hidden">
+                      <div className={"h-full rounded-full " + (ciclo.progresso >= 100 ? "bg-green-500" : ciclo.progresso >= 50 ? "bg-amber-500" : "bg-outline/50")} style={{ width: ciclo.progresso + "%" }} />
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="text-[12px] text-slate-400">Sem avaliações registadas</p>
+            <p className="text-[12px] text-outline">Sem avaliações registadas</p>
           )}
         </section>
       </div>
 
-      <section className="bg-white border border-slate-200 rounded-xl p-5">
-        <h2 className="text-[14px] font-semibold text-slate-700 mb-3">Faltas e Atrasos</h2>
+      <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+        <h2 className="text-[14px] font-semibold text-on-surface mb-3">Faltas e Atrasos</h2>
         {faltas.length === 0 ? (
-          <p className="text-[12px] text-slate-400">Sem faltas ou atrasos registados</p>
+          <p className="text-[12px] text-outline">Sem faltas ou atrasos registados</p>
         ) : (
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <div className="border border-outline-variant rounded-lg overflow-hidden">
             <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-surface-container border-b border-outline-variant">
                 <tr>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Data</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Tipo</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Estado</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase text-center">Acção</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Data</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Tipo</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Estado</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Acção</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-outline-variant/30">
                 {faltas.map(function (f, i) {
                   return (
-                    <tr key={f.id || i} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-2.5 text-[12px] text-slate-600">{formatDate(f.data)}</td>
+                    <tr key={f.id || i} className="hover:bg-surface-container/50 transition-colors">
+                      <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{formatDate(f.data)}</td>
                       <td className="px-4 py-2.5">
                         <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + (f.estado === "Ausente" ? "bg-red-50 text-red-700 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200")}>
                           {f.estado === "Ausente" ? "Falta" : "Atraso"}
@@ -300,29 +300,29 @@ export default function PortalPage() {
       {justificacaoForm.falta && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-5">
+          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-md p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-slate-800">Justificar {justificacaoForm.falta.estado === "Ausente" ? "Falta" : "Atraso"}</h3>
-              <button onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
+              <h3 className="text-[15px] font-semibold text-on-surface">Justificar {justificacaoForm.falta.estado === "Ausente" ? "Falta" : "Atraso"}</h3>
+              <button onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
             </div>
-            <div className="bg-slate-50 rounded-lg p-3 text-[13px] text-slate-600 mb-3">
+            <div className="bg-surface-container rounded-lg p-3 text-[13px] text-on-surface-variant mb-3">
               <p><span className="font-semibold">Data:</span> {formatDate(justificacaoForm.falta.data)}</p>
               {justificacaoForm.falta.hora_entrada && <p><span className="font-semibold">Entrada:</span> {justificacaoForm.falta.hora_entrada}</p>}
               {justificacaoForm.falta.observacoes && <p><span className="font-semibold">Observações:</span> {justificacaoForm.falta.observacoes}</p>}
             </div>
             <form onSubmit={handleSubmitJustificacao} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Tipo de Justificação</label>
-                <select value={justificacaoForm.tipo} onChange={function (e) { setJustificacaoForm(Object.assign({}, justificacaoForm, { tipo: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Tipo de Justificação</label>
+                <select value={justificacaoForm.tipo} onChange={function (e) { setJustificacaoForm(Object.assign({}, justificacaoForm, { tipo: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
                   <option value="Atestado_Medico">Atestado Médico</option>
                   <option value="Assuntos_Pessoais">Assuntos Pessoais</option>
                   <option value="Formacao_Externa">Formação Externa</option>
                 </select>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase block mb-1">Comprovativo</label>
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Comprovativo</label>
                 <div
-                  className={"border border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors text-[12px] " + (uploadDrag ? "border-primary bg-primary/5 text-primary" : "border-slate-200 text-slate-400 hover:border-slate-300")}
+                  className={"border border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors text-[12px] " + (uploadDrag ? "border-primary bg-primary/5 text-primary" : "border-outline-variant text-outline hover:border-outline")}
                   onDragOver={function (e) { e.preventDefault(); setUploadDrag(true); }}
                   onDragLeave={function () { setUploadDrag(false); }}
                   onDrop={handleFileDrop}
@@ -333,7 +333,7 @@ export default function PortalPage() {
                 </div>
               </div>
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
+                <button type="button" onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
                 <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-[13px] font-medium hover:bg-emerald-700 transition-colors disabled:opacity-40">
                   {submitting ? "A enviar..." : "Submeter Justificação"}
                 </button>
@@ -343,31 +343,31 @@ export default function PortalPage() {
         </div>
       )}
 
-      <section className="bg-white border border-slate-200 rounded-xl p-5">
-        <h2 className="text-[14px] font-semibold text-slate-700 mb-3">Pedidos Recentes</h2>
+      <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+        <h2 className="text-[14px] font-semibold text-on-surface mb-3">Pedidos Recentes</h2>
         {loading ? (
-          <p className="text-[12px] text-slate-400">A carregar...</p>
+          <p className="text-[12px] text-outline">A carregar...</p>
         ) : pedidosRecentes.length === 0 ? (
-          <p className="text-[12px] text-slate-400">Sem pedidos</p>
+          <p className="text-[12px] text-outline">Sem pedidos</p>
         ) : (
-          <div className="border border-slate-200 rounded-lg overflow-hidden">
+          <div className="border border-outline-variant rounded-lg overflow-hidden">
             <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-surface-container border-b border-outline-variant">
                 <tr>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Tipo</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Título</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Estado</th>
-                  <th className="px-4 py-2 text-[11px] font-semibold text-slate-500 uppercase">Data</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Tipo</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Título</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Estado</th>
+                  <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Data</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-outline-variant/30">
                 {pedidosRecentes.map(function (p, i) {
                   return (
-                    <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-2.5 text-[12px] text-slate-500">{TIPO_LABELS[p.tipo] || p.tipo}</td>
-                      <td className="px-4 py-2.5 text-[13px] text-slate-700 font-medium">{p.titulo || "—"}</td>
+                    <tr key={i} className="hover:bg-surface-container/50 transition-colors">
+                      <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{TIPO_LABELS[p.tipo] || p.tipo}</td>
+                      <td className="px-4 py-2.5 text-[13px] text-on-surface font-medium">{p.titulo || "—"}</td>
                       <td className="px-4 py-2.5"><span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + estadoClasses(p.estado)}>{p.estado}</span></td>
-                      <td className="px-4 py-2.5 text-[12px] text-slate-400">{formatDate(p.createdAt || p.data_criacao)}</td>
+                      <td className="px-4 py-2.5 text-[12px] text-outline">{formatDate(p.createdAt || p.data_criacao)}</td>
                     </tr>
                   );
                 })}
@@ -377,8 +377,8 @@ export default function PortalPage() {
         )}
       </section>
 
-      <section className="border-t border-slate-200 pt-6">
-        <button onClick={function () { setShowPasswordModal(true); setPasswordMsg(""); }} className="text-[13px] text-slate-500 hover:text-slate-700 transition-colors">
+      <section className="border-t border-outline-variant pt-6">
+        <button onClick={function () { setShowPasswordModal(true); setPasswordMsg(""); }} className="text-[13px] text-on-surface-variant hover:text-on-surface transition-colors">
           Alterar senha
         </button>
       </section>
@@ -386,20 +386,20 @@ export default function PortalPage() {
       {showFeriasModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setShowFeriasModal(false); }} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-sm p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-slate-800">Solicitar Férias</h3>
-              <button onClick={function () { setShowFeriasModal(false); }} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
+              <h3 className="text-[15px] font-semibold text-on-surface">Solicitar Férias</h3>
+              <button onClick={function () { setShowFeriasModal(false); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
             </div>
             <form onSubmit={handleSubmitFerias} className="space-y-3">
-              <input type="text" value={feriasForm.titulo} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { titulo: e.target.value })); }} placeholder="Título" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-              <textarea value={feriasForm.descricao} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { descricao: e.target.value })); }} rows={2} placeholder="Descrição (opcional)" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
+              <input type="text" value={feriasForm.titulo} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { titulo: e.target.value })); }} placeholder="Título" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+              <textarea value={feriasForm.descricao} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { descricao: e.target.value })); }} rows={2} placeholder="Descrição (opcional)" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
               <div className="grid grid-cols-2 gap-2">
-                <input type="date" value={feriasForm.data_inicio} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { data_inicio: e.target.value })); }} required className="px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-                <input type="date" value={feriasForm.data_fim} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { data_fim: e.target.value })); }} required className="px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                <input type="date" value={feriasForm.data_inicio} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { data_inicio: e.target.value })); }} required className="px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                <input type="date" value={feriasForm.data_fim} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { data_fim: e.target.value })); }} required className="px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
               </div>
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={function () { setShowFeriasModal(false); }} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
+                <button type="button" onClick={function () { setShowFeriasModal(false); }} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
                 <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-40">{submitting ? "..." : "Enviar"}</button>
               </div>
             </form>
@@ -410,18 +410,18 @@ export default function PortalPage() {
       {showAdiantamentoModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setShowAdiantamentoModal(false); }} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-sm p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-slate-800">Pedir Adiantamento</h3>
-              <button onClick={function () { setShowAdiantamentoModal(false); }} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
+              <h3 className="text-[15px] font-semibold text-on-surface">Pedir Adiantamento</h3>
+              <button onClick={function () { setShowAdiantamentoModal(false); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
             </div>
             <form onSubmit={handleSubmitAdiantamento} className="space-y-3">
-              <input type="text" value={adiantamentoForm.titulo} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { titulo: e.target.value })); }} placeholder="Título" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-              <input type="number" value={adiantamentoForm.valor} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { valor: e.target.value })); }} placeholder="Valor (AOA)" required className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-              <textarea value={adiantamentoForm.descricao} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { descricao: e.target.value })); }} rows={2} placeholder="Motivo (opcional)" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
+              <input type="text" value={adiantamentoForm.titulo} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { titulo: e.target.value })); }} placeholder="Título" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+              <input type="number" value={adiantamentoForm.valor} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { valor: e.target.value })); }} placeholder="Valor (AOA)" required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+              <textarea value={adiantamentoForm.descricao} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { descricao: e.target.value })); }} rows={2} placeholder="Motivo (opcional)" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={function () { setShowAdiantamentoModal(false); }} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
-                <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-slate-800 text-white text-[13px] font-medium hover:bg-slate-700 transition-colors disabled:opacity-40">{submitting ? "..." : "Enviar"}</button>
+                <button type="button" onClick={function () { setShowAdiantamentoModal(false); }} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
+                <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-on-surface text-on-primary hover:bg-on-surface/80">{submitting ? "..." : "Enviar"}</button>
               </div>
             </form>
           </div>
@@ -431,18 +431,18 @@ export default function PortalPage() {
       {showPasswordModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setShowPasswordModal(false); }} />
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-sm p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-slate-800">Alterar Senha</h3>
-              <button onClick={function () { setShowPasswordModal(false); }} className="text-[13px] text-slate-400 hover:text-slate-600">Fechar</button>
+              <h3 className="text-[15px] font-semibold text-on-surface">Alterar Senha</h3>
+              <button onClick={function () { setShowPasswordModal(false); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
             </div>
             {passwordMsg && <div className={"text-[12px] font-medium p-2 rounded-lg mb-3 " + (passwordMsg.includes("sucesso") ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600")}>{passwordMsg}</div>}
             <form onSubmit={handleSubmitPassword} className="space-y-3">
-              <input type="password" value={passwordForm.atual} onChange={function (e) { setPasswordForm(Object.assign({}, passwordForm, { atual: e.target.value })); }} placeholder="Senha atual" required className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-              <input type="password" value={passwordForm.nova} onChange={function (e) { setPasswordForm(Object.assign({}, passwordForm, { nova: e.target.value })); }} placeholder="Nova senha" required minLength={6} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-              <input type="password" value={passwordForm.confirmar} onChange={function (e) { setPasswordForm(Object.assign({}, passwordForm, { confirmar: e.target.value })); }} placeholder="Confirmar" required minLength={6} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-[13px] text-slate-700 focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+              <input type="password" value={passwordForm.atual} onChange={function (e) { setPasswordForm(Object.assign({}, passwordForm, { atual: e.target.value })); }} placeholder="Senha atual" required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+              <input type="password" value={passwordForm.nova} onChange={function (e) { setPasswordForm(Object.assign({}, passwordForm, { nova: e.target.value })); }} placeholder="Nova senha" required minLength={6} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+              <input type="password" value={passwordForm.confirmar} onChange={function (e) { setPasswordForm(Object.assign({}, passwordForm, { confirmar: e.target.value })); }} placeholder="Confirmar" required minLength={6} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={function () { setShowPasswordModal(false); }} className="flex-1 py-2 rounded-lg border border-slate-200 text-[13px] font-medium text-slate-600 hover:bg-slate-50 transition-colors">Cancelar</button>
+                <button type="button" onClick={function () { setShowPasswordModal(false); }} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
                 <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-40">{submitting ? "..." : "Alterar"}</button>
               </div>
             </form>

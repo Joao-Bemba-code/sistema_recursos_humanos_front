@@ -1,18 +1,36 @@
-"use client";
+import { cva } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
-export default function Badge({ children, variant = "primary", size = "md", className = "", dot }) {
-  var variantClass = {
-    primary: "badge-primary",
-    success: "badge-success",
-    warning: "badge-warning",
-    danger: "badge-danger",
-    secondary: "badge-secondary",
-  }[variant] || "badge-primary";
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default:
+          "border-transparent bg-primary text-primary-foreground shadow-sm",
+        secondary:
+          "border-transparent bg-secondary text-secondary-foreground",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground shadow-sm",
+        outline: "text-foreground",
+        success:
+          "border-transparent bg-success/15 text-success font-bold",
+        warning:
+          "border-transparent bg-warning/15 text-warning font-bold",
+        info: "border-transparent bg-primary/10 text-primary font-bold",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
 
+function Badge({ className, variant, ...props }) {
   return (
-    <span className={`badge ${variantClass} ${className}`}>
-      {dot && <span className="w-1.5 h-1.5 rounded-full bg-current" />}
-      {children}
-    </span>
+    <span className={cn(badgeVariants({ variant }), className)} {...props} />
   );
 }
+
+export { Badge, badgeVariants };
+export default Badge;

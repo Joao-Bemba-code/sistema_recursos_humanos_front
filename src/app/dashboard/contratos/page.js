@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { TIPOS_CONTRATO } from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const ESTADOS_CONTRATO = [
-  { value: "Activo", label: "Activo" },
+  { value: "Ativo", label: "Ativo" },
   { value: "Suspenso", label: "Suspenso" },
   { value: "Rescindido", label: "Rescindido" },
   { value: "Expirado", label: "Expirado" },
@@ -62,7 +64,7 @@ export default function ContratosPage() {
     setForm({
       numero: "", tipo: "Indeterminado", data_inicio: "", data_fim: "",
       salario_base: "", moeda: "AOA", funcao: "", local_trabalho: "",
-      horario_trabalho: "", estado: "Activo", colaborador_id: "",
+      horario_trabalho: "", estado: "Ativo", colaborador_id: "",
       periodo_experimentacao: "", observacoes: "",
     });
     setShowModal(true);
@@ -81,7 +83,7 @@ export default function ContratosPage() {
       funcao: c.funcao || "",
       local_trabalho: c.local_trabalho || "",
       horario_trabalho: c.horario_trabalho || "",
-      estado: c.estado || "Activo",
+      estado: c.estado || "Ativo",
       colaborador_id: c.colaborador_id || "",
       periodo_experimentacao: c.periodo_experimentacao || "",
       observacoes: c.observacoes || "",
@@ -164,9 +166,9 @@ export default function ContratosPage() {
           <nav className="flex items-center gap-2 text-[12px] text-on-surface-variant/60 font-medium uppercase tracking-wide">
             <span>Colaboradores</span>
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-primary/70">Gestao de Contratos</span>
+            <span className="text-primary/70">Gestão de Contratos</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestao Estrategica de Contratos</h1>
+          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão Estratégica de Contratos</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
@@ -194,7 +196,7 @@ export default function ContratosPage() {
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
               <input
                 type="text"
-                placeholder="Número, funcao..."
+                placeholder="Número, função..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && carregar(1)}
@@ -227,7 +229,7 @@ export default function ContratosPage() {
         </div>
         {activeFilters.length > 0 && (
           <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros activos:</span>
+            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
             {activeFilters.map((f, i) => (
               <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
                 {f.label}
@@ -249,8 +251,8 @@ export default function ContratosPage() {
                 <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Número</th>
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Colaborador</th>
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Tipo</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Periodo</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Remuneracao</th>
+                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Período</th>
+                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Remuneração</th>
                 <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
                 <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
               </tr>
@@ -290,7 +292,7 @@ export default function ContratosPage() {
                     <td className="px-4 py-4">
                       <div className="flex flex-col">
                         <span className="text-on-surface">{helpers.formatDate(c.data_inicio)}</span>
-                        <span className="text-[11px] text-on-surface-variant/60 italic">ate {helpers.formatDate(c.data_fim) || "Indefinido"}</span>
+                        <span className="text-[11px] text-on-surface-variant/60 italic">até {helpers.formatDate(c.data_fim) || "Indefinido"}</span>
                       </div>
                     </td>
                     <td className="px-4 py-4">
@@ -298,9 +300,9 @@ export default function ContratosPage() {
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${
-                        c.estado === "Activo" ? "badge-success" : c.estado === "Expirado" ? "badge-danger" : "badge-warning"
+                        c.estado === "Ativo" ? "badge-success" : c.estado === "Expirado" ? "badge-danger" : "badge-warning"
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${c.estado === "Activo" ? "bg-success" : c.estado === "Expirado" ? "bg-error" : "bg-warning"}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${c.estado === "Ativo" ? "bg-success" : c.estado === "Expirado" ? "bg-error" : "bg-warning"}`} />
                         {c.estado}
                       </span>
                     </td>
@@ -391,7 +393,7 @@ export default function ContratosPage() {
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Moeda</label>
                   <select name="moeda" value={form.moeda || "AOA"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                     <option value="AOA">AOA (Kwanza)</option>
-                    <option value="USD">USD (Dolar)</option>
+                    <option value="USD">USD (Dólar)</option>
                     <option value="EUR">EUR (Euro)</option>
                   </select>
                 </div>
@@ -402,7 +404,7 @@ export default function ContratosPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Dias de Experimentacao</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Dias de Experimentação</label>
                   <input name="periodo_experimentacao" type="number" value={form.periodo_experimentacao || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
                 <div>
@@ -410,7 +412,7 @@ export default function ContratosPage() {
                   <input name="local_trabalho" value={form.local_trabalho || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observacoes</label>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observações</label>
                   <textarea name="observacoes" value={form.observacoes || ""} onChange={handleInput} rows={3} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
               </div>
@@ -418,7 +420,7 @@ export default function ContratosPage() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                 <button type="submit" disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">{saving ? "hourglass_empty" : "save"}</span>
-                  {saving ? "A guardar..." : editando ? "Actualizar" : "Criar Contrato"}
+                  {saving ? "A guardar..." : editando ? "Atualizar" : "Criar Contrato"}
                 </button>
               </div>
             </form>
@@ -451,9 +453,9 @@ export default function ContratosPage() {
                   <h2 className="text-lg font-bold text-on-surface">{contratoView.numero}</h2>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${
-                      contratoView.estado === "Activo" ? "badge-success" : contratoView.estado === "Expirado" ? "badge-danger" : "badge-warning"
+                      contratoView.estado === "Ativo" ? "badge-success" : contratoView.estado === "Expirado" ? "badge-danger" : "badge-warning"
                     }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${contratoView.estado === "Activo" ? "bg-success" : contratoView.estado === "Expirado" ? "bg-error" : "bg-warning"}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${contratoView.estado === "Ativo" ? "bg-success" : contratoView.estado === "Expirado" ? "bg-error" : "bg-warning"}`} />
                       {contratoView.estado}
                     </span>
                     <span className="text-[12px] text-on-surface-variant/60 badge-primary px-2 py-0.5 rounded">{tipoLabel(contratoView.tipo)}</span>
@@ -480,11 +482,11 @@ export default function ContratosPage() {
               </div>
 
               <div>
-                <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3">Condicoes</h4>
+                <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3">Condições</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[["Salário", contratoView.salario_base ? Number(contratoView.salario_base).toLocaleString("pt-AO") + " " + (contratoView.moeda || "AOA") : null],
-                    ["Experimentacao", contratoView.periodo_experimentacao ? contratoView.periodo_experimentacao + " dias" : null],
-                    ["Local", contratoView.local_trabalho], ["Horario", contratoView.horario_trabalho],
+                    ["Experimentação", contratoView.periodo_experimentacao ? contratoView.periodo_experimentacao + " dias" : null],
+                    ["Local", contratoView.local_trabalho], ["Horário", contratoView.horario_trabalho],
                   ].map(function(p) {
                     return (
                       <div key={p[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
@@ -498,9 +500,9 @@ export default function ContratosPage() {
 
               {(contratoView.observacoes || contratoView.motivo_rescisao) && (
                 <div>
-                  <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3">Observacoes</h4>
+                  <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3">Observações</h4>
                   <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 space-y-2">
-                    {contratoView.motivo_rescisao && <p className="text-[13px] text-on-surface"><span className="font-semibold">Motivo Rescisao:</span> {contratoView.motivo_rescisao}</p>}
+                    {contratoView.motivo_rescisao && <p className="text-[13px] text-on-surface"><span className="font-semibold">Motivo Rescisão:</span> {contratoView.motivo_rescisao}</p>}
                     {contratoView.observacoes && <p className="text-[13px] text-on-surface">{contratoView.observacoes}</p>}
                   </div>
                 </div>

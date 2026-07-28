@@ -72,8 +72,8 @@ export default function DashboardLayout({ children }) {
             <span className="text-[13px] text-on-surface-variant/60 font-medium">&copy; 2026 CENFFOR. Todos os direitos reservados.</span>
           </div>
           <div className="flex items-center gap-8">
-            <span className="text-[13px] font-medium text-on-surface-variant/80">Termos e Condicoes</span>
-            <span className="text-[13px] font-medium text-on-surface-variant/80">Politica de Dados</span>
+            <span className="text-[13px] font-medium text-on-surface-variant/80">Termos e Condições</span>
+            <span className="text-[13px] font-medium text-on-surface-variant/80">Política de Dados</span>
             <span className="text-[13px] font-medium text-on-surface-variant/80">Canal de Suporte</span>
           </div>
         </div>

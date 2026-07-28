@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
 import api from "@/lib/api";
 import { NAV_ITEMS } from "@/lib/constants";
 import { getT, getNavLabel, getGroupLabel } from "@/lib/translations";
@@ -23,7 +22,6 @@ export default function TopNavBar() {
   const [notifModal, setNotifModal] = useState(null);
   const menuRef = useRef(null);
   const notifRef = useRef(null);
-  var theme = useTheme();
   var T = getT();
 
   const allItems = NAV_ITEMS.flatMap((g) => g.items);
@@ -142,7 +140,7 @@ export default function TopNavBar() {
           <div className="flex items-center gap-10">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-1.5 -ml-1 rounded-lg hover:bg-black/5 text-on-surface-variant transition-colors"
+              className="lg:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors"
             >
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
@@ -168,18 +166,15 @@ export default function TopNavBar() {
           </div>
 
           <div className="flex items-center gap-3 md:gap-5">
-            <button onClick={theme.toggle} className="p-1.5 rounded-lg hover:bg-black/5 text-on-surface-variant transition-colors" title={theme.dark ? "Modo Claro" : "Modo Escuro"}>
-              <span className="material-symbols-outlined text-[22px]">{theme.dark ? "light_mode" : "dark_mode"}</span>
-            </button>
             {!isColaborador && (
-              <Link href="/dashboard/configuracoes" className="p-1.5 rounded-lg hover:bg-black/5 text-on-surface-variant transition-colors">
+              <Link href="/dashboard/configuracoes" className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors">
                 <span className="material-symbols-outlined text-[22px]">settings</span>
               </Link>
             )}
             <div ref={notifRef} className="relative">
               <button
                 onClick={() => { setNotifOpen(!notifOpen); setMenuOpen(false); }}
-                className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-slate-100 text-on-surface-variant transition-colors"
+                className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors"
               >
                 <span className="material-symbols-outlined text-[22px]">notifications</span>
                 {notifCount > 0 && (
@@ -190,8 +185,8 @@ export default function TopNavBar() {
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 py-2 z-50">
-                  <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-80 bg-surface-card rounded-2xl shadow-2xl border border-outline-variant py-2 z-50">
+                  <div className="px-4 py-2 border-b border-outline-variant/30 flex items-center justify-between">
                     <span className="text-[13px] font-bold text-on-surface">Notificações</span>
                     {notifCount > 0 && (
                       <button onClick={handleMarkAllRead} className="text-[11px] font-bold text-primary hover:underline">
@@ -213,10 +208,10 @@ export default function TopNavBar() {
                           <button
                             key={notif.id}
                             onClick={function () { handleNotifClick(notif); }}
-                            className={"w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors " + (!isLida ? "bg-primary/5" : "")}
+                            className={"w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-container transition-colors " + (!isLida ? "bg-primary/5" : "")}
                           >
-                            <div className={"p-1.5 rounded-lg flex-shrink-0 mt-0.5 " + (!isLida ? "bg-primary/10" : "bg-slate-100")}>
-                              <span className={"material-symbols-outlined text-[16px] " + (!isLida ? "text-primary" : "text-slate-400")}>{nIcon}</span>
+                            <div className={"p-1.5 rounded-lg flex-shrink-0 mt-0.5 " + (!isLida ? "bg-primary/10" : "bg-surface-container-high")}>
+                              <span className={"material-symbols-outlined text-[16px] " + (!isLida ? "text-primary" : "text-outline")}>{nIcon}</span>
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className={"text-[12px] truncate " + (!isLida ? "font-bold text-on-surface" : "text-on-surface-variant")}>{notif.titulo || "Notificação"}</p>
@@ -279,11 +274,11 @@ export default function TopNavBar() {
 
       {mobileOpen && (
         <div className="fixed inset-0 z-[100] lg:hidden">
-          <div className="fixed inset-0 bg-scrim/50" onClick={() => setMobileOpen(false)} />
+          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <div className="fixed inset-y-0 left-0 w-72 bg-surface shadow-2xl flex flex-col animate-slide-in">
             <div className="px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between">
               <Link href={isColaborador ? "/dashboard/portal" : "/dashboard"} onClick={() => setMobileOpen(false)} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
-              <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-black/5 text-on-surface-variant">
+              <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant">
                 <span className="material-symbols-outlined text-[22px]">close</span>
               </button>
             </div>
@@ -336,31 +331,31 @@ export default function TopNavBar() {
       {notifModal && (
         <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setNotifModal(null); }} />
-          <div className="relative bg-white rounded-t-2xl sm:rounded-xl shadow-xl w-full sm:max-w-sm p-5 max-h-[80vh] overflow-y-auto">
+          <div className="relative bg-surface-card rounded-t-2xl sm:rounded-xl shadow-xl w-full sm:max-w-sm p-5 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className={"p-2 rounded-lg " + (notifModal.tipo === "success" ? "bg-green-50" : notifModal.tipo === "error" ? "bg-red-50" : notifModal.tipo === "warning" ? "bg-amber-50" : "bg-primary/10")}>
-                  <span className={"material-symbols-outlined text-[20px] " + (notifModal.tipo === "success" ? "text-green-600" : notifModal.tipo === "error" ? "text-red-600" : notifModal.tipo === "warning" ? "text-amber-600" : "text-primary")}>
+                <div className={"p-2 rounded-lg " + (notifModal.tipo === "success" ? "bg-success-container" : notifModal.tipo === "error" ? "bg-error-container" : notifModal.tipo === "warning" ? "bg-warning-container" : "bg-primary/10")}>
+                  <span className={"material-symbols-outlined text-[20px] " + (notifModal.tipo === "success" ? "text-success" : notifModal.tipo === "error" ? "text-error" : notifModal.tipo === "warning" ? "text-warning" : "text-primary")}>
                     {iconMap[notifModal.tipo] || "notifications"}
                   </span>
                 </div>
-                <h3 className="text-[15px] font-semibold text-slate-800">Notificação</h3>
+                <h3 className="text-[15px] font-semibold text-on-surface">Notificação</h3>
               </div>
-              <button onClick={function () { setNotifModal(null); }} className="text-slate-400 hover:text-slate-600">
+              <button onClick={function () { setNotifModal(null); }} className="text-outline hover:text-on-surface-variant">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <p className="text-[11px] text-slate-400 uppercase tracking-wide">Título</p>
-                <p className="text-[14px] font-semibold text-slate-800 mt-0.5">{notifModal.titulo}</p>
+                <p className="text-[11px] text-outline uppercase tracking-wide">Título</p>
+                <p className="text-[14px] font-semibold text-on-surface mt-0.5">{notifModal.titulo}</p>
               </div>
               <div>
-                <p className="text-[11px] text-slate-400 uppercase tracking-wide">Mensagem</p>
-                <p className="text-[13px] text-slate-600 mt-0.5 leading-relaxed">{notifModal.mensagem}</p>
+                <p className="text-[11px] text-outline uppercase tracking-wide">Mensagem</p>
+                <p className="text-[13px] text-on-surface-variant mt-0.5 leading-relaxed">{notifModal.mensagem}</p>
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                <span className="text-[11px] text-slate-400">{notifModal.createdAt ? new Date(notifModal.createdAt).toLocaleString("pt-PT") : ""}</span>
+              <div className="flex items-center justify-between pt-2 border-t border-outline-variant/30">
+                <span className="text-[11px] text-outline">{notifModal.createdAt ? new Date(notifModal.createdAt).toLocaleString("pt-PT") : ""}</span>
                 {notifModal.link && (
                   <button
                     onClick={function () {
