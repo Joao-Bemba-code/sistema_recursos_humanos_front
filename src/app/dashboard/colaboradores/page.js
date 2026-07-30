@@ -69,7 +69,7 @@ export default function ColaboradoresPage() {
     nome_completo: "", data_admissao: "", genero: "", estado_civil: "",
     nif: "", bi: "", bi_validade: "", telefone: "", email_pessoal: "",
     email_institucional: "", telefone_emergencia: "", tipo_colaborador: "Interno",
-    estado: "Ativo", endereco: "", cidade: "", provincia: "",
+    estado: "Activo", endereco: "", cidade: "", provincia: "",
     data_nascimento: "", nome_curto: "",
     habilitacoes: "", formacao_academica: "", conta_bancaria: "", banco: "", iban: "",
     numero_seguranca_social: "", fotografia: "", curriculo: "", observacoes: "",
@@ -307,8 +307,8 @@ export default function ColaboradoresPage() {
                       <span className="text-on-surface">{(TIPOS_COLABORADOR.find(t => t.value === c.tipo_colaborador) || {}).label || c.tipo_colaborador}</span>
                     </td>
                     <td className="px-4 py-4">
-                      <Badge variant={c.estado === "Ativo" ? "success" : "secondary"} className="gap-1.5 uppercase">
-                        <span className={`w-1.5 h-1.5 rounded-full ${c.estado === "Ativo" ? "bg-current" : "bg-current opacity-60"}`} />
+                      <Badge variant={c.estado === "Activo" ? "success" : "secondary"} className="gap-1.5 uppercase">
+                        <span className={`w-1.5 h-1.5 rounded-full ${c.estado === "Activo" ? "bg-current" : "bg-current opacity-60"}`} />
                         {c.estado}
                       </Badge>
                     </td>
@@ -329,7 +329,7 @@ export default function ColaboradoresPage() {
                           </Button>
                           {statusDropdown.open && statusDropdown.id === c.id && (
                             <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-full mt-1 bg-surface border border-outline-variant/30 rounded-lg shadow-xl z-50 min-w-[160px] py-1">
-                              {["Ativo", "Inativo", "Suspenso", "Aposentado"].map(function(estado) {
+                              {["Activo", "Inactivo", "Suspenso", "Aposentado"].map(function(estado) {
                                 return (
                                   <button
                                     key={estado}
@@ -341,8 +341,8 @@ export default function ColaboradoresPage() {
                                     }`}
                                   >
                                     <span className={`w-1.5 h-1.5 rounded-full ${
-                                      estado === "Ativo" ? "bg-green-500" :
-                                      estado === "Inativo" ? "bg-gray-400" :
+      estado === "Activo" ? "bg-green-500" :
+                                        estado === "Inactivo" ? "bg-gray-400" :
                                       estado === "Suspenso" ? "bg-amber-500" :
                                       "bg-blue-500"
                                     }`} />
@@ -608,8 +608,8 @@ export default function ColaboradoresPage() {
                   <h2 className="text-xl font-bold text-on-surface">{colaboradorView.nome_completo}</h2>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-[13px] text-on-surface-variant/70">{colaboradorView.numero_colaborador}</span>
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${colaboradorView.estado === "Ativo" ? "badge-success" : "badge-secondary"}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${colaboradorView.estado === "Ativo" ? "bg-success" : "bg-outline"}`} />
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${colaboradorView.estado === "Activo" ? "badge-success" : "badge-secondary"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${colaboradorView.estado === "Activo" ? "bg-success" : "bg-outline"}`} />
                       {colaboradorView.estado}
                     </span>
                     <span className="text-[12px] text-on-surface-variant/60 badge-primary px-2 py-0.5 rounded">
