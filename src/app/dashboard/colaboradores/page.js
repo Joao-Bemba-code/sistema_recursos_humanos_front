@@ -131,7 +131,7 @@ export default function ColaboradoresPage() {
   const eliminar = async () => {
     try {
       await api.delete(`/api/colaboradores/${confirmDelete.id}`);
-      toast.addToast("success", "Colaborador desligado com sucesso");
+      toast.addToast("success", "Colaborador eliminado com sucesso");
       setConfirmDelete({ open: false, id: null, nome: "" });
       carregar(paginacao.pagina);
     } catch (e) {
@@ -190,10 +190,10 @@ export default function ColaboradoresPage() {
     <div className="space-y-6">
       <ConfirmDialog
         open={confirmDelete.open}
-        titulo="Desligar Colaborador"
-        mensagem={`Tem certeza que deseja desligar ${confirmDelete.nome}? O colaborador será marcado como "Desligado".`}
-        textoConfirmar="Sim, Desligar"
-        textoCancelar="Manter"
+        titulo="Eliminar Colaborador"
+        mensagem={`Tem certeza que deseja eliminar ${confirmDelete.nome}? Esta acção nao pode ser desfeita.`}
+        textoConfirmar="Sim, Eliminar"
+        textoCancelar="Cancelar"
         variante="perigo"
         onConfirm={eliminar}
         onCancel={() => setConfirmDelete({ open: false, id: null, nome: "" })}
@@ -368,8 +368,8 @@ export default function ColaboradoresPage() {
                             </div>
                           )}
                         </div>
-                        <Button onClick={() => setConfirmDelete({ open: true, id: c.id, nome: c.nome_completo })} variant="ghost" size="icon-sm" title="Desligar">
-                          <span className="material-symbols-outlined text-[15px]">person_off</span>
+                        <Button onClick={() => setConfirmDelete({ open: true, id: c.id, nome: c.nome_completo })} variant="ghost" size="icon-sm" title="Eliminar">
+                          <span className="material-symbols-outlined text-[15px]">delete</span>
                         </Button>
                       </div>
                     </td>
