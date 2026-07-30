@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { formatDate } from "@/lib/helpers";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 var TIPO_LABELS = {
   ferias: "Férias",
@@ -49,6 +50,7 @@ export default function PedidosPage() {
   var [decidindo, setDecidindo] = useState(false);
   var [comentario, setComentario] = useState("");
   var [msg, setMsg] = useState(null);
+  var [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, titulo: "" });
 
   var carregar = function (page) {
     page = page || 1;
@@ -108,10 +110,34 @@ export default function PedidosPage() {
     }).finally(function () { setDecidindo(false); });
   };
 
+  var handleEliminar = function () {
+    api.delete("/api/pedidos/" + confirmDelete.id).then(function () {
+      setConfirmDelete({ open: false, id: null, titulo: "" });
+      setMsg({ tipo: "sucesso", texto: "Pedido eliminado com sucesso" });
+      carregar(paginacao.pagina);
+      carregarStats();
+      setTimeout(function () { setMsg(null); }, 3000);
+    }).catch(function (err) {
+      setMsg({ tipo: "erro", texto: err.message || "Erro ao eliminar pedido" });
+      setTimeout(function () { setMsg(null); }, 3000);
+    });
+  };
+
   var dadosDetalhe = pedidoDetalhe ? (pedidoDetalhe.dados || {}) : {};
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={confirmDelete.open}
+        titulo="Eliminar Pedido"
+        mensagem={"Tem certeza que deseja eliminar o pedido \"" + confirmDelete.titulo + "\"? Esta acção nao pode ser desfeita."}
+        textoConfirmar="Sim, Eliminar"
+        textoCancelar="Cancelar"
+        variante="perigo"
+        onConfirm={handleEliminar}
+        onCancel={function () { setConfirmDelete({ open: false, id: null, titulo: "" }); }}
+      />
+
       <div>
         <h1 className="text-[20px] font-semibold text-on-surface">Pedidos dos Colaboradores</h1>
         <p className="text-[13px] text-outline mt-0.5">Gerir pedidos de férias, adiantamentos e justificações</p>
@@ -222,6 +248,12 @@ export default function PedidosPage() {
                             className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors"
                           >
                             Ver
+                          </button>
+                          <button
+                            onClick={function () { setConfirmDelete({ open: true, id: p.id, titulo: p.titulo }); }}
+                            className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            Eliminar
                           </button>
                           {p.estado === "pendente" && (
                             <>
