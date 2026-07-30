@@ -96,6 +96,20 @@ export default function ColaboradoresPage() {
 
   const guardar = async (e) => {
     e.preventDefault();
+
+    if (!editando) {
+      if (!form.data_admissao) {
+        setAba("profissional");
+        toast.addToast("error", "Preencha a Data de Admissão (separador Profissional)");
+        return;
+      }
+      if (!form.nome_completo) {
+        setAba("pessoal");
+        toast.addToast("error", "Preencha o Nome Completo");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       if (editando) {
