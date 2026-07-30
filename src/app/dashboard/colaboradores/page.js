@@ -133,7 +133,7 @@ export default function ColaboradoresPage() {
       await api.delete(`/api/colaboradores/${confirmDelete.id}`);
       toast.addToast("success", "Colaborador eliminado com sucesso");
       setConfirmDelete({ open: false, id: null, nome: "" });
-      carregar(paginacao.pagina);
+      carregar(1);
     } catch (e) {
       toast.addToast("error", e.message);
     }

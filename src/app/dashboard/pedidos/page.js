@@ -114,7 +114,7 @@ export default function PedidosPage() {
     api.delete("/api/pedidos/" + confirmDelete.id).then(function () {
       setConfirmDelete({ open: false, id: null, titulo: "" });
       setMsg({ tipo: "sucesso", texto: "Pedido eliminado com sucesso" });
-      carregar(paginacao.pagina);
+      carregar(1);
       carregarStats();
       setTimeout(function () { setMsg(null); }, 3000);
     }).catch(function (err) {
