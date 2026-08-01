@@ -135,52 +135,102 @@ export default function DepartamentosPage() {
     if (!d) return;
     var doc = new jsPDF();
     var pw = doc.internal.pageSize.getWidth();
+    var ph = doc.internal.pageSize.getHeight();
 
-    doc.setTextColor(30, 30, 30);
-    doc.setFontSize(16);
-    doc.text("CENFFOR", 15, 20);
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Ficha do Departamento", 15, 28);
+    var logoImg = null;
+    var logoUrl = org && org.logo_url ? imageUrl(org.logo_url) : "";
 
-    doc.setFontSize(14);
-    doc.setTextColor(30, 30, 30);
-    doc.text(d.nome || "Sem Nome", 15, 42);
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text("Código: " + (d.codigo || "—"), 15, 50);
+    var desenhar = function () {
+      var y = 20;
 
-    var y = 58;
-    var rows = [
-      ["Nome", d.nome], ["Código", d.codigo], ["Tipo", tipoLabel(d.tipo)],
-      ["Responsável", d.responsavel_nome], ["Telefone", d.telefone],
-      ["Email", d.email], ["Localização", d.localizacao],
-      ["Estado", d.activo ? "Ativo" : "Inativo"],
-    ];
-    if (d.descricao) {
-      rows.push(["Descrição", d.descricao]);
-    }
+      if (logoImg) {
+        var lw = 40;
+        var lh = (logoImg.height / logoImg.width) * lw;
+        try { doc.addImage(logoImg, "PNG", pw / 2 - lw / 2, y, lw, lh); } catch (e) {}
+        y += lh + 5;
+      }
 
-    doc.setFontSize(10);
-    doc.setTextColor(60, 60, 60);
-    doc.text("DADOS DO DEPARTAMENTO", 15, y);
-    y += 7;
-    doc.setFontSize(8);
-    doc.setTextColor(80, 80, 80);
-    rows.forEach(function(row) {
-      doc.setFont(undefined, "bold");
-      doc.text(row[0] + ":", 15, y);
-      doc.setFont(undefined, "normal");
-      doc.text(String(row[1] || "—"), 60, y);
+      if (org && org.nome) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(30, 30, 30);
+        doc.text(org.nome, pw / 2, y, { align: "center" });
+        y += 11;
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(30, 30, 30);
+      doc.text("FICHA DE DEPARTAMENTO", pw / 2, y, { align: "center" });
+      y += 10;
+
+      doc.setFontSize(12);
+      doc.setTextColor(30, 30, 30);
+      doc.text(d.nome || "Sem Nome", pw / 2, y, { align: "center" });
       y += 6;
-    });
+      doc.setTextColor(100, 100, 100);
+      doc.text(tipoLabel(d.tipo) || "", pw / 2, y, { align: "center" });
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text("Código: " + (d.codigo || "—"), pw / 2, y, { align: "center" });
+      y += 11;
 
-    var fY = doc.internal.pageSize.getHeight() - 12;
-    doc.setFontSize(7);
-    doc.setTextColor(150, 150, 150);
-    doc.text("CENFFOR - SGHR | Gerado: " + new Date().toLocaleDateString("pt-AO"), 15, fY);
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(15, y, pw - 15, y);
+      y += 8;
 
-    doc.save("Departamento_" + (d.nome || "ficha") + ".pdf");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(60, 60, 60);
+      doc.text("DADOS DO DEPARTAMENTO", 15, y);
+      y += 7;
+
+      var rows = [
+        ["Nome", d.nome], ["Código", d.codigo], ["Tipo", tipoLabel(d.tipo)],
+        ["Responsável", d.responsavel_nome], ["Telefone", d.telefone],
+        ["Email", d.email], ["Localização", d.localizacao],
+        ["Estado", d.activo ? "Ativo" : "Inativo"],
+      ];
+      if (d.descricao) {
+        rows.push(["Descrição", d.descricao]);
+      }
+
+      doc.setFontSize(9);
+      rows.forEach(function(row) {
+        var label = row[0] + ":";
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(60, 60, 60);
+        doc.text(label, 15, y);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(80, 80, 80);
+        var xVal = 15 + doc.getTextWidth(label) + 4;
+        var lines = doc.splitTextToSize(String(row[1] || "—"), pw - xVal - 15);
+        doc.text(lines, xVal, y);
+        y += lines.length * 5 + 4;
+        if (y > ph - 20) { doc.addPage(); y = 20; }
+      });
+
+      var fY = ph - 12;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      doc.text((org && org.nome ? org.nome : "CENFFOR") + " - SGHR | Gerado: " + new Date().toLocaleDateString("pt-AO"), pw / 2, fY, { align: "center" });
+
+      doc.save("Departamento_" + (d.nome || "ficha") + ".pdf");
+    };
+
+    if (logoUrl) {
+      var img = new Image();
+      img.onload = function () { logoImg = img; desenhar(); };
+      img.onerror = function () { desenhar(); };
+      img.crossOrigin = "anonymous";
+      img.src = logoUrl;
+    } else {
+      desenhar();
+    }
   };
 
   const activeFilters = [];

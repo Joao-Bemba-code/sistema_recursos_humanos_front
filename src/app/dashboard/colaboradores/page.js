@@ -103,11 +103,6 @@ export default function ColaboradoresPage() {
         toast.addToast("error", "Preencha a Data de Admissão (separador Profissional)");
         return;
       }
-      if (!form.nome_completo) {
-        setAba("pessoal");
-        toast.addToast("error", "Preencha o Nome Completo");
-        return;
-      }
     }
 
     setSaving(true);
@@ -427,8 +422,8 @@ export default function ColaboradoresPage() {
               {aba === "pessoal" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nome Completo *</label>
-                    <input name="nome_completo" value={form.nome_completo || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nome Completo</label>
+                    <input name="nome_completo" value={form.nome_completo || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nome Curto</label>
@@ -478,8 +473,8 @@ export default function ColaboradoresPage() {
               {aba === "contacto" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Telefone *</label>
-                    <input name="telefone" value={form.telefone || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Telefone</label>
+                    <input name="telefone" value={form.telefone || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Telefone Emergência</label>
