@@ -8,6 +8,13 @@ import { Badge } from "@/components/ui/Badge";
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 
+var imageUrl = function (path) {
+  if (!path) return "";
+  var decoded = path.replace(/&#x2F;/g, "/").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
+  if (decoded.startsWith("http")) return decoded;
+  return api.baseURL + decoded;
+};
+
 const TIPOS_DEPT = [
   { value: "Direcção", label: "Direcção" },
   { value: "Departamento", label: "Departamento" },
@@ -30,6 +37,7 @@ export default function DepartamentosPage() {
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, nome: "" });
   const [showViewModal, setShowViewModal] = useState(false);
   const [deptView, setDeptView] = useState(null);
+  const [org, setOrg] = useState(null);
 
   const carregar = async (page = 1) => {
     setLoading(true);
@@ -48,6 +56,12 @@ export default function DepartamentosPage() {
   };
 
   useEffect(() => { carregar(); }, []);
+
+  useEffect(() => {
+    api.get("/api/organizacoes").then(function (data) {
+      if (data.dados && data.dados.length > 0) setOrg(data.dados[0]);
+    }).catch(function () {});
+  }, []);
 
   const abrirNovo = () => {
     setEditando(null);
@@ -418,7 +432,7 @@ export default function DepartamentosPage() {
           <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowViewModal(false)} />
           <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-lg md:max-w-xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
             <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
-              <h3 className="text-lg font-bold text-on-surface tracking-tight">Detalhes do Departamento</h3>
+              <h3 className="text-[14px] font-bold text-on-surface tracking-tight uppercase">Ficha de Departamento</h3>
               <div className="flex items-center gap-2">
                 <button onClick={gerarPDF} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-error/10 text-error text-[12px] font-semibold hover:bg-error/20 transition-all border border-error/10">
                   <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
@@ -430,13 +444,25 @@ export default function DepartamentosPage() {
               </div>
             </div>
             <div className="p-6 space-y-5">
+              <div className="flex flex-col items-center gap-2 pb-5 border-b border-outline-variant/20">
+                {org && org.logo_url ? (
+                  <img src={imageUrl(org.logo_url)} alt={org.nome || "Logo"} className="h-16 w-auto max-w-full object-contain" />
+                ) : (
+                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary text-[32px]">apartment</span>
+                  </div>
+                )}
+                <p className="text-[13px] font-bold text-on-surface">{org ? org.nome : ""}</p>
+              </div>
+
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-primary text-[24px]">apartment</span>
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-on-surface">{deptView.nome}</h2>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <h2 className="text-[12px] font-bold text-on-surface">{deptView.nome}</h2>
+                  <p className="text-[12px] font-bold text-on-surface-variant">{tipoLabel(deptView.tipo)}</p>
+                  <div className="flex items-center gap-2 mt-1">
                     <span className="text-[12px] text-on-surface-variant/60">{deptView.codigo || "Sem código"}</span>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold uppercase ${deptView.activo ? "badge-success" : "badge-secondary"}`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${deptView.activo ? "bg-success" : "bg-outline"}`} />
@@ -463,7 +489,7 @@ export default function DepartamentosPage() {
               {deptView.descricao && (
                 <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
                   <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Descrição</p>
-                  <p className="text-[13px] text-on-surface">{deptView.descricao}</p>
+                  <p className="text-[13px] text-on-surface whitespace-pre-line break-words">{deptView.descricao}</p>
                 </div>
               )}
 
