@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const ESTADOS_CONTRATO = [
-  { value: "Ativo", label: "Ativo" },
+  { value: "Activo", label: "Activo" },
   { value: "Suspenso", label: "Suspenso" },
   { value: "Rescindido", label: "Rescindido" },
   { value: "Expirado", label: "Expirado" },
@@ -64,7 +64,7 @@ export default function ContratosPage() {
     setForm({
       numero: "", tipo: "Indeterminado", data_inicio: "", data_fim: "",
       salario_base: "", moeda: "AOA", funcao: "", local_trabalho: "",
-      horario_trabalho: "", estado: "Ativo", colaborador_id: "",
+      horario_trabalho: "", estado: "Activo", colaborador_id: "",
       periodo_experimentacao: "", observacoes: "",
     });
     setShowModal(true);
@@ -83,7 +83,7 @@ export default function ContratosPage() {
       funcao: c.funcao || "",
       local_trabalho: c.local_trabalho || "",
       horario_trabalho: c.horario_trabalho || "",
-      estado: c.estado || "Ativo",
+      estado: c.estado || "Activo",
       colaborador_id: c.colaborador_id || "",
       periodo_experimentacao: c.periodo_experimentacao || "",
       observacoes: c.observacoes || "",
@@ -300,9 +300,9 @@ export default function ContratosPage() {
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${
-                        c.estado === "Ativo" ? "badge-success" : c.estado === "Expirado" ? "badge-danger" : "badge-warning"
+                        c.estado === "Activo" ? "badge-success" : c.estado === "Expirado" ? "badge-danger" : "badge-warning"
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${c.estado === "Ativo" ? "bg-success" : c.estado === "Expirado" ? "bg-error" : "bg-warning"}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${c.estado === "Activo" ? "bg-success" : c.estado === "Expirado" ? "bg-error" : "bg-warning"}`} />
                         {c.estado}
                       </span>
                     </td>
@@ -453,9 +453,9 @@ export default function ContratosPage() {
                   <h2 className="text-lg font-bold text-on-surface">{contratoView.numero}</h2>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${
-                      contratoView.estado === "Ativo" ? "badge-success" : contratoView.estado === "Expirado" ? "badge-danger" : "badge-warning"
+                      contratoView.estado === "Activo" ? "badge-success" : contratoView.estado === "Expirado" ? "badge-danger" : "badge-warning"
                     }`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${contratoView.estado === "Ativo" ? "bg-success" : contratoView.estado === "Expirado" ? "bg-error" : "bg-warning"}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full ${contratoView.estado === "Activo" ? "bg-success" : contratoView.estado === "Expirado" ? "bg-error" : "bg-warning"}`} />
                       {contratoView.estado}
                     </span>
                     <span className="text-[12px] text-on-surface-variant/60 badge-primary px-2 py-0.5 rounded">{tipoLabel(contratoView.tipo)}</span>

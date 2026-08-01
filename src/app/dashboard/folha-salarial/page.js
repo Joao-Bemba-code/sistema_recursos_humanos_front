@@ -39,7 +39,7 @@ export default function FolhaSalarialPage() {
     colaborador_id: "", salario_base: "", subsidio_alimentacao: "",
     subsidio_transporte: "", subsidio_educacao: "", outros_subsidios: "",
     desconto_irt: "", desconto_seguranca_social: "", outros_descontos: "",
-    data_inicio: "", data_fim: "", estado: "Ativo"
+    data_inicio: "", data_fim: "", estado: "Activo"
   };
 
   const defaultFormPag = {
@@ -156,7 +156,7 @@ export default function FolhaSalarialPage() {
         outros_descontos: item.outros_descontos || "",
         data_inicio: item.data_inicio ? item.data_inicio.substring(0, 10) : "",
         data_fim: item.data_fim ? item.data_fim.substring(0, 10) : "",
-        estado: item.estado || "Ativo"
+        estado: item.estado || "Activo"
       });
     } else {
       setForm({
@@ -274,7 +274,7 @@ export default function FolhaSalarialPage() {
   const renderBadgeEstado = (estado) => {
     var cls = "";
     if (tab === "vencimentos") {
-      cls = estado === "Ativo" ? "badge-success" : "badge-secondary";
+      cls = estado === "Activo" ? "badge-success" : "badge-secondary";
     } else {
       if (estado === "Pago") cls = "badge-success";
       else if (estado === "Pendente") cls = "badge-warning";
@@ -422,8 +422,8 @@ export default function FolhaSalarialPage() {
                 <option value="">Todos</option>
                 {tab === "vencimentos" ? (
                   <>
-                    <option value="Ativo">Ativo</option>
-                    <option value="Inativo">Inativo</option>
+                    <option value="Activo">Ativo</option>
+                    <option value="Inactivo">Inativo</option>
                   </>
                 ) : (
                   <>
@@ -729,9 +729,9 @@ export default function FolhaSalarialPage() {
                   </div>
                   <div className="sm:col-span-2">
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado</label>
-                    <select name="estado" value={form.estado || "Ativo"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
-                      <option value="Ativo">Ativo</option>
-                      <option value="Inativo">Inativo</option>
+                    <select name="estado" value={form.estado || "Activo"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                      <option value="Activo">Ativo</option>
+                      <option value="Inactivo">Inativo</option>
                     </select>
                   </div>
                 </div>
