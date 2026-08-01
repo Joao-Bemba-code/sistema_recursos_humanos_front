@@ -8,6 +8,48 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
+const TAXA_SEGURANCA_SOCIAL = 0.03;
+const ISENCAO_SUBSIDIO_ALIMENTACAO = 30000;
+const TABELA_IRT = [
+  { ate: 150000, parcela: 0, taxa: 0 },
+  { ate: 200000, parcela: 12500, taxa: 0.16 },
+  { ate: 300000, parcela: 31250, taxa: 0.18 },
+  { ate: 500000, parcela: 49250, taxa: 0.19 },
+  { ate: 1000000, parcela: 87250, taxa: 0.20 },
+  { ate: 1500000, parcela: 187250, taxa: 0.21 },
+  { ate: 2000000, parcela: 292250, taxa: 0.22 },
+  { ate: 2500000, parcela: 402250, taxa: 0.23 },
+  { ate: 5000000, parcela: 517250, taxa: 0.24 },
+  { ate: 10000000, parcela: 1117250, taxa: 0.245 },
+  { ate: Infinity, parcela: 2342250, taxa: 0.25 },
+];
+
+const arredondar = (v) => Math.round(v * 100) / 100;
+
+const calcularSegurancaSocial = (bruto) => arredondar(bruto * TAXA_SEGURANCA_SOCIAL);
+
+const calcularIRT = (base) => {
+  if (!base || base <= 0) return 0;
+  for (let i = 0; i < TABELA_IRT.length; i++) {
+    if (base <= TABELA_IRT[i].ate) {
+      const limiteInferior = i === 0 ? 0 : TABELA_IRT[i - 1].ate;
+      return arredondar(TABELA_IRT[i].parcela + (base - limiteInferior) * TABELA_IRT[i].taxa);
+    }
+  }
+  return 0;
+};
+
+const calcularDescontosObrigatorios = (salarioBase, subsidios, horasExtras) => {
+  const sb = parseFloat(salarioBase) || 0;
+  const sub = parseFloat(subsidios) || 0;
+  const he = parseFloat(horasExtras) || 0;
+  const bruto = sb + sub + he;
+  const ss = calcularSegurancaSocial(bruto);
+  const subsidiosTributaveis = Math.max(0, sub - ISENCAO_SUBSIDIO_ALIMENTACAO);
+  const baseIRT = Math.max(0, sb + he + subsidiosTributaveis - ss);
+  return { seguranca_social: ss, irt: calcularIRT(baseIRT) };
+};
+
 export default function FolhaSalarialPage() {
   var t = getT();
 
@@ -44,7 +86,7 @@ export default function FolhaSalarialPage() {
 
   const defaultFormPag = {
     colaborador_id: "", mes: "", ano: "", salario_base: "",
-    subsidios: "", horas_extras: "", descontos: "", irt: "",
+    subsidios: "", horas_extras: "", irt: "",
     seguranca_social: "", desconto_faltas: "", data_pagamento: "", estado: "Pendente"
   };
 
@@ -89,17 +131,37 @@ export default function FolhaSalarialPage() {
   useEffect(() => { carregar(1); }, [tab]);
 
   const handleInput = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const nome = e.target.name;
+    const valor = e.target.value;
+    setForm(prev => {
+      const novo = { ...prev, [nome]: valor };
+      if (tab === "pagamentos" && (nome === "salario_base" || nome === "subsidios" || nome === "horas_extras")) {
+        const obrigatorios = calcularDescontosObrigatorios(novo.salario_base, novo.subsidios, novo.horas_extras);
+        novo.seguranca_social = obrigatorios.seguranca_social;
+        novo.irt = obrigatorios.irt;
+      }
+      return novo;
+    });
   };
 
   const handleColaboradorChange = async (e) => {
     const colabId = e.target.value;
-    setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: "", desconto_faltas: "" }));
+    setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: "", subsidios: "", desconto_faltas: "", seguranca_social: "", irt: "" }));
     if (!colabId) return;
     try {
       const data = await api.get(`/api/folha-salarial/contrato-actual/${colabId}`);
-      if (data && data.dados && data.dados.salario_base) {
-        setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: data.dados.salario_base || "" }));
+      if (data && data.dados) {
+        const sb = data.dados.salario_base || 0;
+        const sub = data.dados.subsidio_alimentacao || 0;
+        const obrigatorios = calcularDescontosObrigatorios(sb, sub, 0);
+        setForm(prev => ({
+          ...prev,
+          colaborador_id: colabId,
+          salario_base: sb,
+          subsidios: sub,
+          seguranca_social: obrigatorios.seguranca_social,
+          irt: obrigatorios.irt,
+        }));
       }
     } catch (e) {
       console.error("Erro ao buscar contrato:", e);
@@ -127,11 +189,10 @@ export default function FolhaSalarialPage() {
     var sb = parseFloat(f.salario_base) || 0;
     var sub = parseFloat(f.subsidios) || 0;
     var he = parseFloat(f.horas_extras) || 0;
-    var desc = parseFloat(f.descontos) || 0;
     var irt = parseFloat(f.irt) || 0;
     var ss = parseFloat(f.seguranca_social) || 0;
     var df = parseFloat(f.desconto_faltas) || 0;
-    return sb + sub + he - desc - irt - ss - df;
+    return sb + sub + he - irt - ss - df;
   };
 
   const abrirNovo = () => {
@@ -166,7 +227,6 @@ export default function FolhaSalarialPage() {
         salario_base: item.salario_base || "",
         subsidios: item.subsidios || "",
         horas_extras: item.horas_extras || "",
-        descontos: item.descontos || "",
         irt: item.irt || "",
         seguranca_social: item.seguranca_social || "",
         desconto_faltas: item.desconto_faltas || "",
@@ -556,7 +616,7 @@ export default function FolhaSalarialPage() {
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Mês/Ano</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Salário Base</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsídios+Extras</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Descontos+IRT+SS</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">IRT + SS + Faltas</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Líquido</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
                   <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Data Pagamento</th>
@@ -592,7 +652,6 @@ export default function FolhaSalarialPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-col text-[12px] text-on-surface-variant">
-                          <span>Descontos: {helpers.formatCurrency(item.descontos)}</span>
                           <span>IRT: {helpers.formatCurrency(item.irt)}</span>
                           <span>SS: {helpers.formatCurrency(item.seguranca_social)}</span>
                           {(parseFloat(item.desconto_faltas) || 0) > 0 && <span className="text-red-600 font-semibold">Faltas: -{helpers.formatCurrency(item.desconto_faltas)}</span>}
@@ -772,16 +831,12 @@ export default function FolhaSalarialPage() {
                     <input type="number" step="0.01" name="horas_extras" value={form.horas_extras || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Descontos</label>
-                    <input type="number" step="0.01" name="descontos" value={form.descontos || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">IRT (auto)</label>
+                    <input type="number" step="0.01" name="irt" value={form.irt || ""} onChange={handleInput} placeholder="0.00" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">IRT</label>
-                    <input type="number" step="0.01" name="irt" value={form.irt || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Segurança Social</label>
-                    <input type="number" step="0.01" name="seguranca_social" value={form.seguranca_social || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Segurança Social (auto)</label>
+                    <input type="number" step="0.01" name="seguranca_social" value={form.seguranca_social || ""} onChange={handleInput} placeholder="0.00" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Desconto Faltas</label>
@@ -975,7 +1030,6 @@ export default function FolhaSalarialPage() {
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {[
-                        ["Descontos", helpers.formatCurrency(viewItem.descontos)],
                         ["IRT", helpers.formatCurrency(viewItem.irt)],
                         ["Segurança Social", helpers.formatCurrency(viewItem.seguranca_social)],
                         ["Desconto Faltas", helpers.formatCurrency(viewItem.desconto_faltas)],
