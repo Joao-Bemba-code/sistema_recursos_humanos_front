@@ -146,7 +146,7 @@ export default function DepartamentosPage() {
       if (logoImg) {
         var lw = 40;
         var lh = (logoImg.height / logoImg.width) * lw;
-        try { doc.addImage(logoImg, "PNG", pw / 2 - lw / 2, y, lw, lh); } catch (e) {}
+        try { doc.addImage(logoImg.dataUrl, "PNG", pw / 2 - lw / 2, y, lw, lh); } catch (e) {}
         y += lh + 5;
       }
 
@@ -222,15 +222,30 @@ export default function DepartamentosPage() {
       doc.save("Departamento_" + (d.nome || "ficha") + ".pdf");
     };
 
-    if (logoUrl) {
-      var img = new Image();
-      img.onload = function () { logoImg = img; desenhar(); };
-      img.onerror = function () { desenhar(); };
-      img.crossOrigin = "anonymous";
-      img.src = logoUrl;
-    } else {
-      desenhar();
-    }
+    var carregarLogo = function (cb) {
+      if (!logoUrl) { cb(); return; }
+      fetch(logoUrl)
+        .then(function (r) { if (!r.ok) throw new Error("falha ao carregar logo"); return r.blob(); })
+        .then(function (blob) {
+          var urlObj = URL.createObjectURL(blob);
+          var img = new Image();
+          img.onload = function () {
+            var canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(urlObj);
+            logoImg = { dataUrl: canvas.toDataURL("image/png"), width: img.width, height: img.height };
+            cb();
+          };
+          img.onerror = function () { URL.revokeObjectURL(urlObj); cb(); };
+          img.src = urlObj;
+        })
+        .catch(function () { cb(); });
+    };
+
+    carregarLogo(desenhar);
   };
 
   const activeFilters = [];
