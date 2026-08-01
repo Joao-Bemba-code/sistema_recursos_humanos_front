@@ -63,7 +63,7 @@ export default function ContratosPage() {
     setEditando(null);
     setForm({
       numero: "", tipo: "Indeterminado", data_inicio: "", data_fim: "",
-      salario_base: "", moeda: "AOA", funcao: "", local_trabalho: "",
+      salario_base: "", subsidio_alimentacao: "", moeda: "AOA", funcao: "", local_trabalho: "",
       horario_trabalho: "", estado: "Activo", colaborador_id: "",
       periodo_experimentacao: "", observacoes: "",
     });
@@ -79,6 +79,7 @@ export default function ContratosPage() {
       data_inicio: c.data_inicio || "",
       data_fim: c.data_fim || "",
       salario_base: c.salario_base || "",
+      subsidio_alimentacao: c.subsidio_alimentacao || "",
       moeda: c.moeda || "AOA",
       funcao: c.funcao || "",
       local_trabalho: c.local_trabalho || "",
@@ -390,6 +391,10 @@ export default function ContratosPage() {
                   <input name="salario_base" type="number" step="0.01" value={form.salario_base || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
                 <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídio de Alimentação</label>
+                  <input name="subsidio_alimentacao" type="number" step="0.01" value={form.subsidio_alimentacao || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Moeda</label>
                   <select name="moeda" value={form.moeda || "AOA"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                     <option value="AOA">AOA (Kwanza)</option>
@@ -485,6 +490,7 @@ export default function ContratosPage() {
                 <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3">Condições</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {[["Salário", contratoView.salario_base ? Number(contratoView.salario_base).toLocaleString("pt-AO") + " " + (contratoView.moeda || "AOA") : null],
+                    ["Subsídio de Alimentação", contratoView.subsidio_alimentacao ? Number(contratoView.subsidio_alimentacao).toLocaleString("pt-AO") + " " + (contratoView.moeda || "AOA") : null],
                     ["Experimentação", contratoView.periodo_experimentacao ? contratoView.periodo_experimentacao + " dias" : null],
                     ["Local", contratoView.local_trabalho], ["Horário", contratoView.horario_trabalho],
                   ].map(function(p) {
