@@ -176,7 +176,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " colaborador(es)", r.headerY + 8);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " colaborador(es)", 15, r.headerY + 8);
 
     var rows = dados.map(function (c) {
       return [
@@ -217,7 +217,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " contrato(s)", r.headerY + 8);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " contrato(s)", 15, r.headerY + 8);
 
     var rows = dados.map(function (c) {
       return [
@@ -262,7 +262,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " departamento(s)", r.headerY + 8);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " departamento(s)", 15, r.headerY + 8);
 
     var rows = dados.map(function (d) {
       return [
@@ -305,7 +305,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", r.headerY + 8);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", 15, r.headerY + 8);
 
     var rows = dados.map(function (f) {
       var nome = "—";
@@ -354,7 +354,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", r.headerY + 8);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", 15, r.headerY + 8);
 
     var rows = dados.map(function (a) {
       var nome = "—";
@@ -401,7 +401,7 @@ export default function RelatoriosPage() {
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " curso(s)", r.headerY + 8);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " curso(s)", 15, r.headerY + 8);
 
     var rows = dados.map(function (f) {
       return [
