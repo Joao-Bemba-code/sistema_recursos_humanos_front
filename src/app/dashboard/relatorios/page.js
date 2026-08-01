@@ -16,27 +16,91 @@ var TIPOS_DEPT = [
   { value: "Gabinete", label: "Gabinete" },
 ];
 
-function buildPdfHeader(title) {
-  var doc = new jsPDF();
-  var pw = doc.internal.pageSize.getWidth();
-  doc.setTextColor(30, 30, 30);
-  doc.setFontSize(16);
-  doc.text("CENFFOR", 15, 18);
-  doc.setFontSize(9);
-  doc.setTextColor(100, 100, 100);
-  doc.text("Centro de Formacao Profissional", 15, 25);
-  doc.setFontSize(14);
-  doc.setTextColor(30, 30, 30);
-  doc.text(title, 15, 35);
-  return { doc: doc, pw: pw };
+var imageUrl = function (path) {
+  if (!path) return "";
+  var decoded = path.replace(/&#x2F;/g, "/").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
+  if (decoded.startsWith("http")) return decoded;
+  return api.baseURL + decoded;
+};
+
+function carregarLogoDataUrl(url) {
+  return fetch(url)
+    .then(function (r) { if (!r.ok) throw new Error("falha"); return r.blob(); })
+    .then(function (blob) {
+      return new Promise(function (resolve, reject) {
+        var urlObj = URL.createObjectURL(blob);
+        var img = new Image();
+        img.onload = function () {
+          var canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          canvas.getContext("2d").drawImage(img, 0, 0);
+          URL.revokeObjectURL(urlObj);
+          resolve({ dataUrl: canvas.toDataURL("image/png"), width: img.width, height: img.height });
+        };
+        img.onerror = function () { URL.revokeObjectURL(urlObj); reject(new Error("img")); };
+        img.src = urlObj;
+      });
+    })
+    .catch(function () { return null; });
 }
 
-function addPdfFooter(doc) {
+async function buildPdfHeader(title, org) {
+  var doc = new jsPDF();
+  var pw = doc.internal.pageSize.getWidth();
+  var logoImg = null;
+
+  if (org && org.logo_url) {
+    logoImg = await carregarLogoDataUrl(imageUrl(org.logo_url));
+  }
+
+  var xText = 15;
+  var y = 18;
+
+  if (logoImg) {
+    var lw = 24;
+    var lh = (logoImg.height / logoImg.width) * lw;
+    try { doc.addImage(logoImg.dataUrl, "PNG", 15, y - 6, lw, lh); } catch (e) {}
+    xText = 45;
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(30, 30, 30);
+  var nome = (org && org.nome) ? org.nome : "CENFFOR";
+  var nomeLinhas = doc.splitTextToSize(nome, pw - xText - 15);
+  doc.text(nomeLinhas, xText, y);
+  y += nomeLinhas.length * 18;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(100, 100, 100);
+  var subParts = [];
+  if (org && org.nif) subParts.push("NIF: " + org.nif);
+  if (org && org.cidade) subParts.push(org.cidade);
+  var sub = subParts.length ? subParts.join("  |  ") : "Sistema de Gestao de Recursos Humanos";
+  var subLinhas = doc.splitTextToSize(sub, pw - xText - 15);
+  doc.text(subLinhas, xText, y);
+  y += subLinhas.length * 10.5 + 5;
+
+  if (y < 34) y = 34;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(30, 30, 30);
+  doc.text(title, 15, y + 1);
+  y += 4;
+
+  return { doc: doc, pw: pw, headerY: y };
+}
+
+function addPdfFooter(doc, org) {
   var pw = doc.internal.pageSize.getWidth();
   var fY = doc.internal.pageSize.getHeight() - 12;
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
-  doc.text("CENFFOR - SGHR | Gerado em: " + new Date().toLocaleDateString("pt-AO"), 15, fY);
+  var nome = (org && org.nome) ? org.nome : "CENFFOR";
+  doc.text(nome + " - SGHR | Gerado em: " + new Date().toLocaleDateString("pt-AO"), pw / 2, fY, { align: "center" });
 }
 
 export default function RelatoriosPage() {
@@ -45,6 +109,7 @@ export default function RelatoriosPage() {
   var [statsLoading, setStatsLoading] = useState(true);
   var [loadingReport, setLoadingReport] = useState(null);
   var [msg, setMsg] = useState(null);
+  var [org, setOrg] = useState(null);
 
   var carregarStats = async function () {
     setStatsLoading(true);
@@ -67,6 +132,16 @@ export default function RelatoriosPage() {
   };
 
   useEffect(function () { carregarStats(); }, []);
+
+  useEffect(function () {
+    api.get("/auth/profile").then(function (data) {
+      var o = data && data.utilizador && data.utilizador.organizacao;
+      if (o) { setOrg(o); return; }
+      api.get("/api/organizacoes").then(function (d) { if (d.dados && d.dados.length) setOrg(d.dados[0]); }).catch(function () {});
+    }).catch(function () {
+      api.get("/api/organizacoes").then(function (d) { if (d.dados && d.dados.length) setOrg(d.dados[0]); }).catch(function () {});
+    });
+  }, []);
 
   var tipoColLabel = function (v) { return (TIPOS_COLABORADOR.find(function (x) { return x.value === v; }) || {}).label || v || "—"; };
   var tipoContratoLabel = function (v) { return (TIPOS_CONTRATO.find(function (x) { return x.value === v; }) || {}).label || v || "—"; };
@@ -95,13 +170,13 @@ export default function RelatoriosPage() {
   var genPdfColaboradores = async function () {
     var res = await api.get("/api/colaboradores?limit=500");
     var dados = res.dados || [];
-    var r = buildPdfHeader("Relatorio de Colaboradores");
+    var r = await buildPdfHeader("Relatorio de Colaboradores", org);
     var doc = r.doc;
     var pw = r.pw;
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " colaborador(es)", 15, 44);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " colaborador(es)", r.headerY + 8);
 
     var rows = dados.map(function (c) {
       return [
@@ -114,7 +189,7 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 52,
+      startY: r.headerY + 14,
       head: [["Número", "Nome Completo", "Tipo", "Estado", "Admissão"]],
       body: rows,
       styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
@@ -129,20 +204,20 @@ export default function RelatoriosPage() {
       },
     });
 
-    addPdfFooter(doc);
+    addPdfFooter(doc, org);
     doc.save("Relatorio_Colaboradores.pdf");
   };
 
   var genPdfContratos = async function () {
     var res = await api.get("/api/contratos?limit=500");
     var dados = res.dados || [];
-    var r = buildPdfHeader("Relatorio de Contratos");
+    var r = await buildPdfHeader("Relatorio de Contratos", org);
     var doc = r.doc;
     var pw = r.pw;
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " contrato(s)", 15, 44);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " contrato(s)", r.headerY + 8);
 
     var rows = dados.map(function (c) {
       return [
@@ -157,7 +232,7 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 52,
+      startY: r.headerY + 14,
       head: [["Número", "Colaborador", "Tipo", "Início", "Fim", "Salário", "Estado"]],
       body: rows,
       styles: { fontSize: 7, cellPadding: 2.5, lineWidth: 0 },
@@ -174,20 +249,20 @@ export default function RelatoriosPage() {
       },
     });
 
-    addPdfFooter(doc);
+    addPdfFooter(doc, org);
     doc.save("Relatorio_Contratos.pdf");
   };
 
   var genPdfDepartamentos = async function () {
     var res = await api.get("/api/departamentos?limit=500");
     var dados = res.dados || [];
-    var r = buildPdfHeader("Relatorio de Departamentos");
+    var r = await buildPdfHeader("Relatorio de Departamentos", org);
     var doc = r.doc;
     var pw = r.pw;
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " departamento(s)", 15, 44);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " departamento(s)", r.headerY + 8);
 
     var rows = dados.map(function (d) {
       return [
@@ -201,7 +276,7 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 52,
+      startY: r.headerY + 14,
       head: [["Nome", "Código", "Tipo", "Responsável", "Telefone", "Email"]],
       body: rows,
       styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
@@ -217,20 +292,20 @@ export default function RelatoriosPage() {
       },
     });
 
-    addPdfFooter(doc);
+    addPdfFooter(doc, org);
     doc.save("Relatorio_Departamentos.pdf");
   };
 
   var genPdfFerias = async function () {
     var res = await api.get("/api/ferias?limit=500");
     var dados = res.dados || [];
-    var r = buildPdfHeader("Relatorio de Ferias");
+    var r = await buildPdfHeader("Relatorio de Ferias", org);
     var doc = r.doc;
     var pw = r.pw;
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", 15, 44);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", r.headerY + 8);
 
     var rows = dados.map(function (f) {
       var nome = "—";
@@ -251,7 +326,7 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 52,
+      startY: r.headerY + 14,
       head: [["Colaborador", "Data de Início", "Data de Fim", "Dias", "Estado"]],
       body: rows,
       styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
@@ -266,20 +341,20 @@ export default function RelatoriosPage() {
       },
     });
 
-    addPdfFooter(doc);
+    addPdfFooter(doc, org);
     doc.save("Relatorio_Ferias.pdf");
   };
 
   var genPdfAssiduidade = async function () {
     var res = await api.get("/api/assiduidade?limit=500");
     var dados = res.dados || [];
-    var r = buildPdfHeader("Relatorio de Assiduidade");
+    var r = await buildPdfHeader("Relatorio de Assiduidade", org);
     var doc = r.doc;
     var pw = r.pw;
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", 15, 44);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " registo(s)", r.headerY + 8);
 
     var rows = dados.map(function (a) {
       var nome = "—";
@@ -299,7 +374,7 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 52,
+      startY: r.headerY + 14,
       head: [["Colaborador", "Data", "Horas", "Estado"]],
       body: rows,
       styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
@@ -313,20 +388,20 @@ export default function RelatoriosPage() {
       },
     });
 
-    addPdfFooter(doc);
+    addPdfFooter(doc, org);
     doc.save("Relatorio_Assiduidade.pdf");
   };
 
   var genPdfFormacao = async function () {
     var res = await api.get("/api/formacao/cursos?limit=500");
     var dados = res.dados || [];
-    var r = buildPdfHeader("Relatorio de Formacao");
+    var r = await buildPdfHeader("Relatorio de Formacao", org);
     var doc = r.doc;
     var pw = r.pw;
 
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " curso(s)", 15, 44);
+    doc.text("Total: " + (res.paginacao ? res.paginacao.total : dados.length) + " curso(s)", r.headerY + 8);
 
     var rows = dados.map(function (f) {
       return [
@@ -340,7 +415,7 @@ export default function RelatoriosPage() {
     });
 
     autoTable(doc, {
-      startY: 52,
+      startY: r.headerY + 14,
       head: [["Nome", "Tipo", "Início", "Fim", "Horas", "Estado"]],
       body: rows,
       styles: { fontSize: 8, cellPadding: 3, lineWidth: 0 },
@@ -356,7 +431,7 @@ export default function RelatoriosPage() {
       },
     });
 
-    addPdfFooter(doc);
+    addPdfFooter(doc, org);
     doc.save("Relatorio_Formacao.pdf");
   };
 
