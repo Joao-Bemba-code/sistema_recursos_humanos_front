@@ -49,6 +49,7 @@ export default function DepartamentosPage() {
   const [savingSeccao, setSavingSeccao] = useState(false);
   const [msgSeccao, setMsgSeccao] = useState(null);
   const [confirmDeleteSeccao, setConfirmDeleteSeccao] = useState({ open: false, id: null, nome: "" });
+  const [colaboradores, setColaboradores] = useState([]);
 
   const carregar = async (page = 1) => {
     setLoading(true);
@@ -71,6 +72,12 @@ export default function DepartamentosPage() {
   useEffect(() => {
     api.get("/api/organizacoes").then(function (data) {
       if (data.dados && data.dados.length > 0) setOrg(data.dados[0]);
+    }).catch(function () {});
+  }, []);
+
+  useEffect(() => {
+    api.get("/api/colaboradores?limit=200").then(function (data) {
+      setColaboradores(data.dados || []);
     }).catch(function () {});
   }, []);
 
@@ -160,17 +167,19 @@ export default function DepartamentosPage() {
 
   const abrirNovaSeccao = () => {
     setEditandoSeccao(null);
-    setFormSeccao({ nome: "", codigo: "", descricao: "", responsavel_nome: "", nivel: 1, activo: true });
+    setFormSeccao({ nome: "", codigo: "", descricao: "", responsavel_id: "", responsavel_nome: "", nivel: 1, activo: true });
     setShowFormSeccao(true);
     setMsgSeccao(null);
   };
 
   const abrirEditarSeccao = (s) => {
     setEditandoSeccao(s);
+    var colResponsavel = colaboradores.find(c => c.nome_completo === (s.responsavel_nome || ""));
     setFormSeccao({
       nome: s.nome || "",
       codigo: s.codigo || "",
       descricao: s.descricao || "",
+      responsavel_id: colResponsavel ? colResponsavel.id : "",
       responsavel_nome: s.responsavel_nome || "",
       nivel: s.nivel || 1,
       activo: s.activo !== false,
@@ -184,7 +193,8 @@ export default function DepartamentosPage() {
     setSavingSeccao(true);
     setMsgSeccao(null);
     try {
-      const payload = { ...formSeccao, departamento_id: deptSeccoes.id };
+      const { responsavel_id, ...dadosSec } = formSeccao;
+      const payload = { ...dadosSec, departamento_id: deptSeccoes.id };
       if (editandoSeccao) {
         await api.put(`/api/seccoes/${editandoSeccao.id}`, payload);
       } else {
@@ -211,6 +221,12 @@ export default function DepartamentosPage() {
 
   const handleSeccaoInput = (e) => {
     setFormSeccao({ ...formSeccao, [e.target.name]: e.target.value });
+  };
+
+  const handleResponsavelChange = (e) => {
+    var id = e.target.value;
+    var col = colaboradores.find(c => c.id === id);
+    setFormSeccao({ ...formSeccao, responsavel_id: id, responsavel_nome: col ? col.nome_completo : "" });
   };
 
   const tipoLabel = (v) => (TIPOS_DEPT.find(t => t.value === v) || {}).label || v || "—";
@@ -315,12 +331,17 @@ export default function DepartamentosPage() {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
         doc.setTextColor(60, 60, 60);
-        doc.text("SECÇÕES DO DEPARTAMENTO", 15, y);
+        doc.text("SECÇÕES DO DEPARTAMENTO", pw / 2, y, { align: "center" });
         y += 3;
+
+        var colW = [70, 20, 50, 25];
+        var totalW = colW[0] + colW[1] + colW[2] + colW[3];
+        var margemL = Math.max(8, (pw - totalW) / 2);
 
         autoTable(doc, {
           startY: y + 3,
-          margin: { left: 15, right: 15, bottom: 18 },
+          margin: { left: margemL, right: margemL, bottom: 18 },
+          tableWidth: 'wrap',
           head: [["Nome", "Nível", "Responsável", "Estado"]],
           body: seccoes.map(function(s) {
             return [s.nome || "—", s.nivel || 1, s.responsavel_nome || "—", s.activo ? "Ativa" : "Inativa"];
@@ -329,10 +350,10 @@ export default function DepartamentosPage() {
           headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
           alternateRowStyles: { fillColor: [245, 247, 252] },
           columnStyles: {
-            0: { cellWidth: 80 },
-            1: { cellWidth: 25 },
-            2: { cellWidth: 60 },
-            3: { cellWidth: 30 },
+            0: { cellWidth: colW[0] },
+            1: { cellWidth: colW[1], halign: "center" },
+            2: { cellWidth: colW[2] },
+            3: { cellWidth: colW[3] },
           },
         });
       }
@@ -839,7 +860,12 @@ export default function DepartamentosPage() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Responsável</label>
-                  <input name="responsavel_nome" value={formSeccao.responsavel_nome || ""} onChange={handleSeccaoInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                  <select name="responsavel_id" value={formSeccao.responsavel_id || ""} onChange={handleResponsavelChange} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    <option value="">Selecionar colaborador</option>
+                    {colaboradores.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome_completo}{c.numero_colaborador ? " (" + c.numero_colaborador + ")" : ""}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Descrição</label>
