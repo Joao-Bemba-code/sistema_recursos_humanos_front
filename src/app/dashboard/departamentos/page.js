@@ -37,6 +37,8 @@ export default function DepartamentosPage() {
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, nome: "" });
   const [showViewModal, setShowViewModal] = useState(false);
   const [deptView, setDeptView] = useState(null);
+  const [secView, setSecView] = useState([]);
+  const [membrosView, setMembrosView] = useState({});
   const [org, setOrg] = useState(null);
 
   const [showSeccoesModal, setShowSeccoesModal] = useState(false);
@@ -149,9 +151,29 @@ export default function DepartamentosPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const abrirVer = (d) => {
+  const abrirVer = async (d) => {
     setDeptView(d);
     setShowViewModal(true);
+    setSecView([]);
+    setMembrosView({});
+    try {
+      const data = await api.get(`/api/seccoes?departamento_id=${d.id}&limit=100`);
+      const secs = data.dados || [];
+      setSecView(secs);
+      const membros = {};
+      await Promise.all(secs.map(async (s) => {
+        try {
+          const r = await api.get(`/api/seccoes/${s.id}/membros`);
+          membros[s.id] = r.dados || [];
+        } catch (e) {
+          membros[s.id] = [];
+        }
+      }));
+      setMembrosView(membros);
+    } catch (e) {
+      setSecView([]);
+      setMembrosView({});
+    }
   };
 
   const carregarSeccoes = async (deptId) => {
@@ -307,9 +329,18 @@ export default function DepartamentosPage() {
     var logoUrl = org && org.logo_url ? imageUrl(org.logo_url) : "";
 
     var seccoes = [];
+    var membrosMap = {};
     try {
       var resSec = await api.get(`/api/seccoes?departamento_id=${d.id}&limit=100`);
       seccoes = resSec.dados || [];
+      await Promise.all(seccoes.map(async function(s) {
+        try {
+          var r = await api.get(`/api/seccoes/${s.id}/membros`);
+          membrosMap[s.id] = r.dados || [];
+        } catch (e) {
+          membrosMap[s.id] = [];
+        }
+      }));
     } catch (e) {
       seccoes = [];
     }
@@ -399,19 +430,19 @@ export default function DepartamentosPage() {
         doc.text("SECÇÕES DO DEPARTAMENTO", pw / 2, y, { align: "center" });
         y += 3;
 
-        var colW = [70, 20, 50, 25];
-        var totalW = colW[0] + colW[1] + colW[2] + colW[3];
+        var colW = [45, 12, 32, 22, 28, 25];
+        var totalW = colW.reduce(function(a, b) { return a + b; }, 0);
         var margemL = Math.max(8, (pw - totalW) / 2);
 
         autoTable(doc, {
           startY: y + 3,
           margin: { left: margemL, right: margemL, bottom: 18 },
           tableWidth: 'wrap',
-          head: [["Nome", "Nível", "Responsável", "Estado"]],
+          head: [["Nome", "Nível", "Responsável", "Telefone", "Email", "Localização"]],
           body: seccoes.map(function(s) {
-            return [s.nome || "—", s.nivel || 1, s.responsavel_nome || "—", s.activo ? "Ativa" : "Inativa"];
+            return [s.nome || "—", s.nivel || 1, s.responsavel_nome || "—", s.telefone || "—", s.email || "—", s.localizacao || "—"];
           }),
-          styles: { fontSize: 8, cellPadding: 2.5, lineWidth: 0 },
+          styles: { fontSize: 7.5, cellPadding: 2.2, lineWidth: 0 },
           headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
           alternateRowStyles: { fillColor: [245, 247, 252] },
           columnStyles: {
@@ -419,8 +450,43 @@ export default function DepartamentosPage() {
             1: { cellWidth: colW[1], halign: "center" },
             2: { cellWidth: colW[2] },
             3: { cellWidth: colW[3] },
+            4: { cellWidth: colW[4] },
+            5: { cellWidth: colW[5] },
           },
         });
+
+        var yApos = doc.lastAutoTable ? doc.lastAutoTable.finalY + 8 : y + 8;
+        var comPessoas = seccoes.some(function(s) { return (membrosMap[s.id] || []).length > 0; });
+        if (comPessoas) {
+          if (yApos > ph - 30) { doc.addPage(); yApos = 20; }
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.3);
+          doc.line(15, yApos, pw - 15, yApos);
+          yApos += 7;
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.setTextColor(60, 60, 60);
+          doc.text("PESSOAS NAS SECÇÕES", pw / 2, yApos, { align: "center" });
+          yApos += 6;
+          doc.setFontSize(8.5);
+          seccoes.forEach(function(s) {
+            var lista = membrosMap[s.id] || [];
+            if (lista.length === 0) return;
+            var pessoas = lista.map(function(m) {
+              return (m.funcao === "Responsavel" ? "[Resp.] " : "") + ((m.colaborador && m.colaborador.nome_completo) || "—");
+            }).join("; ");
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(40, 40, 40);
+            doc.text(s.nome + ":", 17, yApos);
+            doc.setFont("helvetica", "normal");
+            doc.setTextColor(70, 70, 70);
+            var xP = 17 + doc.getTextWidth(s.nome + ":") + 3;
+            var linhas = doc.splitTextToSize(pessoas, pw - xP - 17);
+            doc.text(linhas, xP, yApos);
+            yApos += linhas.length * 4.5 + 3;
+            if (yApos > ph - 20) { doc.addPage(); yApos = 20; }
+          });
+        }
       }
 
       var fY = ph - 12;
@@ -780,6 +846,63 @@ export default function DepartamentosPage() {
                   <p className="text-[13px] text-on-surface whitespace-pre-line break-words">{deptView.descricao}</p>
                 </div>
               )}
+
+              <div>
+                <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-2">Secções do Departamento</p>
+                {secView.length === 0 ? (
+                  <p className="text-[12px] text-on-surface-variant/60 bg-background/50 rounded-lg p-3 border border-outline-variant/20">Nenhuma secção registada.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {secView.map(function(s) {
+                      var pessoas = membrosView[s.id] || [];
+                      return (
+                        <div key={s.id} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-primary text-[16px]">account_tree</span>
+                              <p className="text-[13px] font-bold text-on-surface">{s.nome || "—"}</p>
+                              <span className="text-[11px] text-on-surface-variant/60">Nível {s.nivel || 1}</span>
+                            </div>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${s.activo ? "badge-success" : "badge-secondary"}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.activo ? "bg-success" : "bg-outline"}`} />
+                              {s.activo ? "Ativa" : "Inativa"}
+                            </span>
+                          </div>
+                          {s.descricao && <p className="text-[12px] text-on-surface-variant mb-1.5 whitespace-pre-line break-words">{s.descricao}</p>}
+                          <div className="grid grid-cols-2 gap-2 mb-2">
+                            {[["Código", s.codigo], ["Responsável", s.responsavel_nome], ["Telefone", s.telefone], ["Email", s.email], ["Localização", s.localizacao]].map(function(p) {
+                              return (
+                                <div key={p[0]} className="bg-surface rounded-md px-2.5 py-1.5 border border-outline-variant/20">
+                                  <p className="text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-wide">{p[0]}</p>
+                                  <p className="text-[12px] font-semibold text-on-surface truncate">{p[1] || "—"}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="bg-surface rounded-md px-2.5 py-1.5 border border-outline-variant/20">
+                            <p className="text-[9px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Pessoas</p>
+                            {pessoas.length === 0 ? (
+                              <p className="text-[12px] text-on-surface-variant/60">Nenhuma pessoa atribuída.</p>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {pessoas.map(function(m, i) {
+                                  var nome = (m.colaborador && m.colaborador.nome_completo) || "—";
+                                  return (
+                                    <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${m.funcao === "Responsavel" ? "bg-primary/10 text-primary" : "bg-background/60 text-on-surface-variant border border-outline-variant/20"}`}>
+                                      {m.funcao === "Responsavel" && <span className="material-symbols-outlined text-[12px]">star</span>}
+                                      {nome}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/20">
                 <button onClick={() => { setShowViewModal(false); abrirEditar(deptView); }} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-primary/30 text-primary text-[12px] font-semibold hover:bg-primary/5 transition-all">
