@@ -39,6 +39,17 @@ export default function DepartamentosPage() {
   const [deptView, setDeptView] = useState(null);
   const [org, setOrg] = useState(null);
 
+  const [showSeccoesModal, setShowSeccoesModal] = useState(false);
+  const [deptSeccoes, setDeptSeccoes] = useState(null);
+  const [seccoes, setSeccoes] = useState([]);
+  const [loadingSeccoes, setLoadingSeccoes] = useState(false);
+  const [editandoSeccao, setEditandoSeccao] = useState(null);
+  const [formSeccao, setFormSeccao] = useState({});
+  const [showFormSeccao, setShowFormSeccao] = useState(false);
+  const [savingSeccao, setSavingSeccao] = useState(false);
+  const [msgSeccao, setMsgSeccao] = useState(null);
+  const [confirmDeleteSeccao, setConfirmDeleteSeccao] = useState({ open: false, id: null, nome: "" });
+
   const carregar = async (page = 1) => {
     setLoading(true);
     try {
@@ -126,6 +137,80 @@ export default function DepartamentosPage() {
   const abrirVer = (d) => {
     setDeptView(d);
     setShowViewModal(true);
+  };
+
+  const carregarSeccoes = async (deptId) => {
+    setLoadingSeccoes(true);
+    try {
+      const data = await api.get(`/api/seccoes?departamento_id=${deptId}&limit=100`);
+      setSeccoes(data.dados);
+    } catch (e) {
+      setMsgSeccao({ tipo: "erro", texto: e.message });
+    } finally {
+      setLoadingSeccoes(false);
+    }
+  };
+
+  const abrirSeccoes = async (d) => {
+    setDeptSeccoes(d);
+    setShowSeccoesModal(true);
+    setMsgSeccao(null);
+    await carregarSeccoes(d.id);
+  };
+
+  const abrirNovaSeccao = () => {
+    setEditandoSeccao(null);
+    setFormSeccao({ nome: "", codigo: "", descricao: "", responsavel_nome: "", nivel: 1, activo: true });
+    setShowFormSeccao(true);
+    setMsgSeccao(null);
+  };
+
+  const abrirEditarSeccao = (s) => {
+    setEditandoSeccao(s);
+    setFormSeccao({
+      nome: s.nome || "",
+      codigo: s.codigo || "",
+      descricao: s.descricao || "",
+      responsavel_nome: s.responsavel_nome || "",
+      nivel: s.nivel || 1,
+      activo: s.activo !== false,
+    });
+    setShowFormSeccao(true);
+    setMsgSeccao(null);
+  };
+
+  const guardarSeccao = async (e) => {
+    e.preventDefault();
+    setSavingSeccao(true);
+    setMsgSeccao(null);
+    try {
+      const payload = { ...formSeccao, departamento_id: deptSeccoes.id };
+      if (editandoSeccao) {
+        await api.put(`/api/seccoes/${editandoSeccao.id}`, payload);
+      } else {
+        await api.post("/api/seccoes", payload);
+      }
+      setShowFormSeccao(false);
+      await carregarSeccoes(deptSeccoes.id);
+    } catch (e) {
+      setMsgSeccao({ tipo: "erro", texto: e.message });
+    } finally {
+      setSavingSeccao(false);
+    }
+  };
+
+  const eliminarSeccao = async () => {
+    try {
+      await api.delete(`/api/seccoes/${confirmDeleteSeccao.id}`);
+      setConfirmDeleteSeccao({ open: false, id: null, nome: "" });
+      await carregarSeccoes(deptSeccoes.id);
+    } catch (e) {
+      setMsgSeccao({ tipo: "erro", texto: e.message });
+    }
+  };
+
+  const handleSeccaoInput = (e) => {
+    setFormSeccao({ ...formSeccao, [e.target.name]: e.target.value });
   };
 
   const tipoLabel = (v) => (TIPOS_DEPT.find(t => t.value === v) || {}).label || v || "—";
@@ -263,6 +348,16 @@ export default function DepartamentosPage() {
         onConfirm={eliminar}
         onCancel={() => setConfirmDelete({ open: false, id: null, nome: "" })}
       />
+      <ConfirmDialog
+        open={confirmDeleteSeccao.open}
+        titulo="Eliminar Secção"
+        mensagem={`Tem certeza que deseja eliminar a secção "${confirmDeleteSeccao.nome}"? Esta ação não pode ser desfeita.`}
+        textoConfirmar="Sim, Eliminar"
+        textoCancelar="Cancelar"
+        variante="perigo"
+        onConfirm={eliminarSeccao}
+        onCancel={() => setConfirmDeleteSeccao({ open: false, id: null, nome: "" })}
+      />
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <nav className="flex items-center gap-2 text-[12px] text-on-surface-variant/60 font-medium uppercase tracking-wide">
@@ -399,6 +494,9 @@ export default function DepartamentosPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end">
+                        <button onClick={() => abrirSeccoes(d)} className="p-[3px] text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-all" title="Secções">
+                          <span className="material-symbols-outlined text-[15px]">layers</span>
+                        </button>
                         <button onClick={() => abrirVer(d)} className="p-[3px] text-on-surface-variant hover:text-success hover:bg-success/10 rounded transition-all" title="Ver">
                           <span className="material-symbols-outlined text-[15px]">visibility</span>
                         </button>
@@ -567,6 +665,156 @@ export default function DepartamentosPage() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showSeccoesModal && deptSeccoes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowSeccoesModal(false)} />
+          <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
+            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-on-surface tracking-tight">Secções do Departamento</h3>
+                <p className="text-[13px] text-on-surface-variant/70">{deptSeccoes.nome}{deptSeccoes.codigo ? " · " + deptSeccoes.codigo : ""}</p>
+              </div>
+              <button onClick={() => setShowSeccoesModal(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {msgSeccao && (
+                <div className={`p-3 rounded-lg text-[13px] font-medium flex items-center gap-2 ${msgSeccao.tipo === "sucesso" ? "badge-success border border-success/10" : "badge-danger border border-error/10"}`}>
+                  <span className="material-symbols-outlined text-[18px]">{msgSeccao.tipo === "sucesso" ? "check_circle" : "error"}</span>
+                  {msgSeccao.texto}
+                  <button onClick={() => setMsgSeccao(null)} className="ml-auto hover:opacity-60">
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[12px] font-semibold text-on-surface-variant/70 uppercase tracking-wide">
+                  {seccoes.length} secção(ões) definida(s)
+                </p>
+                <button onClick={abrirNovaSeccao} className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-sm hover:bg-primary/90 transition-all active:scale-95">
+                  <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                  Nova Secção
+                </button>
+              </div>
+
+              <div className="overflow-x-auto border border-outline-variant/30 rounded-xl">
+                <table className="w-full text-left border-collapse data-grid-tight">
+                  <thead>
+                    <tr className="bg-background/50 border-b border-outline-variant/20">
+                      <th className="px-5 py-3 font-bold text-on-surface-variant/70 uppercase tracking-wider">Nome</th>
+                      <th className="px-3 py-3 font-bold text-on-surface-variant/70 uppercase tracking-wider">Nível</th>
+                      <th className="px-4 py-3 font-bold text-on-surface-variant/70 uppercase tracking-wider">Responsável</th>
+                      <th className="px-4 py-3 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
+                      <th className="px-5 py-3 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10">
+                    {loadingSeccoes ? (
+                      [1,2,3].map(i => (
+                        <tr key={i}>
+                          <td colSpan={5} className="px-5 py-4">
+                            <div className="animate-pulse h-8 bg-surface-container rounded-lg" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : seccoes.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-10 text-center">
+                          <span className="material-symbols-outlined text-[40px] text-outline-variant/40 block mb-2">layers</span>
+                          <p className="text-on-surface-variant font-medium">Nenhuma secção definida</p>
+                          <p className="text-[13px] text-outline mt-1">Clique em &quot;Nova Secção&quot; para adicionar</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      seccoes.map((s) => (
+                        <tr key={s.id} className="hover:bg-primary/[0.02] transition-colors group">
+                          <td className="px-5 py-3">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-on-surface">{s.nome}</span>
+                              <span className="text-[12px] text-on-surface-variant/70">{s.codigo || ""}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-primary/10 text-primary text-[13px] font-bold">{s.nivel || 1}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-on-surface">{s.responsavel_nome || "—"}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${s.activo ? "badge-success" : "badge-secondary"}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${s.activo ? "bg-success" : "bg-outline"}`} />
+                              {s.activo ? "Ativa" : "Inativa"}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="flex items-center justify-end">
+                              <button onClick={() => abrirEditarSeccao(s)} className="p-[3px] text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-all" title="Editar">
+                                <span className="material-symbols-outlined text-[15px]">edit</span>
+                              </button>
+                              <button onClick={() => setConfirmDeleteSeccao({ open: true, id: s.id, nome: s.nome })} className="p-[3px] text-on-surface-variant hover:text-error hover:bg-error/10 rounded transition-all" title="Eliminar">
+                                <span className="material-symbols-outlined text-[15px]">delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSeccoesModal && showFormSeccao && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowFormSeccao(false)} />
+          <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant/30">
+            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">{editandoSeccao ? "Editar Secção" : "Nova Secção"}</h3>
+              <button onClick={() => setShowFormSeccao(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={guardarSeccao} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nome *</label>
+                  <input name="nome" value={formSeccao.nome || ""} onChange={handleSeccaoInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Código</label>
+                  <input name="codigo" value={formSeccao.codigo || ""} onChange={handleSeccaoInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nível *</label>
+                  <input name="nivel" type="number" min="1" value={formSeccao.nivel || ""} onChange={handleSeccaoInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Responsável</label>
+                  <input name="responsavel_nome" value={formSeccao.responsavel_nome || ""} onChange={handleSeccaoInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Descrição</label>
+                  <textarea name="descricao" value={formSeccao.descricao || ""} onChange={handleSeccaoInput} rows={3} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/20">
+                <button type="button" onClick={() => setShowFormSeccao(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
+                <button type="submit" disabled={savingSeccao} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
+                  <span className="material-symbols-outlined text-[18px]">{savingSeccao ? "hourglass_empty" : "save"}</span>
+                  {savingSeccao ? "A guardar..." : editandoSeccao ? "Atualizar" : "Criar Secção"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
