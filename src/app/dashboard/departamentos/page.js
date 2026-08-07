@@ -51,6 +51,14 @@ export default function DepartamentosPage() {
   const [confirmDeleteSeccao, setConfirmDeleteSeccao] = useState({ open: false, id: null, nome: "" });
   const [colaboradores, setColaboradores] = useState([]);
 
+  const [showMembrosModal, setShowMembrosModal] = useState(false);
+  const [seccaoMembros, setSeccaoMembros] = useState(null);
+  const [membros, setMembros] = useState([]);
+  const [loadingMembros, setLoadingMembros] = useState(false);
+  const [formMembro, setFormMembro] = useState({ colaborador_id: "", funcao: "Membro" });
+  const [savingMembro, setSavingMembro] = useState(false);
+  const [msgMembro, setMsgMembro] = useState(null);
+
   const carregar = async (page = 1) => {
     setLoading(true);
     try {
@@ -167,7 +175,7 @@ export default function DepartamentosPage() {
 
   const abrirNovaSeccao = () => {
     setEditandoSeccao(null);
-    setFormSeccao({ nome: "", codigo: "", descricao: "", responsavel_id: "", responsavel_nome: "", nivel: 1, activo: true });
+    setFormSeccao({ nome: "", codigo: "", descricao: "", responsavel_id: "", responsavel_nome: "", telefone: "", email: "", localizacao: "", nivel: 1, activo: true });
     setShowFormSeccao(true);
     setMsgSeccao(null);
   };
@@ -181,6 +189,9 @@ export default function DepartamentosPage() {
       descricao: s.descricao || "",
       responsavel_id: colResponsavel ? colResponsavel.id : "",
       responsavel_nome: s.responsavel_nome || "",
+      telefone: s.telefone || "",
+      email: s.email || "",
+      localizacao: s.localizacao || "",
       nivel: s.nivel || 1,
       activo: s.activo !== false,
     });
@@ -228,6 +239,60 @@ export default function DepartamentosPage() {
     var col = colaboradores.find(c => c.id === id);
     setFormSeccao({ ...formSeccao, responsavel_id: id, responsavel_nome: col ? col.nome_completo : "" });
   };
+
+  const carregarMembros = async (secId) => {
+    setLoadingMembros(true);
+    try {
+      const data = await api.get(`/api/seccoes/${secId}/membros`);
+      setMembros(data.dados || []);
+    } catch (e) {
+      setMsgMembro({ tipo: "erro", texto: e.message });
+    } finally {
+      setLoadingMembros(false);
+    }
+  };
+
+  const abrirMembros = async (s) => {
+    setSeccaoMembros(s);
+    setFormMembro({ colaborador_id: "", funcao: "Membro" });
+    setShowMembrosModal(true);
+    setMsgMembro(null);
+    await carregarMembros(s.id);
+  };
+
+  const handleMembroInput = (e) => {
+    setFormMembro({ ...formMembro, [e.target.name]: e.target.value });
+  };
+
+  const adicionarMembro = async (e) => {
+    e.preventDefault();
+    if (!formMembro.colaborador_id) {
+      setMsgMembro({ tipo: "erro", texto: "Selecione um colaborador" });
+      return;
+    }
+    setSavingMembro(true);
+    setMsgMembro(null);
+    try {
+      await api.post(`/api/seccoes/${seccaoMembros.id}/membros`, formMembro);
+      setFormMembro({ colaborador_id: "", funcao: "Membro" });
+      await carregarMembros(seccaoMembros.id);
+    } catch (e) {
+      setMsgMembro({ tipo: "erro", texto: e.message });
+    } finally {
+      setSavingMembro(false);
+    }
+  };
+
+  const removerMembro = async (m) => {
+    try {
+      await api.delete(`/api/seccoes/${seccaoMembros.id}/membros/${m.colaborador_id}`);
+      await carregarMembros(seccaoMembros.id);
+    } catch (e) {
+      setMsgMembro({ tipo: "erro", texto: e.message });
+    }
+  };
+
+  const membrosDisponiveis = colaboradores.filter(c => !membros.some(m => m.colaborador_id === c.id));
 
   const tipoLabel = (v) => (TIPOS_DEPT.find(t => t.value === v) || {}).label || v || "—";
 
@@ -815,6 +880,9 @@ export default function DepartamentosPage() {
                           </td>
                           <td className="px-5 py-3">
                             <div className="flex items-center justify-end">
+                              <button onClick={() => abrirMembros(s)} className="p-[3px] text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-all" title="Pessoas na secção">
+                                <span className="material-symbols-outlined text-[15px]">groups</span>
+                              </button>
                               <button onClick={() => abrirEditarSeccao(s)} className="p-[3px] text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-all" title="Editar">
                                 <span className="material-symbols-outlined text-[15px]">edit</span>
                               </button>
@@ -867,6 +935,18 @@ export default function DepartamentosPage() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Telefone</label>
+                  <input name="telefone" value={formSeccao.telefone || ""} onChange={handleSeccaoInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Email</label>
+                  <input name="email" type="email" value={formSeccao.email || ""} onChange={handleSeccaoInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Localização</label>
+                  <input name="localizacao" value={formSeccao.localizacao || ""} onChange={handleSeccaoInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Descrição</label>
                   <textarea name="descricao" value={formSeccao.descricao || ""} onChange={handleSeccaoInput} rows={3} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
@@ -880,6 +960,115 @@ export default function DepartamentosPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showMembrosModal && seccaoMembros && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowMembrosModal(false)} />
+          <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
+            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-on-surface tracking-tight">Pessoas na Secção</h3>
+                <p className="text-[13px] text-on-surface-variant/70">{seccaoMembros.nome}</p>
+              </div>
+              <button onClick={() => setShowMembrosModal(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {msgMembro && (
+                <div className={`p-3 rounded-lg text-[13px] font-medium flex items-center gap-2 ${msgMembro.tipo === "sucesso" ? "badge-success border border-success/10" : "badge-danger border border-error/10"}`}>
+                  <span className="material-symbols-outlined text-[18px]">{msgMembro.tipo === "sucesso" ? "check_circle" : "error"}</span>
+                  {msgMembro.texto}
+                  <button onClick={() => setMsgMembro(null)} className="ml-auto hover:opacity-60">
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                  </button>
+                </div>
+              )}
+
+              <form onSubmit={adicionarMembro} className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-grow space-y-1">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Colaborador</label>
+                  <select name="colaborador_id" value={formMembro.colaborador_id || ""} onChange={handleMembroInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    <option value="">Selecionar colaborador</option>
+                    {membrosDisponiveis.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome_completo}{c.numero_colaborador ? " (" + c.numero_colaborador + ")" : ""}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-full sm:w-44 space-y-1">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Função</label>
+                  <select name="funcao" value={formMembro.funcao || "Membro"} onChange={handleMembroInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    <option value="Responsavel">Responsável</option>
+                    <option value="Membro">Membro</option>
+                  </select>
+                </div>
+                <div className="flex items-end pb-0.5">
+                  <button type="submit" disabled={savingMembro} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
+                    <span className="material-symbols-outlined text-[18px]">{savingMembro ? "hourglass_empty" : "person_add"}</span>
+                    {savingMembro ? "A adicionar..." : "Adicionar"}
+                  </button>
+                </div>
+              </form>
+
+              <div className="overflow-x-auto border border-outline-variant/30 rounded-xl">
+                <table className="w-full text-left border-collapse data-grid-tight">
+                  <thead>
+                    <tr className="bg-background/50 border-b border-outline-variant/20">
+                      <th className="px-5 py-3 font-bold text-on-surface-variant/70 uppercase tracking-wider">Colaborador</th>
+                      <th className="px-4 py-3 font-bold text-on-surface-variant/70 uppercase tracking-wider">Função</th>
+                      <th className="px-5 py-3 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10">
+                    {loadingMembros ? (
+                      [1,2,3].map(i => (
+                        <tr key={i}>
+                          <td colSpan={3} className="px-5 py-4">
+                            <div className="animate-pulse h-8 bg-surface-container rounded-lg" />
+                          </td>
+                        </tr>
+                      ))
+                    ) : membros.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="px-5 py-10 text-center">
+                          <span className="material-symbols-outlined text-[40px] text-outline-variant/40 block mb-2">groups</span>
+                          <p className="text-on-surface-variant font-medium">Nenhuma pessoa atribuída</p>
+                          <p className="text-[13px] text-outline mt-1">Adicione responsáveis e membros desta secção</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      membros.map((m) => (
+                        <tr key={m.id} className="hover:bg-primary/[0.02] transition-colors group">
+                          <td className="px-5 py-3">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-on-surface">{(m.colaborador && m.colaborador.nome_completo) || "—"}</span>
+                              <span className="text-[12px] text-on-surface-variant/70">{(m.colaborador && m.colaborador.numero_colaborador) || ""}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${m.funcao === "Responsavel" ? "badge-success" : "badge-secondary"}`}>
+                              <span className="material-symbols-outlined text-[13px]">{m.funcao === "Responsavel" ? "badge" : "person"}</span>
+                              {m.funcao === "Responsavel" ? "Responsável" : "Membro"}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="flex items-center justify-end">
+                              <button onClick={() => removerMembro(m)} className="p-[3px] text-on-surface-variant hover:text-error hover:bg-error/10 rounded transition-all" title="Remover">
+                                <span className="material-symbols-outlined text-[15px]">person_remove</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       )}
