@@ -6,7 +6,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 var imageUrl = function (path) {
   if (!path) return "";
@@ -215,7 +215,7 @@ export default function DepartamentosPage() {
 
   const tipoLabel = (v) => (TIPOS_DEPT.find(t => t.value === v) || {}).label || v || "—";
 
-  const gerarPDF = () => {
+  const gerarPDF = async () => {
     var d = deptView;
     if (!d) return;
     var doc = new jsPDF();
@@ -224,6 +224,14 @@ export default function DepartamentosPage() {
 
     var logoImg = null;
     var logoUrl = org && org.logo_url ? imageUrl(org.logo_url) : "";
+
+    var seccoes = [];
+    try {
+      var resSec = await api.get(`/api/seccoes?departamento_id=${d.id}&limit=100`);
+      seccoes = resSec.dados || [];
+    } catch (e) {
+      seccoes = [];
+    }
 
     var desenhar = function () {
       var y = 20;
@@ -297,6 +305,37 @@ export default function DepartamentosPage() {
         y += lines.length * 5 + 4;
         if (y > ph - 20) { doc.addPage(); y = 20; }
       });
+
+      if (seccoes.length > 0) {
+        if (y > ph - 45) { doc.addPage(); y = 20; }
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(15, y, pw - 15, y);
+        y += 8;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+        doc.text("SECÇÕES DO DEPARTAMENTO", 15, y);
+        y += 3;
+
+        autoTable(doc, {
+          startY: y + 3,
+          margin: { left: 15, right: 15, bottom: 18 },
+          head: [["Nome", "Nível", "Responsável", "Estado"]],
+          body: seccoes.map(function(s) {
+            return [s.nome || "—", s.nivel || 1, s.responsavel_nome || "—", s.activo ? "Ativa" : "Inativa"];
+          }),
+          styles: { fontSize: 8, cellPadding: 2.5, lineWidth: 0 },
+          headStyles: { fillColor: [60, 60, 60], textColor: [255, 255, 255], fontStyle: "bold", lineWidth: 0 },
+          alternateRowStyles: { fillColor: [245, 247, 252] },
+          columnStyles: {
+            0: { cellWidth: 80 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 60 },
+            3: { cellWidth: 30 },
+          },
+        });
+      }
 
       var fY = ph - 12;
       doc.setFont("helvetica", "normal");
