@@ -57,7 +57,7 @@ export default function DepartamentosPage() {
   const [seccaoMembros, setSeccaoMembros] = useState(null);
   const [membros, setMembros] = useState([]);
   const [loadingMembros, setLoadingMembros] = useState(false);
-  const [formMembro, setFormMembro] = useState({ colaborador_id: "", funcao: "Membro" });
+  const [formMembro, setFormMembro] = useState({ colaborador_id: "", funcao: "" });
   const [savingMembro, setSavingMembro] = useState(false);
   const [msgMembro, setMsgMembro] = useState(null);
 
@@ -276,7 +276,7 @@ export default function DepartamentosPage() {
 
   const abrirMembros = async (s) => {
     setSeccaoMembros(s);
-    setFormMembro({ colaborador_id: "", funcao: "Membro" });
+    setFormMembro({ colaborador_id: "", funcao: "" });
     setShowMembrosModal(true);
     setMsgMembro(null);
     await carregarMembros(s.id);
@@ -296,7 +296,7 @@ export default function DepartamentosPage() {
     setMsgMembro(null);
     try {
       await api.post(`/api/seccoes/${seccaoMembros.id}/membros`, formMembro);
-      setFormMembro({ colaborador_id: "", funcao: "Membro" });
+      setFormMembro({ colaborador_id: "", funcao: "" });
       await carregarMembros(seccaoMembros.id);
     } catch (e) {
       setMsgMembro({ tipo: "erro", texto: e.message });
@@ -473,7 +473,7 @@ export default function DepartamentosPage() {
             var lista = membrosMap[s.id] || [];
             if (lista.length === 0) return;
             var pessoas = lista.map(function(m) {
-              return (m.funcao === "Responsavel" ? "[Resp.] " : "") + ((m.colaborador && m.colaborador.nome_completo) || "—");
+              return "[" + (m.funcao || "Membro") + "] " + ((m.colaborador && m.colaborador.nome_completo) || "—");
             }).join("; ");
             doc.setFont("helvetica", "bold");
             doc.setTextColor(40, 40, 40);
@@ -888,8 +888,8 @@ export default function DepartamentosPage() {
                                 {pessoas.map(function(m, i) {
                                   var nome = (m.colaborador && m.colaborador.nome_completo) || "—";
                                   return (
-                                    <span key={i} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${m.funcao === "Responsavel" ? "bg-primary/10 text-primary" : "bg-background/60 text-on-surface-variant border border-outline-variant/20"}`}>
-                                      {m.funcao === "Responsavel" && <span className="material-symbols-outlined text-[12px]">star</span>}
+                                    <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-background/60 text-on-surface-variant border border-outline-variant/20">
+                                      {m.funcao && <span className="text-[10px] uppercase font-bold text-primary">{m.funcao}:</span>}
                                       {nome}
                                     </span>
                                   );
@@ -1124,10 +1124,14 @@ export default function DepartamentosPage() {
                 </div>
                 <div className="w-full sm:w-44 space-y-1">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Função</label>
-                  <select name="funcao" value={formMembro.funcao || "Membro"} onChange={handleMembroInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
-                    <option value="Responsavel">Responsável</option>
-                    <option value="Membro">Membro</option>
-                  </select>
+                  <input
+                    type="text"
+                    name="funcao"
+                    value={formMembro.funcao || ""}
+                    onChange={handleMembroInput}
+                    placeholder="Ex: Responsável, Operador, Técnico..."
+                    className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20"
+                  />
                 </div>
                 <div className="flex items-end pb-0.5">
                   <button type="submit" disabled={savingMembro} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
@@ -1173,9 +1177,9 @@ export default function DepartamentosPage() {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${m.funcao === "Responsavel" ? "badge-success" : "badge-secondary"}`}>
-                              <span className="material-symbols-outlined text-[13px]">{m.funcao === "Responsavel" ? "badge" : "person"}</span>
-                              {m.funcao === "Responsavel" ? "Responsável" : "Membro"}
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider badge-secondary">
+                              <span className="material-symbols-outlined text-[13px]">person</span>
+                              {m.funcao || "Membro"}
                             </span>
                           </td>
                           <td className="px-5 py-3">
