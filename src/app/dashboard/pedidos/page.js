@@ -370,6 +370,12 @@ export default function PedidosPage() {
 
               {pedidoDetalhe.tipo === "ferias" && dadosDetalhe.data_inicio && (
                 <div className="grid grid-cols-2 gap-3">
+                  {dadosDetalhe.tipo_ferias && (
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Tipo</p>
+                      <p className="text-[13px] text-on-surface-variant mt-0.5">{dadosDetalhe.tipo_ferias}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-[11px] text-outline uppercase tracking-wide">Data Início</p>
                     <p className="text-[13px] text-on-surface-variant mt-0.5">{formatDate(dadosDetalhe.data_inicio)}</p>
@@ -378,6 +384,12 @@ export default function PedidosPage() {
                     <p className="text-[11px] text-outline uppercase tracking-wide">Data Fim</p>
                     <p className="text-[13px] text-on-surface-variant mt-0.5">{formatDate(dadosDetalhe.data_fim)}</p>
                   </div>
+                  {dadosDetalhe.dias && (
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Total Dias</p>
+                      <p className="text-[13px] text-on-surface-variant mt-0.5">{dadosDetalhe.dias} dia(s)</p>
+                    </div>
+                  )}
                 </div>
               )}
 
