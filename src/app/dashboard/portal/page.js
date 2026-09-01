@@ -5,12 +5,15 @@ import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { formatDate } from "@/lib/helpers";
 
-var TIPO_LABELS = { ferias: "Férias", adiantamento: "Adiantamento", justificacao: "Justificação", aumento: "Aumento", outro: "Outro" };
-var TIPOS_FERIAS = [
-  { value: "Anuais", label: "Férias Anuais" },
-  { value: "Compensacao", label: "Férias de Compensação" },
-  { value: "Antecipadas", label: "Férias Antecipadas" },
-  { value: "Especiais", label: "Férias Especiais" },
+var TIPO_LABELS = { ferias: "Férias", adiantamento: "Adiantamento", justificacao: "Justificação", aumento: "Aumento", dispensa: "Dispensa", licenca: "Licença", outro: "Outro" };
+var TIPOS_SOLICITACAO = [
+  { value: "ferias", label: "Férias" },
+  { value: "dispensa", label: "Dispensa" },
+  { value: "licenca", label: "Licença" },
+  { value: "adiantamento", label: "Adiantamento" },
+  { value: "aumento", label: "Aumento Salarial" },
+  { value: "justificacao", label: "Justificação" },
+  { value: "outro", label: "Outro" },
 ];
 function diasEntre(inicio, fim) {
   if (!inicio || !fim) return 0;
@@ -80,18 +83,33 @@ function estadoClasses(estado) {
   return "bg-surface-container text-on-surface-variant border border-outline-variant";
 }
 
+function presencaLabel(estado) {
+  if (estado === "Presente") return "Presente";
+  if (estado === "Ausente") return "Ausente";
+  if (estado === "Atrasado") return "Atraso";
+  if (estado === "Licenca") return "Licença";
+  if (estado === "Ferias") return "Férias";
+  if (estado === "Fim_semana") return "Fim de semana";
+  return estado;
+}
+
+function presencaClasses(estado) {
+  if (estado === "Presente") return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+  if (estado === "Ausente") return "bg-red-50 text-red-700 border border-red-200";
+  if (estado === "Atrasado") return "bg-amber-50 text-amber-700 border border-amber-200";
+  return "bg-surface-container text-on-surface-variant border border-outline-variant";
+}
+
 export default function PortalPage() {
   var auth = useAuth();
   var utilizador = auth ? auth.utilizador : null;
 
   var [portalData, setPortalData] = useState(null);
   var [loading, setLoading] = useState(true);
-  var [showFeriasModal, setShowFeriasModal] = useState(false);
-  var [showAdiantamentoModal, setShowAdiantamentoModal] = useState(false);
+  var [showSolicitacaoModal, setShowSolicitacaoModal] = useState(false);
   var [showPasswordModal, setShowPasswordModal] = useState(false);
   var [justificacaoForm, setJustificacaoForm] = useState({ falta: null, tipo: "Atestado_Medico", ficheiro: null });
-  var [feriasForm, setFeriasForm] = useState({ titulo: "", descricao: "", data_inicio: "", data_fim: "", tipo_ferias: "Anuais" });
-  var [adiantamentoForm, setAdiantamentoForm] = useState({ titulo: "", descricao: "", valor: "" });
+  var [solicitacaoForm, setSolicitacaoForm] = useState({ tipo: "dispensa", titulo: "", descricao: "", data_inicio: "", data_fim: "", numero_dias: "", ficheiro: null });
   var [passwordForm, setPasswordForm] = useState({ atual: "", nova: "", confirmar: "" });
   var [passwordMsg, setPasswordMsg] = useState("");
   var [submitting, setSubmitting] = useState(false);
@@ -122,41 +140,31 @@ export default function PortalPage() {
     e.preventDefault();
     setUploadDrag(false);
     var files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
-    if (files && files.length > 0) setJustificacaoForm(Object.assign({}, justificacaoForm, { ficheiro: files[0] }));
+    if (files && files.length > 0) setSolicitacaoForm(Object.assign({}, solicitacaoForm, { ficheiro: files[0] }));
   };
 
   var handleFileSelect = function (e) {
-    if (e.target.files && e.target.files.length > 0) setJustificacaoForm(Object.assign({}, justificacaoForm, { ficheiro: e.target.files[0] }));
+    if (e.target.files && e.target.files.length > 0) setSolicitacaoForm(Object.assign({}, solicitacaoForm, { ficheiro: e.target.files[0] }));
   };
 
-  var handleSubmitFerias = function (e) {
+  var handleSubmitSolicitacao = function (e) {
     e.preventDefault();
+    if (!solicitacaoForm.tipo || !solicitacaoForm.titulo) return;
     setSubmitting(true);
-    var dias = diasEntre(feriasForm.data_inicio, feriasForm.data_fim);
-    api.post("/api/pedidos", {
-      tipo: "ferias",
-      titulo: "Pedido de Férias " + (feriasForm.tipo_ferias || "Anuais"),
-      descricao: feriasForm.descricao,
-      dados: { data_inicio: feriasForm.data_inicio, data_fim: feriasForm.data_fim, tipo_ferias: feriasForm.tipo_ferias, dias: dias },
-    }).then(function () {
-      setShowFeriasModal(false);
-      setFeriasForm({ titulo: "", descricao: "", data_inicio: "", data_fim: "", tipo_ferias: "Anuais" });
-      return api.get("/api/portal/stats");
-    }).then(function (res) { if (res && res.dados) setPortalData(res.dados); })
-      .catch(function () {}).finally(function () { setSubmitting(false); });
-  };
-
-  var handleSubmitAdiantamento = function (e) {
-    e.preventDefault();
-    setSubmitting(true);
-    api.post("/api/pedidos", {
-      tipo: "adiantamento",
-      titulo: adiantamentoForm.titulo || "Pedido de Adiantamento",
-      descricao: adiantamentoForm.descricao,
-      dados: { valor: adiantamentoForm.valor },
-    }).then(function () {
-      setShowAdiantamentoModal(false);
-      setAdiantamentoForm({ titulo: "", descricao: "", valor: "" });
+    var formData = new FormData();
+    formData.append("tipo", solicitacaoForm.tipo);
+    formData.append("titulo", solicitacaoForm.titulo);
+    formData.append("descricao", solicitacaoForm.descricao);
+    var dados = {
+      data_inicio: solicitacaoForm.data_inicio,
+      data_fim: solicitacaoForm.data_fim,
+      numero_dias: solicitacaoForm.numero_dias,
+    };
+    formData.append("dados", JSON.stringify(dados));
+    if (solicitacaoForm.ficheiro) formData.append("ficheiro", solicitacaoForm.ficheiro);
+    api.upload("/api/pedidos", formData).then(function () {
+      setShowSolicitacaoModal(false);
+      setSolicitacaoForm({ tipo: "dispensa", titulo: "", descricao: "", data_inicio: "", data_fim: "", numero_dias: "", ficheiro: null });
       return api.get("/api/portal/stats");
     }).then(function (res) { if (res && res.dados) setPortalData(res.dados); })
       .catch(function () {}).finally(function () { setSubmitting(false); });
@@ -195,6 +203,8 @@ export default function PortalPage() {
   var avaliacoes = portalData ? portalData.avaliacoes : { pontuacao: 0, ciclos: [] };
   var pedidosRecentes = portalData ? (portalData.pedidos_recentes || []) : [];
   var faltas = portalData ? (portalData.faltas || []) : [];
+  var presencas = portalData ? (portalData.presencas || []) : [];
+  var descontoEstimado = portalData ? (portalData.desconto_estimado || { valor: 0, faltas_mes: 0, atrasos_mes: 0, horas_descontar: 0 }) : { valor: 0, faltas_mes: 0, atrasos_mes: 0, horas_descontar: 0 };
   var faltasNaoJustificadas = faltas.filter(function (f) { return !f.justificado; });
 
   return (
@@ -207,7 +217,7 @@ export default function PortalPage() {
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[14px] font-semibold text-on-surface">Férias</h2>
-          <button onClick={function () { setShowFeriasModal(true); }} className="text-[12px] font-medium text-primary hover:underline">+ Solicitar</button>
+          <button onClick={function () { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { tipo: "ferias", titulo: "Pedido de Férias" })); setShowSolicitacaoModal(true); }} className="text-[12px] font-medium text-primary hover:underline">+ Solicitar</button>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-3 gap-px bg-outline-variant rounded-lg overflow-hidden mb-4">
           <div className="bg-surface-card p-4 text-center">
@@ -229,10 +239,35 @@ export default function PortalPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
-          <h2 className="text-[14px] font-semibold text-on-surface mb-3">Adiantamento Salarial</h2>
-          <button onClick={function () { setShowAdiantamentoModal(true); }} className="w-full py-2.5 text-[13px] font-medium text-on-surface border border-outline-variant rounded-lg hover:bg-surface-container transition-colors">
-            Pedir adiantamento
+          <h2 className="text-[14px] font-semibold text-on-surface mb-3">Solicitações</h2>
+          <p className="text-[12px] text-outline mb-4">Peça férias, dispensas, licenças ou qualquer outra coisa com um documento de comprovativo.</p>
+          <button onClick={function () { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { tipo: "dispensa" })); setShowSolicitacaoModal(true); }} className="w-full py-2.5 text-[13px] font-medium text-on-surface border border-outline-variant rounded-lg hover:bg-surface-container transition-colors">
+            Criar solicitação
           </button>
+        </section>
+
+        <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+          <h2 className="text-[14px] font-semibold text-on-surface mb-3">Desconto por Faltas</h2>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-surface-container rounded-lg p-3 text-center">
+              <p className="text-[16px] font-bold text-red-600">{descontoEstimado.faltas_mes || 0}</p>
+              <p className="text-[10px] text-outline mt-0.5">Faltas</p>
+            </div>
+            <div className="bg-surface-container rounded-lg p-3 text-center">
+              <p className="text-[16px] font-bold text-amber-600">{descontoEstimado.atrasos_mes || 0}</p>
+              <p className="text-[10px] text-outline mt-0.5">Atrasos</p>
+            </div>
+            <div className="bg-surface-container rounded-lg p-3 text-center">
+              <p className="text-[16px] font-bold text-primary">{descontoEstimado.horas_descontar || 0}h</p>
+              <p className="text-[10px] text-outline mt-0.5">a descontar</p>
+            </div>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+            <p className="text-[11px] text-red-700">Desconto estimado este mês</p>
+            <p className={"text-[20px] font-bold " + ((descontoEstimado.valor || 0) > 0 ? "text-red-700" : "text-emerald-600")}>
+              {(descontoEstimado.valor || 0).toLocaleString("pt-PT", { style: "currency", currency: "AOA" })}
+            </p>
+          </div>
         </section>
 
         <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
@@ -330,6 +365,68 @@ export default function PortalPage() {
                           Justificar
                         </button>
                       )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+        <h2 className="text-[14px] font-semibold text-on-surface mb-3">Presenças</h2>
+        {presencas.length === 0 ? (
+          <p className="text-[12px] text-outline">Sem registos de presença</p>
+        ) : (
+          <div className="space-y-2 sm:space-y-0">
+            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-hidden">
+              <table className="w-full text-left">
+                <thead className="bg-surface-container border-b border-outline-variant">
+                  <tr>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Data</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Entrada</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Saída</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Horas</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/30">
+                  {presencas.map(function (p, i) {
+                    return (
+                      <tr key={p.id || i} className="hover:bg-surface-container/50 transition-colors">
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{formatDate(p.data)}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface">{p.hora_entrada ? p.hora_entrada.slice(0, 5) : "—"}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface">{p.hora_saida ? p.hora_saida.slice(0, 5) : "—"}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface font-medium">{p.horas_trabalhadas ? Number(p.horas_trabalhadas).toFixed(1) : "—"}h</td>
+                        <td className="px-4 py-2.5"><span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + presencaClasses(p.estado)}>{presencaLabel(p.estado)}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="sm:hidden space-y-2">
+              {presencas.map(function (p, i) {
+                return (
+                  <div key={p.id || i} className="border border-outline-variant rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[12px] font-medium text-on-surface">{formatDate(p.data)}</span>
+                      <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + presencaClasses(p.estado)}>{presencaLabel(p.estado)}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-[10px] text-outline uppercase">Entrada</p>
+                        <p className="text-[13px] font-semibold text-on-surface">{p.hora_entrada ? p.hora_entrada.slice(0, 5) : "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-outline uppercase">Saída</p>
+                        <p className="text-[13px] font-semibold text-on-surface">{p.hora_saida ? p.hora_saida.slice(0, 5) : "—"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-outline uppercase">Horas</p>
+                        <p className="text-[13px] font-semibold text-on-surface">{p.horas_trabalhadas ? Number(p.horas_trabalhadas).toFixed(1) : "—"}</p>
+                      </div>
                     </div>
                   </div>
                 );
@@ -443,62 +540,70 @@ export default function PortalPage() {
         </button>
       </section>
 
-      {showFeriasModal && (
+      {showSolicitacaoModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/30" onClick={function () { setShowFeriasModal(false); }} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-sm p-5">
+          <div className="fixed inset-0 bg-black/30" onClick={function () { setShowSolicitacaoModal(false); }} />
+          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-on-surface">Solicitar Férias</h3>
-              <button onClick={function () { setShowFeriasModal(false); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
+              <h3 className="text-[15px] font-semibold text-on-surface">Nova Solicitação</h3>
+              <button onClick={function () { setShowSolicitacaoModal(false); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
             </div>
-            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
-              <p className="text-[12px] text-on-surface-variant">Dias disponíveis: <span className="font-bold text-primary">{ferias.disponiveis}</span></p>
-            </div>
-            <form onSubmit={handleSubmitFerias} className="space-y-3">
+            {solicitacaoForm.tipo === "ferias" && (
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
+                <p className="text-[12px] text-on-surface-variant">Dias disponíveis: <span className="font-bold text-primary">{ferias.disponiveis}</span></p>
+              </div>
+            )}
+            <form onSubmit={handleSubmitSolicitacao} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Tipo de Férias</label>
-                <select value={feriasForm.tipo_ferias} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { tipo_ferias: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
-                  {TIPOS_FERIAS.map(function (t) { return <option key={t.value} value={t.value}>{t.label}</option>; })}
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Tipo</label>
+                <select value={solicitacaoForm.tipo} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { tipo: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
+                  {TIPOS_SOLICITACAO.map(function (t) { return <option key={t.value} value={t.value}>{t.label}</option>; })}
                 </select>
               </div>
-              <textarea value={feriasForm.descricao} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { descricao: e.target.value })); }} rows={2} placeholder="Motivo (opcional)" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
+              <div>
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Título</label>
+                <input type="text" value={solicitacaoForm.titulo} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { titulo: e.target.value })); }} placeholder="Ex.: Dispensa por motivos pessoais" required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Conteúdo</label>
+                <textarea value={solicitacaoForm.descricao} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { descricao: e.target.value })); }} rows={2} placeholder="Descreva o motivo da solicitação" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Início</label>
-                  <input type="date" value={feriasForm.data_inicio} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { data_inicio: e.target.value })); }} required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                  <input type="date" value={solicitacaoForm.data_inicio} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { data_inicio: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
                 </div>
                 <div>
                   <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Fim</label>
-                  <input type="date" value={feriasForm.data_fim} onChange={function (e) { setFeriasForm(Object.assign({}, feriasForm, { data_fim: e.target.value })); }} required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                  <input type="date" value={solicitacaoForm.data_fim} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { data_fim: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
                 </div>
               </div>
-              {feriasForm.data_inicio && feriasForm.data_fim && (
-                <p className="text-[12px] text-on-surface-variant">Total: <span className="font-bold text-primary">{diasEntre(feriasForm.data_inicio, feriasForm.data_fim)} dia(s)</span></p>
-              )}
-              <div className="flex gap-2 pt-1">
-                <button type="button" onClick={function () { setShowFeriasModal(false); }} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
-                <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-40">{submitting ? "..." : "Enviar"}</button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Nº de dias</label>
+                  <input type="number" min="1" value={solicitacaoForm.numero_dias} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { numero_dias: e.target.value })); }} placeholder="Opcional" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                </div>
+                <div className="hidden sm:block" />
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showAdiantamentoModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/30" onClick={function () { setShowAdiantamentoModal(false); }} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-sm p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[15px] font-semibold text-on-surface">Pedir Adiantamento</h3>
-              <button onClick={function () { setShowAdiantamentoModal(false); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
-            </div>
-            <form onSubmit={handleSubmitAdiantamento} className="space-y-3">
-              <input type="text" value={adiantamentoForm.titulo} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { titulo: e.target.value })); }} placeholder="Título" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-              <input type="number" value={adiantamentoForm.valor} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { valor: e.target.value })); }} placeholder="Valor (AOA)" required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-              <textarea value={adiantamentoForm.descricao} onChange={function (e) { setAdiantamentoForm(Object.assign({}, adiantamentoForm, { descricao: e.target.value })); }} rows={2} placeholder="Motivo (opcional)" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
+              {solicitacaoForm.data_inicio && solicitacaoForm.data_fim && (
+                <p className="text-[12px] text-on-surface-variant">Total: <span className="font-bold text-primary">{diasEntre(solicitacaoForm.data_inicio, solicitacaoForm.data_fim)} dia(s)</span></p>
+              )}
+              <div>
+                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Comprovativo (opcional)</label>
+                <div
+                  className={"border border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors text-[12px] " + (uploadDrag ? "border-primary bg-primary/5 text-primary" : "border-outline-variant text-outline hover:border-outline")}
+                  onDragOver={function (e) { e.preventDefault(); setUploadDrag(true); }}
+                  onDragLeave={function () { setUploadDrag(false); }}
+                  onDrop={handleFileDrop}
+                  onClick={function () { if (fileInputRef.current) fileInputRef.current.click(); }}
+                >
+                  {solicitacaoForm.ficheiro ? solicitacaoForm.ficheiro.name : "Anexar documento (PDF, imagem)"}
+                  <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileSelect} />
+                </div>
+              </div>
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={function () { setShowAdiantamentoModal(false); }} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
-                <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-on-surface text-on-primary hover:bg-on-surface/80">{submitting ? "..." : "Enviar"}</button>
+                <button type="button" onClick={function () { setShowSolicitacaoModal(false); }} className="flex-1 py-2 rounded-lg border border-outline-variant text-[13px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors">Cancelar</button>
+                <button type="submit" disabled={submitting} className="flex-1 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-40">{submitting ? "A enviar..." : "Enviar Solicitação"}</button>
               </div>
             </form>
           </div>
