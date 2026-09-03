@@ -263,7 +263,7 @@ export default function PortalPage() {
             </div>
           </div>
           <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-            <p className="text-[11px] text-red-700">Desconto estimado este mês</p>
+            <p className="text-[11px] text-red-700">Desconto estimado por faltas não justificadas</p>
             <p className={"text-[20px] font-bold " + ((descontoEstimado.valor || 0) > 0 ? "text-red-700" : "text-emerald-600")}>
               {(descontoEstimado.valor || 0).toLocaleString("pt-PT", { style: "currency", currency: "AOA" })}
             </p>
