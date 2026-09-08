@@ -110,7 +110,14 @@ var api = {
     }
 
     var response = await fetch(url, { headers: headers });
-    if (!response.ok) throw new Error("Erro ao gerar PDF");
+    if (!response.ok) {
+      var errMsg = "Erro ao gerar PDF";
+      try {
+        var erroJson = await response.json();
+        if (erroJson && erroJson.error) errMsg = erroJson.error;
+      } catch (e) { /* resposta nao JSON */ }
+      throw new Error(errMsg);
+    }
 
     var blob = await response.blob();
     var blobUrl = window.URL.createObjectURL(blob);

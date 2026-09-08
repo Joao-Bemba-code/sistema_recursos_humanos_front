@@ -11,7 +11,8 @@ export default function Home() {
   useEffect(() => {
     if (auth && !auth.loading) {
       if (auth.isAuthenticated) {
-        router.push("/dashboard");
+        var isColaborador = auth.utilizador && auth.utilizador.perfil && auth.utilizador.perfil.nome === "Colaborador";
+        router.push(isColaborador ? "/dashboard/portal" : "/dashboard");
       } else {
         router.push("/login");
       }

@@ -15,8 +15,9 @@ export default function LoginForm() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (auth && auth.isAuthenticated) {
-      router.push("/dashboard");
+    if (auth && auth.isAuthenticated && auth.utilizador && !loading) {
+      const perfilNome = auth.utilizador.perfil ? auth.utilizador.perfil.nome : "";
+      router.replace(perfilNome === "Colaborador" ? "/dashboard/portal" : "/dashboard");
     }
   }, [auth, router]);
 

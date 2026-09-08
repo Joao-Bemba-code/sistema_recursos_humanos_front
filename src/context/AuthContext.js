@@ -48,12 +48,30 @@ export function AuthProvider({ children }) {
   }, []);
 
   const hasPermission = useCallback((modulo, operacao) => {
-    if (!utilizador || !utilizador.perfil) return false;
-    if (utilizador.perfil.nivel >= 4) return true;
-    const permissoes = utilizador.perfil.permissoes || {};
-    if (permissoes._all && permissoes._all.indexOf(operacao) !== -1) return true;
-    if (permissoes[modulo] && permissoes[modulo].indexOf(operacao) !== -1) return true;
+    if (!utilizador) return false;
+    const perfis = Array.isArray(utilizador.perfis) && utilizador.perfis.length > 0
+      ? utilizador.perfis
+      : (utilizador.perfil ? [utilizador.perfil] : []);
+
+    for (const perfil of perfis) {
+      if (!perfil) continue;
+      if (perfil.nivel >= 4) return true;
+      let permissoes = perfil.permissoes || {};
+      if (typeof permissoes === "string") {
+        try { permissoes = JSON.parse(permissoes); } catch (e) { permissoes = {}; }
+      }
+      if (permissoes._all && permissoes._all.indexOf(operacao) !== -1) return true;
+      if (permissoes[modulo] && permissoes[modulo].indexOf(operacao) !== -1) return true;
+    }
     return false;
+  }, [utilizador]);
+
+  const isAdmin = useCallback(() => {
+    if (!utilizador) return false;
+    const perfis = Array.isArray(utilizador.perfis) && utilizador.perfis.length > 0
+      ? utilizador.perfis
+      : (utilizador.perfil ? [utilizador.perfil] : []);
+    return perfis.some((p) => p && p.nivel >= 4);
   }, [utilizador]);
 
   const value = {
@@ -64,6 +82,7 @@ export function AuthProvider({ children }) {
     logout,
     updateUser,
     hasPermission,
+    isAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

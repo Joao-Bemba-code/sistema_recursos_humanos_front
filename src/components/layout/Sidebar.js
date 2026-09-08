@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "@/lib/constants";
+import { useAuth } from "@/context/AuthContext";
 
 const icons = {
+  person: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>,
   dashboard: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>,
   group: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>,
   description: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>,
@@ -22,6 +24,15 @@ const icons = {
 
 export default function Sidebar({ collapsed, onToggle }) {
   const pathname = usePathname();
+  const auth = useAuth();
+
+  const gruposVisiveis = NAV_ITEMS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => {
+      if (!item.modulo) return true;
+      return auth.hasPermission(item.modulo, "read");
+    }),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <aside className={`fixed left-0 top-0 h-full z-40 bg-surface-card border-r border-outline-variant transition-all duration-300 ${collapsed ? "w-[68px]" : "w-60"}`}>
@@ -40,7 +51,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       </div>
 
       <nav className="mt-3 px-2.5 space-y-5 overflow-y-auto h-[calc(100%-4rem)] pb-4">
-        {NAV_ITEMS.map((group, gIdx) => (
+        {gruposVisiveis.map((group, gIdx) => (
           <div key={gIdx}>
             {!collapsed && (
               <p className="px-2.5 mb-1.5 text-[10px] font-semibold text-outline uppercase tracking-widest">

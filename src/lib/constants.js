@@ -4,44 +4,47 @@ export const NAV_ITEMS = [
   {
     titulo: "Principal",
     items: [
-      { label: "Painel", href: "/dashboard", icon: "dashboard" },
+      { label: "Painel", href: "/dashboard", icon: "dashboard", modulo: null },
+      { label: "Portal", href: "/dashboard/portal", icon: "person", modulo: "portal" },
     ],
   },
   {
     titulo: "Gestão de Pessoas",
     items: [
-      { label: "Colaboradores", href: "/dashboard/colaboradores", icon: "group" },
-      { label: "Contratos", href: "/dashboard/contratos", icon: "description" },
-      { label: "Departamentos", href: "/dashboard/departamentos", icon: "apartment" },
+      { label: "Colaboradores", href: "/dashboard/colaboradores", icon: "group", modulo: "colaboradores" },
+      { label: "Contratos", href: "/dashboard/contratos", icon: "description", modulo: "contratos" },
+      { label: "Departamentos", href: "/dashboard/departamentos", icon: "apartment", modulo: "departamentos" },
+      { label: "Advertências", href: "/dashboard/advertencias", icon: "warning", modulo: "advertencias" },
     ],
   },
   {
     titulo: "Tempo e Presença",
     items: [
-      { label: "Assiduidade", href: "/dashboard/assiduidade", icon: "schedule" },
-      { label: "Faltas e Atrasos", href: "/dashboard/faltas", icon: "event_busy" },
-      { label: "Férias", href: "/dashboard/ferias", icon: "calendar_month" },
-      { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment" },
+      { label: "Assiduidade", href: "/dashboard/assiduidade", icon: "schedule", modulo: "assiduidade" },
+      { label: "Faltas e Atrasos", href: "/dashboard/faltas", icon: "event_busy", modulo: "faltas" },
+      { label: "Férias", href: "/dashboard/ferias", icon: "calendar_month", modulo: "ferias" },
+      { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment", modulo: "pedidos" },
     ],
   },
   {
     titulo: "Desenvolvimento",
     items: [
-      { label: "Avaliação", href: "/dashboard/avaliacao", icon: "star" },
-      { label: "Formação", href: "/dashboard/formacao", icon: "school" },
+      { label: "Avaliação", href: "/dashboard/avaliacao", icon: "star", modulo: "avaliacao" },
+      { label: "Formação", href: "/dashboard/formacao", icon: "school", modulo: "formacao" },
     ],
   },
   {
     titulo: "Financeiro",
     items: [
-      { label: "Folha Salarial", href: "/dashboard/folha-salarial", icon: "paid" },
+      { label: "Folha Salarial", href: "/dashboard/folha-salarial", icon: "paid", modulo: "folha_salarial" },
     ],
   },
   {
     titulo: "Sistema",
     items: [
-      { label: "Relatórios", href: "/dashboard/relatorios", icon: "bar_chart" },
-      { label: "Configurações", href: "/dashboard/configuracoes", icon: "settings" },
+      { label: "Utilizadores", href: "/dashboard/utilizadores", icon: "manage_accounts", modulo: "utilizadores" },
+      { label: "Relatórios", href: "/dashboard/relatorios", icon: "bar_chart", modulo: "relatorios" },
+      { label: "Configurações", href: "/dashboard/configuracoes", icon: "settings", modulo: "configuracoes" },
     ],
   },
 ];

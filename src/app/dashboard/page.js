@@ -10,25 +10,21 @@ import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 
 var ALL_MODULES = [
-  { label: "Colaboradores", href: "/dashboard/colaboradores", icon: "badge" },
-  { label: "Contratos", href: "/dashboard/contratos", icon: "description" },
-  { label: "Departamentos", href: "/dashboard/departamentos", icon: "corporate_fare" },
-  { label: "Assiduidade", href: "/dashboard/assiduidade", icon: "timer" },
-  { label: "Faltas e Atrasos", href: "/dashboard/faltas", icon: "event_busy" },
-  { label: "Férias", href: "/dashboard/ferias", icon: "beach_access" },
-  { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment" },
-  { label: "Avaliação", href: "/dashboard/avaliacao", icon: "query_stats" },
-  { label: "Formação", href: "/dashboard/formacao", icon: "school" },
-  { label: "Folha Salarial", href: "/dashboard/folha-salarial", icon: "payments" },
-  { label: "Relatórios", href: "/dashboard/relatorios", icon: "analytics" },
-  { label: "Configurações", href: "/dashboard/configuracoes", icon: "settings" },
-];
-
-var statsConfig = [
-  { label: "Total de Colaboradores", icon: "groups_3", borderColor: "stat-card-primary", trendLabel: "ATIVO" },
-  { label: "Contratos Ativos", icon: "rule", borderColor: "stat-card-success", trendLabel: "ATIVOS" },
-  { label: "Departamentos", icon: "corporate_fare", borderColor: "stat-card-secondary", trendLabel: "ATIVOS" },
-  { label: "Férias Pendentes", icon: "beach_access", borderColor: "stat-card-warning", trendLabel: "PENDENTES" },
+  { label: "Portal", href: "/dashboard/portal", icon: "person", modulo: "portal" },
+  { label: "Colaboradores", href: "/dashboard/colaboradores", icon: "badge", modulo: "colaboradores" },
+  { label: "Contratos", href: "/dashboard/contratos", icon: "description", modulo: "contratos" },
+  { label: "Departamentos", href: "/dashboard/departamentos", icon: "corporate_fare", modulo: "departamentos" },
+  { label: "Assiduidade", href: "/dashboard/assiduidade", icon: "timer", modulo: "assiduidade" },
+  { label: "Faltas e Atrasos", href: "/dashboard/faltas", icon: "event_busy", modulo: "faltas" },
+  { label: "Advertências", href: "/dashboard/advertencias", icon: "warning", modulo: "advertencias" },
+  { label: "Férias", href: "/dashboard/ferias", icon: "beach_access", modulo: "ferias" },
+  { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment", modulo: "pedidos" },
+  { label: "Avaliação", href: "/dashboard/avaliacao", icon: "query_stats", modulo: "avaliacao" },
+  { label: "Formação", href: "/dashboard/formacao", icon: "school", modulo: "formacao" },
+  { label: "Folha Salarial", href: "/dashboard/folha-salarial", icon: "payments", modulo: "folha_salarial" },
+  { label: "Relatórios", href: "/dashboard/relatorios", icon: "analytics", modulo: "relatorios" },
+  { label: "Configurações", href: "/dashboard/configuracoes", icon: "settings", modulo: "configuracoes" },
+  { label: "Utilizadores", href: "/dashboard/utilizadores", icon: "manage_accounts", modulo: "utilizadores" },
 ];
 
 function useAnimatedCounter(target, duration, enabled) {
@@ -81,33 +77,62 @@ export default function DashboardPage() {
   var auth = useAuth();
   var utilizador = auth ? auth.utilizador : null;
   var [stats, setStats] = useState(null);
+  var [cartoes, setCartoes] = useState([]);
   var [deptData, setDeptData] = useState([]);
   var [contratoData, setContratoData] = useState([]);
   var [loading, setLoading] = useState(true);
   var T = getT();
 
+  var tem = function (mod, op) {
+    return auth.hasPermission(mod, op);
+  };
+
+  function cardConfigsPara() {
+    var cfgs = [];
+    var agora = new Date();
+    var mes = agora.getMonth() + 1;
+    var ano = agora.getFullYear();
+    if (tem("colaboradores", "read")) {
+      cfgs.push({ key: "total", label: "Total de Colaboradores", icon: "groups_3", borderColor: "stat-card-primary", trendLabel: "ATIVO", fetch: function () { return api.get("/api/colaboradores?limit=1").then(function (r) { return r.paginacao ? r.paginacao.total : 0; }); } });
+    }
+    if (tem("contratos", "read")) {
+      cfgs.push({ key: "contratos", label: "Contratos Ativos", icon: "rule", borderColor: "stat-card-success", trendLabel: "ATIVOS", fetch: function () { return api.get("/api/contratos?limit=1&estado=Activo").then(function (r) { return r.paginacao ? r.paginacao.total : 0; }); } });
+    }
+    if (tem("departamentos", "read")) {
+      cfgs.push({ key: "departamentos", label: "Departamentos", icon: "corporate_fare", borderColor: "stat-card-secondary", trendLabel: "ATIVOS", fetch: function () { return api.get("/api/departamentos?limit=1").then(function (r) { return r.paginacao ? r.paginacao.total : 0; }); } });
+    }
+    if (tem("ferias", "read")) {
+      cfgs.push({ key: "ferias", label: "Férias Pendentes", icon: "beach_access", borderColor: "stat-card-warning", trendLabel: "PENDENTES", fetch: function () { return api.get("/api/ferias?limit=1").then(function (r) { return r.paginacao ? r.paginacao.total : 0; }); } });
+    }
+    if (tem("folha_salarial", "read")) {
+      cfgs.push({ key: "folhaMes", label: "Pagamentos (mês atual)", icon: "payments", borderColor: "stat-card-secondary", trendLabel: "MÊS", fetch: function () { return api.get("/api/folha-salarial/pagamentos?limit=1&mes=" + mes + "&ano=" + ano).then(function (r) { return r.paginacao ? r.paginacao.total : 0; }); } });
+    }
+    if (tem("portal", "read")) {
+      cfgs.push({ key: "pedidos", label: "Os Meus Pedidos Pendentes", icon: "assignment", borderColor: "stat-card-primary", trendLabel: "MEUS", fetch: function () { return api.get("/api/portal/stats").then(function (r) { return (r.dados && r.dados.pedidos_stats) ? r.dados.pedidos_stats.pendentes : 0; }); } });
+      cfgs.push({ key: "feriasDisp", label: "Férias Disponíveis", icon: "beach_access", borderColor: "stat-card-warning", trendLabel: "DIAS", fetch: function () { return api.get("/api/portal/stats").then(function (r) { return (r.dados && r.dados.ferias) ? (r.dados.ferias.disponiveis || 0) : 0; }); } });
+      cfgs.push({ key: "desconto", label: "Desconto Estimado por Faltas", icon: "event_busy", borderColor: "stat-card-success", trendLabel: "KZ", fetch: function () { return api.get("/api/portal/stats").then(function (r) { return (r.dados && r.dados.desconto_estimado) ? r.dados.desconto_estimado.valor : 0; }); } });
+    }
+    return cfgs;
+  }
+
   useEffect(function () {
-    var load = async function () {
-      try {
-        var [resCol, resCon, resDep, resFer] = await Promise.all([
-          api.get("/api/colaboradores?limit=1"),
-          api.get("/api/contratos?limit=1"),
-          api.get("/api/departamentos?limit=1"),
-          api.get("/api/ferias?limit=1"),
-        ]);
-        setStats({
-          total: resCol.paginacao ? resCol.paginacao.total : 0,
-          contratos: resCon.paginacao ? resCon.paginacao.total : 0,
-          departamentos: resDep.paginacao ? resDep.paginacao.total : 0,
-          ferias: resFer.paginacao ? resFer.paginacao.total : 0,
-        });
-      } catch (e) { /* silêncio */ }
+    var cfgs = cardConfigsPara();
+    var ativos = cfgs.slice(0, 4);
+    setCartoes(ativos);
+    if (ativos.length === 0) { setLoading(false); return; }
+    var ops = ativos.map(function (cfg) {
+      return cfg.fetch().then(function (v) { return { key: cfg.key, v: v }; }).catch(function () { return { key: cfg.key, v: null }; });
+    });
+    Promise.all(ops).then(function (res) {
+      var obj = {};
+      res.forEach(function (r) { obj[r.key] = r.v; });
+      setStats(obj);
       setLoading(false);
-    };
-    load();
+    });
   }, []);
 
   useEffect(function () {
+    if (!tem("departamentos", "read")) return;
     var loadDepts = async function () {
       try {
         var res = await api.get("/api/departamentos?limit=100");
@@ -124,6 +149,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(function () {
+    if (!tem("contratos", "read")) return;
     var loadContratos = async function () {
       try {
         var res = await api.get("/api/contratos?limit=100");
@@ -148,12 +174,13 @@ export default function DashboardPage() {
   }
   var dataHoje = now.toLocaleDateString("pt-PT", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  var statValues = [
-    stats ? stats.total : 0,
-    stats ? stats.contratos : 0,
-    stats ? stats.departamentos : 0,
-    stats ? stats.ferias : 0,
-  ];
+  var modulosVisiveis = ALL_MODULES.filter(function (m) {
+    return auth.hasPermission(m.modulo, "read");
+  });
+
+  var textoSistema = tem("colaboradores", "read")
+    ? (stats ? (stats.total != null ? stats.total : 0) : 0) + " colaboradores registados no sistema."
+    : "Bem-vindo(a) ao teu painel pessoal. Tens " + modulosVisiveis.length + " módulos à tua disposição.";
 
   return (
     <div className="space-y-8">
@@ -162,40 +189,53 @@ export default function DashboardPage() {
           <div className="relative z-10 max-w-2xl">
             <p className="text-white/50 font-bold text-[11px] tracking-[0.3em] uppercase mb-3">{dataHoje}</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 leading-[1.1] tracking-tight">{saudacao}{nome}</h2>
-            <p className="text-white/70 text-base sm:text-lg leading-relaxed">
-              {stats ? stats.total : 0} colaboradores registados no sistema.
-            </p>
+            <p className="text-white/70 text-base sm:text-lg leading-relaxed">{textoSistema}</p>
           </div>
         </div>
       </section>
 
-      <section className="flex flex-wrap gap-3">          <Link href="/dashboard/colaboradores">
+      <section className="flex flex-wrap gap-3">
+        {tem("portal", "read") && (
+          <Link href="/dashboard/portal">
+            <Button variant="outline">
+              <span className="material-symbols-outlined text-[18px]">assignment</span>
+              Os Meus Pedidos
+            </Button>
+          </Link>
+        )}
+        {tem("colaboradores", "create") && (
+          <Link href="/dashboard/colaboradores">
             <Button variant="default">
               <span className="material-symbols-outlined text-[18px]">add_circle</span>
               Admitir Colaborador
             </Button>
           </Link>
-        <Link href="/dashboard/relatorios">
-          <Button variant="outline">
-            <span className="material-symbols-outlined text-[18px]">description</span>
-            Relatórios
-          </Button>
-        </Link>
-        <Link href="/dashboard/ferias">
-          <Button variant="outline">
-            <span className="material-symbols-outlined text-[18px]">calendar_today</span>
-            Planeamento de Férias
-          </Button>
-        </Link>
+        )}
+        {tem("relatorios", "read") && (
+          <Link href="/dashboard/relatorios">
+            <Button variant="outline">
+              <span className="material-symbols-outlined text-[18px]">description</span>
+              Relatórios
+            </Button>
+          </Link>
+        )}
+        {tem("ferias", "read") && (
+          <Link href="/dashboard/ferias">
+            <Button variant="outline">
+              <span className="material-symbols-outlined text-[18px]">calendar_today</span>
+              Planeamento de Férias
+            </Button>
+          </Link>
+        )}
       </section>
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {statsConfig.map(function (item, i) {
+        {cartoes.map(function (item, i) {
           return (
             <StatCard
-              key={i}
+              key={item.key}
               label={item.label}
-              value={statValues[i]}
+              value={stats ? (stats[item.key] != null ? stats[item.key] : 0) : 0}
               icon={item.icon}
               borderColor={item.borderColor}
               trendLabel={item.trendLabel}
@@ -270,10 +310,10 @@ export default function DashboardPage() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-on-surface">Módulos</h3>
-          <span className="badge badge-primary">{ALL_MODULES.length} Módulos</span>
+          <span className="badge badge-primary">{modulosVisiveis.length} Módulos</span>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-          {ALL_MODULES.map(function (m) {
+          {modulosVisiveis.map(function (m) {
             return (
               <Link key={m.label} href={m.href} className="card p-4 flex flex-col items-center text-center group hover:-translate-y-1">
                 <div className="module-icon-wrap w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary/5 flex items-center justify-center mb-2.5">

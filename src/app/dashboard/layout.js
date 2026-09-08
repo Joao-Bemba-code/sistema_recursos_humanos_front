@@ -7,21 +7,38 @@ import TopNavBar from "@/components/layout/TopNavBar";
 import PageTransition from "@/components/ui/PageTransition";
 import { ToastProvider } from "@/components/ui/Toast";
 
-var ADMIN_ROUTES = [
-  "/dashboard",
-  "/dashboard/colaboradores",
-  "/dashboard/contratos",
-  "/dashboard/departamentos",
-  "/dashboard/assiduidade",
-  "/dashboard/faltas",
-  "/dashboard/ferias",
-  "/dashboard/avaliacao",
-  "/dashboard/formacao",
-  "/dashboard/folha-salarial",
-  "/dashboard/relatorios",
-  "/dashboard/configuracoes",
-  "/dashboard/pedidos",
-];
+var ROTAS_MODULOS = {
+  "/dashboard/portal": "portal",
+  "/dashboard/colaboradores": "colaboradores",
+  "/dashboard/contratos": "contratos",
+  "/dashboard/departamentos": "departamentos",
+  "/dashboard/assiduidade": "assiduidade",
+  "/dashboard/faltas": "faltas",
+  "/dashboard/ferias": "ferias",
+  "/dashboard/avaliacao": "avaliacao",
+  "/dashboard/formacao": "formacao",
+  "/dashboard/folha-salarial": "folha_salarial",
+  "/dashboard/pedidos": "pedidos",
+  "/dashboard/utilizadores": "utilizadores",
+  "/dashboard/advertencias": "advertencias",
+  "/dashboard/relatorios": "relatorios",
+  "/dashboard/configuracoes": "configuracoes",
+};
+
+var moduloDaRota = function (pathname) {
+  if (!pathname || pathname === "/dashboard" || pathname === "/dashboard/") return null;
+  var melhor = null;
+  var len = -1;
+  Object.keys(ROTAS_MODULOS).forEach(function (rota) {
+    if (pathname === rota || pathname.indexOf(rota + "/") === 0) {
+      if (rota.length > len) {
+        len = rota.length;
+        melhor = ROTAS_MODULOS[rota];
+      }
+    }
+  });
+  return melhor;
+};
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -37,9 +54,10 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     if (auth && !auth.loading && auth.isAuthenticated && auth.utilizador) {
-      const perfilNome = auth.utilizador.perfil ? auth.utilizador.perfil.nome : "";
-      if (perfilNome === "Colaborador" && ADMIN_ROUTES.includes(pathname)) {
-        router.push("/dashboard/portal");
+      const modulo = moduloDaRota(pathname);
+      if (modulo !== null && !auth.hasPermission(modulo, "read")) {
+        const destino = auth.hasPermission("portal", "read") ? "/dashboard/portal" : "/dashboard";
+        router.replace(destino);
       }
     }
   }, [auth, router, pathname]);
@@ -57,6 +75,24 @@ export default function DashboardLayout({ children }) {
 
   if (auth && !auth.isAuthenticated) {
     return null;
+  }
+
+  const rotaBloqueada = (() => {
+    if (!auth || !auth.utilizador) return false;
+    const modulo = moduloDaRota(pathname);
+    if (modulo === null) return false;
+    return !auth.hasPermission(modulo, "read");
+  })();
+
+  if (rotaBloqueada) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-outline-variant border-t-primary rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-on-surface-variant">A redirecionar...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

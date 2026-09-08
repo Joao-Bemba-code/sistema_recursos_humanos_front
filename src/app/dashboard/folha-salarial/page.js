@@ -74,6 +74,14 @@ export default function FolhaSalarialPage() {
   const [viewItem, setViewItem] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, nome: "" });
   const [recalculando, setRecalculando] = useState(false);
+  const [gerarAuto, setGerarAuto] = useState(false);
+  const [autogForm, setAutogForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear() });
+  const [gerando, setGerando] = useState(false);
+  const [resultadoGerar, setResultadoGerar] = useState(null);
+  const [baixandoResumo, setBaixandoResumo] = useState(false);
+  const [resumoMes, setResumoMes] = useState(String(new Date().getMonth() + 1));
+  const [resumoAno, setResumoAno] = useState(String(new Date().getFullYear()));
+  const [resumoOpen, setResumoOpen] = useState(false);
 
   const [form, setForm] = useState({});
 
@@ -305,6 +313,44 @@ export default function FolhaSalarialPage() {
     }
   };
 
+  const gerarPagamentosAutomaticos = async (e) => {
+    e.preventDefault();
+    setGerando(true);
+    setMsg(null);
+    try {
+      const data = await api.post("/api/folha-salarial/pagamentos/gerar-automaticos", autogForm);
+      setResultadoGerar(data.dados);
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message });
+    } finally {
+      setGerando(false);
+    }
+  };
+
+  const fecharGerar = () => {
+    setGerarAuto(false);
+    setResultadoGerar(null);
+    setMsg(null);
+    carregar(paginacao.pagina);
+  };
+
+  const baixarResumo = async (e) => {
+    if (e) e.preventDefault();
+    if (!resumoMes || !resumoAno) {
+      setMsg({ tipo: "erro", texto: "Seleciona o mês e o ano do resumo antes de gerar o PDF." });
+      return;
+    }
+    setBaixandoResumo(true);
+    setMsg(null);
+    try {
+      await api.downloadPdf(`/api/pdf/resumo-pagamentos?mes=${resumoMes}&ano=${resumoAno}`, `resumo_pagamentos_${resumoMes}_${resumoAno}.pdf`);
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message });
+    } finally {
+      setBaixandoResumo(false);
+    }
+  };
+
   const nomeColab = (item) => {
     if (item.colaborador) return item.colaborador.nome_completo || "";
     var c = colaboradores.find(c => String(c.id) === String(item.colaborador_id));
@@ -413,13 +459,47 @@ export default function FolhaSalarialPage() {
           </nav>
           <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão de Folha Salarial</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {tab === "pagamentos" && (
+            <>
+              <button onClick={() => { setResumoOpen(!resumoOpen); setResultadoGerar(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-success/10 text-success text-[13px] font-semibold rounded-lg border border-success/20 hover:bg-success/20 transition-all active:scale-95">
+                <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                Resumo PDF
+              </button>
+              <button onClick={() => { setGerarAuto(true); setResultadoGerar(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-secondary/10 text-secondary text-[13px] font-semibold rounded-lg border border-secondary/20 hover:bg-secondary/20 transition-all active:scale-95">
+                <span className="material-symbols-outlined text-[18px]">bolt</span>
+                Gerar Automático
+              </button>
+            </>
+          )}
           <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
             <span className="material-symbols-outlined text-[18px]">add_circle</span>
             {tab === "vencimentos" ? "Novo Vencimento" : "Novo Pagamento"}
           </button>
         </div>
       </section>
+
+      {resumoOpen && (
+        <section className="glass-panel rounded-xl border border-outline-variant/30 p-5 flex flex-col md:flex-row md:items-end gap-4">
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Mês do resumo</label>
+            <select value={resumoMes} onChange={(e) => setResumoMes(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+              {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Ano do resumo</label>
+            <input type="number" min="2000" value={resumoAno} onChange={(e) => setResumoAno(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
+          </div>
+          <div className="flex items-end pb-0.5">
+            <button onClick={baixarResumo} disabled={baixandoResumo} className="flex items-center gap-2 px-4 py-2.5 bg-success/10 text-success text-[13px] font-semibold rounded-lg border border-success/20 hover:bg-success/20 disabled:opacity-50 transition-all active:scale-95">
+              <span className="material-symbols-outlined text-[18px]">download</span>
+              {baixandoResumo ? "A gerar..." : "Baixar Resumo"}
+            </button>
+          </div>
+          <p className="text-[11px] text-on-surface-variant/60 md:flex-1 md:pb-2">O resumo é gerado para o mês e ano escolhidos. Se ainda não processaste a folha desse período, verás a razão.</p>
+        </section>
+      )}
 
       <section className="glass-panel rounded-xl border border-outline-variant/30 overflow-hidden">
         <div className="flex border-b border-outline-variant/20">
@@ -872,6 +952,91 @@ export default function FolhaSalarialPage() {
                   {saving ? "A guardar..." : editando ? "Atualizar" : "Criar"}
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {gerarAuto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-scrim/40" onClick={() => setGerarAuto(false)} />
+          <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-outline-variant/30">
+            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between z-10">
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">Gerar Pagamentos Automáticos</h3>
+              <button onClick={() => setGerarAuto(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={gerarPagamentosAutomaticos} className="p-6 space-y-4">
+              {!resultadoGerar ? (
+                <>
+                  <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex items-start gap-3">
+                    <span className="material-symbols-outlined text-[20px] text-primary mt-0.5">bolt</span>
+                    <p className="text-[13px] text-on-surface-variant leading-relaxed">
+                      Serão gerados pagamentos <strong>Pendentes</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e Segurança Social calculados automaticamente a partir do contrato ativo.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Mês *</label>
+                    <select value={autogForm.mes} onChange={(e) => setAutogForm(prev => ({ ...prev, mes: e.target.value }))} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                      {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Ano *</label>
+                    <input type="number" min="2000" max="2100" value={autogForm.ano} onChange={(e) => setAutogForm(prev => ({ ...prev, ano: e.target.value }))} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-outline-variant/20">
+                    <button type="button" onClick={() => setGerarAuto(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
+                    <button type="submit" disabled={gerando} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
+                      <span className="material-symbols-outlined text-[18px]">{gerando ? "hourglass_empty" : "bolt"}</span>
+                      {gerando ? "A gerar..." : "Gerar Pagamentos"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-success/5 border border-success/10 rounded-lg p-4 text-center">
+                    <span className="material-symbols-outlined text-[40px] text-success block mb-2">check_circle</span>
+                    <h4 className="text-[16px] font-bold text-on-surface">Pagamentos processados</h4>
+                    <p className="text-[13px] text-on-surface-variant mt-1">{MESES[parseInt(autogForm.mes) - 1]}/{autogForm.ano}</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
+                      <p className="text-[20px] font-bold text-success">{resultadoGerar.criados}</p>
+                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Criados</p>
+                    </div>
+                    <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
+                      <p className="text-[20px] font-bold text-warning">{resultadoGerar.ignorados}</p>
+                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Já existentes</p>
+                    </div>
+                    <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
+                      <p className="text-[20px] font-bold text-error">{resultadoGerar.erros}</p>
+                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Erros</p>
+                    </div>
+                  </div>
+                  {resultadoGerar.erros_detalhe && resultadoGerar.erros_detalhe.length > 0 && (
+                    <div className="bg-error/5 border border-error/10 rounded-lg p-3 max-h-40 overflow-y-auto">
+                      <p className="text-[11px] font-bold text-error uppercase tracking-wider mb-2">Sem contrato ativo:</p>
+                      <ul className="space-y-1">
+                        {resultadoGerar.erros_detalhe.map((e, i) => (
+                          <li key={i} className="text-[12px] text-on-surface-variant flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[14px] text-error">info</span>
+                            {getColaboradorNome(e.colaborador_id) || "Colaborador"}: {e.motivo}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-outline-variant/20">
+                    <button onClick={fecharGerar} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
+                      <span className="material-symbols-outlined text-[18px]">done</span>
+                      Concluir
+                    </button>
+                  </div>
+                </>
+              )}
             </form>
           </div>
         </div>

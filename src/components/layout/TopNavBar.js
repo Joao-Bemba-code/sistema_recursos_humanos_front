@@ -20,20 +20,38 @@ export default function TopNavBar() {
   const [notificacoes, setNotificacoes] = useState([]);
   const [notifCount, setNotifCount] = useState(0);
   const [notifModal, setNotifModal] = useState(null);
+  const [notifFiltro, setNotifFiltro] = useState("");
   const menuRef = useRef(null);
   const notifRef = useRef(null);
   var T = getT();
 
   const allItems = NAV_ITEMS.flatMap((g) => g.items);
-  const isColaborador = utilizador && utilizador.perfil && utilizador.perfil.nome === "Colaborador";
-  const mainItems = isColaborador
-    ? allItems.filter((i) => ["/dashboard/portal"].includes(i.href))
-    : allItems.filter((i) =>
-        ["/dashboard", "/dashboard/colaboradores", "/dashboard/contratos", "/dashboard/departamentos"].includes(i.href)
-      );
-  const navGroups = isColaborador
-    ? [{ titulo: "Portal", items: [{ label: "Portal do Colaborador", href: "/dashboard/portal", icon: "person" }] }]
-    : NAV_ITEMS;
+  const itensPermitidos = allItems.filter((i) => !i.modulo || auth.hasPermission(i.modulo, "read"));
+  const mainItems = itensPermitidos.filter((i) =>
+    ["/dashboard", "/dashboard/portal", "/dashboard/colaboradores", "/dashboard/contratos", "/dashboard/departamentos"].includes(i.href)
+  );
+  const temModulosAdministrativos = itensPermitidos.some((i) => i.href !== "/dashboard" && i.href !== "/dashboard/portal");
+  const isAdmin = auth.isAdmin();
+  const soColaborador = auth.hasPermission("portal", "read") && !isAdmin && !temModulosAdministrativos;
+
+  var perfisNomes = [];
+  if (utilizador && Array.isArray(utilizador.perfis) && utilizador.perfis.length > 0) {
+    perfisNomes = utilizador.perfis.map(function (p) { return p.nome; });
+  } else if (utilizador && utilizador.perfil) {
+    perfisNomes = [utilizador.perfil.nome];
+  }
+  var rotuloPerfil = perfisNomes.join(", ");
+
+  const navGroups = itensPermitidos.length > 0
+    ? (function () {
+        var grupos = [];
+        NAV_ITEMS.forEach(function (g) {
+          var items = g.items.filter(function (i) { return !i.modulo || auth.hasPermission(i.modulo, "read"); });
+          if (items.length > 0) grupos.push({ titulo: g.titulo, items: items });
+        });
+        return grupos;
+      })()
+    : [{ titulo: "Portal", items: [{ label: "Portal do Colaborador", href: "/dashboard/portal", icon: "person" }] }];
 
   useEffect(() => {
     function handleClick(e) {
@@ -98,6 +116,25 @@ export default function TopNavBar() {
     error: "error",
   };
 
+  var MODULO_LABELS_NOTIF = { pedidos: "Pedidos", avaliacao: "Avaliação", advertencias: "Advertência", folha_salarial: "Folha Salarial", portal: "Portal" };
+  var labelDeModulo = function (mod) { return MODULO_LABELS_NOTIF[mod] || "Sistema"; };
+
+  var modulosDisponiveis = [];
+  var modulosVistos = {};
+  notificacoes.forEach(function (n) {
+    var m = n.modulo || "sistema";
+    if (!modulosVistos[m]) {
+      modulosVistos[m] = true;
+      modulosDisponiveis.push(m);
+    }
+  });
+  var notificacoesVisiveis = notifFiltro
+    ? notificacoes.filter(function (n) { return (n.modulo || "sistema") === notifFiltro; })
+    : notificacoes;
+  var chipNotif = function (ativo) {
+    return "px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap transition-colors " + (ativo ? "bg-primary text-white" : "bg-surface-container-high text-on-surface-variant hover:bg-primary/10");
+  };
+
   var timeAgo = function (dateStr) {
     if (!dateStr) return "";
     var diff = Date.now() - new Date(dateStr).getTime();
@@ -144,7 +181,7 @@ export default function TopNavBar() {
             >
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            <Link href={isColaborador ? "/dashboard/portal" : "/dashboard"} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
+            <Link href={soColaborador ? "/dashboard/portal" : "/dashboard"} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
             <nav className="hidden lg:flex items-center gap-8">
               {mainItems.map((item) => {
                 const isActive = pathname === item.href;
@@ -166,7 +203,7 @@ export default function TopNavBar() {
           </div>
 
           <div className="flex items-center gap-3 md:gap-5">
-            {!isColaborador && (
+            {!soColaborador && (
               <Link href="/dashboard/configuracoes" className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors">
                 <span className="material-symbols-outlined text-[22px]">settings</span>
               </Link>
@@ -200,31 +237,53 @@ export default function TopNavBar() {
                       <p className="text-[12px] text-on-surface-variant/60">Sem notificações</p>
                     </div>
                   ) : (
-                    <div className="max-h-80 overflow-y-auto">
-                      {notificacoes.map(function (notif) {
-                        var nIcon = iconMap[notif.tipo] || "notifications";
-                        var isLida = notif.lida;
-                        return (
-                          <button
-                            key={notif.id}
-                            onClick={function () { handleNotifClick(notif); }}
-                            className={"w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-container transition-colors " + (!isLida ? "bg-primary/5" : "")}
-                          >
-                            <div className={"p-1.5 rounded-lg flex-shrink-0 mt-0.5 " + (!isLida ? "bg-primary/10" : "bg-surface-container-high")}>
-                              <span className={"material-symbols-outlined text-[16px] " + (!isLida ? "text-primary" : "text-outline")}>{nIcon}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={"text-[12px] truncate " + (!isLida ? "font-bold text-on-surface" : "text-on-surface-variant")}>{notif.titulo || "Notificação"}</p>
-                              <p className="text-[11px] text-on-surface-variant/60 truncate">{notif.mensagem || ""}</p>
-                            </div>
-                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                              <span className="text-[10px] text-on-surface-variant/40">{timeAgo(notif.createdAt)}</span>
-                              {!isLida && <span className="w-2 h-2 bg-primary rounded-full" />}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <>
+                      {modulosDisponiveis.length > 1 && (
+                        <div className="px-4 py-2 border-b border-outline-variant/30 flex items-center gap-1.5 overflow-x-auto">
+                          <button onClick={function () { setNotifFiltro(""); }} className={chipNotif(notifFiltro === "")}>Todas</button>
+                          {modulosDisponiveis.map(function (m) {
+                            return (
+                              <button key={m} onClick={function () { setNotifFiltro(notifFiltro === m ? "" : m); }} className={chipNotif(notifFiltro === m)}>
+                                {labelDeModulo(m)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {notificacoesVisiveis.length === 0 ? (
+                        <div className="px-4 py-8 text-center">
+                          <span className="material-symbols-outlined text-[32px] text-on-surface-variant/20 block mb-2">filter_none</span>
+                          <p className="text-[12px] text-on-surface-variant/60">Sem notificações neste módulo</p>
+                        </div>
+                      ) : (
+                        <div className="max-h-80 overflow-y-auto">
+                          {notificacoesVisiveis.map(function (notif) {
+                            var nIcon = iconMap[notif.tipo] || "notifications";
+                            var isLida = notif.lida;
+                            return (
+                              <button
+                                key={notif.id}
+                                onClick={function () { handleNotifClick(notif); }}
+                                className={"w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-container transition-colors " + (!isLida ? "bg-primary/5" : "")}
+                              >
+                                <div className={"p-1.5 rounded-lg flex-shrink-0 mt-0.5 " + (!isLida ? "bg-primary/10" : "bg-surface-container-high")}>
+                                  <span className={"material-symbols-outlined text-[16px] " + (!isLida ? "text-primary" : "text-outline")}>{nIcon}</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className={"text-[12px] truncate " + (!isLida ? "font-bold text-on-surface" : "text-on-surface-variant")}>{notif.titulo || "Notificação"}</p>
+                                  <p className="text-[11px] text-on-surface-variant/60 truncate">{notif.mensagem || ""}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                  <span className="text-[10px] text-on-surface-variant/40">{timeAgo(notif.createdAt)}</span>
+                                  <span className="text-[9px] font-bold uppercase tracking-wide text-primary/70">{labelDeModulo(notif.modulo)}</span>
+                                  {!isLida && <span className="w-2 h-2 bg-primary rounded-full" />}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -236,7 +295,7 @@ export default function TopNavBar() {
               >
                 <div className="hidden sm:flex flex-col items-end">
                   <span className="text-[12px] font-semibold">{utilizador ? utilizador.nome_completo : "Admin"}</span>
-                  <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{utilizador && utilizador.perfil ? utilizador.perfil.nome : "CENFFOR"}</span>
+                  <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{rotuloPerfil || "CENFFOR"}</span>
                 </div>
                 <div className="h-8 w-8 rounded-full border border-outline-variant/50 overflow-hidden bg-primary/10 flex items-center justify-center">
                   <span className="text-[12px] font-bold text-primary">{initials}</span>
@@ -250,11 +309,11 @@ export default function TopNavBar() {
                     <p className="text-[13px] font-semibold text-on-surface">{utilizador ? utilizador.nome_completo : ""}</p>
                     <p className="text-[11px] text-on-surface-variant/60">{utilizador ? utilizador.email : ""}</p>
                   </div>
-                  <Link href={isColaborador ? "/dashboard/portal" : "/dashboard/configuracoes"} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
+                  <Link href={soColaborador ? "/dashboard/portal" : "/dashboard/configuracoes"} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
                     <span className="material-symbols-outlined text-[18px]">person</span>
-                    {isColaborador ? "Os Meus Dados" : "Meu Perfil"}
+                    {soColaborador ? "Os Meus Dados" : "Meu Perfil"}
                   </Link>
-                  {!isColaborador && (
+                  {!soColaborador && (
                     <Link href="/dashboard/configuracoes" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
                       <span className="material-symbols-outlined text-[18px]">settings</span>
                       Configurações
@@ -277,7 +336,7 @@ export default function TopNavBar() {
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <div className="fixed inset-y-0 left-0 w-72 bg-surface shadow-2xl flex flex-col animate-slide-in">
             <div className="px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between">
-              <Link href={isColaborador ? "/dashboard/portal" : "/dashboard"} onClick={() => setMobileOpen(false)} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
+              <Link href={soColaborador ? "/dashboard/portal" : "/dashboard"} onClick={() => setMobileOpen(false)} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
               <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant">
                 <span className="material-symbols-outlined text-[22px]">close</span>
               </button>
