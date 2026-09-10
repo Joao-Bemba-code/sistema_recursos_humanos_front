@@ -94,7 +94,7 @@ export default function FolhaSalarialPage() {
 
   const defaultFormPag = {
     colaborador_id: "", mes: "", ano: "", salario_base: "",
-    subsidios: "", horas_extras: "", irt: "",
+    subsidios: "", horas_extras: "", descontos: "", irt: "",
     seguranca_social: "", desconto_faltas: "", data_pagamento: "", estado: "Pendente"
   };
 
@@ -171,9 +171,33 @@ export default function FolhaSalarialPage() {
           irt: obrigatorios.irt,
         }));
       }
+      buscarDescontoFaltas(colabId, form.mes, form.ano);
     } catch (e) {
       console.error("Erro ao buscar contrato:", e);
     }
+  };
+
+  const buscarDescontoFaltas = async (colabId, mes, ano) => {
+    if (!colabId || !mes || !ano) return;
+    try {
+      const data = await api.get(`/api/folha-salarial/preview-desconto-faltas?colaborador_id=${colabId}&mes=${mes}&ano=${ano}`);
+      if (data && data.dados && data.dados.desconto_faltas !== undefined) {
+        setForm(prev => ({ ...prev, desconto_faltas: data.dados.desconto_faltas }));
+      }
+    } catch (e) {
+      console.error("Erro ao buscar desconto de faltas:", e);
+    }
+  };
+
+  const handleMesAnoChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => {
+      const novo = { ...prev, [name]: value };
+      if (novo.colaborador_id && novo.mes && novo.ano) {
+        buscarDescontoFaltas(novo.colaborador_id, novo.mes, novo.ano);
+      }
+      return novo;
+    });
   };
 
   const calcularTotalBrutoVenc = (f) => {
@@ -197,10 +221,11 @@ export default function FolhaSalarialPage() {
     var sb = parseFloat(f.salario_base) || 0;
     var sub = parseFloat(f.subsidios) || 0;
     var he = parseFloat(f.horas_extras) || 0;
+    var desc = parseFloat(f.descontos) || 0;
     var irt = parseFloat(f.irt) || 0;
     var ss = parseFloat(f.seguranca_social) || 0;
     var df = parseFloat(f.desconto_faltas) || 0;
-    return sb + sub + he - irt - ss - df;
+    return sb + sub + he - desc - irt - ss - df;
   };
 
   const abrirNovo = () => {
@@ -235,6 +260,7 @@ export default function FolhaSalarialPage() {
         salario_base: item.salario_base || "",
         subsidios: item.subsidios || "",
         horas_extras: item.horas_extras || "",
+        descontos: item.descontos || "",
         irt: item.irt || "",
         seguranca_social: item.seguranca_social || "",
         desconto_faltas: item.desconto_faltas || "",
@@ -735,6 +761,7 @@ export default function FolhaSalarialPage() {
                           <span>IRT: {helpers.formatCurrency(item.irt)}</span>
                           <span>SS: {helpers.formatCurrency(item.seguranca_social)}</span>
                           {(parseFloat(item.desconto_faltas) || 0) > 0 && <span className="text-red-600 font-semibold">Faltas: -{helpers.formatCurrency(item.desconto_faltas)}</span>}
+                          {(parseFloat(item.descontos) || 0) > 0 && <span className="text-red-600 font-semibold">Outros: -{helpers.formatCurrency(item.descontos)}</span>}
                         </div>
                       </td>
                       <td className="px-4 py-4">
@@ -889,14 +916,14 @@ export default function FolhaSalarialPage() {
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Mês *</label>
-                    <select name="mes" value={form.mes || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    <select name="mes" value={form.mes || ""} onChange={handleMesAnoChange} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       <option value="">Selecionar mês</option>
                       {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Ano *</label>
-                    <input type="number" name="ano" value={form.ano || ""} onChange={handleInput} required placeholder="2024" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <input type="number" name="ano" value={form.ano || ""} onChange={handleMesAnoChange} required placeholder="2024" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Salário Base (AOA) *</label>
@@ -909,6 +936,10 @@ export default function FolhaSalarialPage() {
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Horas Extras</label>
                     <input type="number" step="0.01" name="horas_extras" value={form.horas_extras || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Outros Descontos</label>
+                    <input type="number" step="0.01" name="descontos" value={form.descontos || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">IRT (auto)</label>
@@ -1198,6 +1229,7 @@ export default function FolhaSalarialPage() {
                         ["IRT", helpers.formatCurrency(viewItem.irt)],
                         ["Segurança Social", helpers.formatCurrency(viewItem.seguranca_social)],
                         ["Desconto Faltas", helpers.formatCurrency(viewItem.desconto_faltas)],
+                        ["Outros Descontos", helpers.formatCurrency(viewItem.descontos)],
                       ].map(function(pair) {
                         return (
                           <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
