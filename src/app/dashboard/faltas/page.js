@@ -178,12 +178,14 @@ export default function FaltasPage() {
 
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="bg-surface-card border border-outline-variant rounded-xl p-4">
-          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Total de Faltas</p>
-          <p className="text-[24px] font-bold text-red-600 mt-1">{loading ? "..." : totais.total_faltas}</p>
+          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Faltas Pendentes</p>
+          <p className="text-[24px] font-bold text-red-600 mt-1">{loading ? "..." : (totais.total_faltas_pendentes !== undefined ? totais.total_faltas_pendentes : totais.total_faltas)}</p>
+          {(totais.total_faltas_processadas || 0) > 0 && <p className="text-[11px] text-outline mt-0.5">{totais.total_faltas_processadas} já processadas na folha</p>}
         </div>
         <div className="bg-surface-card border border-outline-variant rounded-xl p-4">
-          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Total de Atrasos</p>
-          <p className="text-[24px] font-bold text-amber-600 mt-1">{loading ? "..." : totais.total_atrasos}</p>
+          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Atrasos Pendentes</p>
+          <p className="text-[24px] font-bold text-amber-600 mt-1">{loading ? "..." : (totais.total_atrasos_pendentes !== undefined ? totais.total_atrasos_pendentes : totais.total_atrasos)}</p>
+          {(totais.total_atrasos_processados || 0) > 0 && <p className="text-[11px] text-outline mt-0.5">{totais.total_atrasos_processados} já processados na folha</p>}
         </div>
         <div className="bg-surface-card border border-outline-variant rounded-xl p-4">
           <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Desconto Previsto</p>
@@ -254,13 +256,15 @@ export default function FaltasPage() {
                       <p className="text-[11px] text-outline">{r.numero_colaborador}</p>
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      {r.total_faltas > 0 ? <span className="text-[13px] font-bold text-red-600">{r.total_faltas}</span> : <span className="text-[12px] text-outline/50">0</span>}
+                      {r.total_faltas_pendentes > 0 ? <span className="text-[13px] font-bold text-red-600">{r.total_faltas_pendentes}</span> : <span className="text-[12px] text-outline/50">0</span>}
+                      {(r.total_faltas_processadas || 0) > 0 && <span className="block text-[10px] text-outline">{r.total_faltas_processadas} proc.</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       {r.total_faltas_justificadas > 0 ? <span className="text-[13px] font-bold text-emerald-600">{r.total_faltas_justificadas}</span> : <span className="text-[12px] text-outline/50">0</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      {r.total_atrasos > 0 ? <span className="text-[13px] font-bold text-amber-600">{r.total_atrasos}</span> : <span className="text-[12px] text-outline/50">0</span>}
+                      {r.total_atrasos_pendentes > 0 ? <span className="text-[13px] font-bold text-amber-600">{r.total_atrasos_pendentes}</span> : <span className="text-[12px] text-outline/50">0</span>}
+                      {(r.total_atrasos_processados || 0) > 0 && <span className="block text-[10px] text-outline">{r.total_atrasos_processados} proc.</span>}
                     </td>
                     <td className="px-4 py-2.5 text-center text-[12px] text-on-surface-variant">{formatHorasDesconto(r.horas_descontar)}</td>
                     <td className="px-4 py-2.5 text-right text-[13px] font-semibold text-on-surface">{formatCurrency(r.desconto_previsto)}</td>
@@ -368,12 +372,12 @@ export default function FaltasPage() {
             </div>
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-surface-container rounded-lg p-3 text-center">
-                <p className="text-[20px] font-bold text-red-600">{detalhe.total_faltas}</p>
-                <p className="text-[11px] text-outline">Faltas</p>
+                <p className="text-[20px] font-bold text-red-600">{(detalhe.total_faltas_pendentes !== undefined ? detalhe.total_faltas_pendentes : detalhe.total_faltas)}</p>
+                <p className="text-[11px] text-outline">Faltas pendentes</p>
               </div>
               <div className="bg-surface-container rounded-lg p-3 text-center">
-                <p className="text-[20px] font-bold text-amber-600">{detalhe.total_atrasos}</p>
-                <p className="text-[11px] text-outline">Atrasos</p>
+                <p className="text-[20px] font-bold text-amber-600">{(detalhe.total_atrasos_pendentes !== undefined ? detalhe.total_atrasos_pendentes : detalhe.total_atrasos)}</p>
+                <p className="text-[11px] text-outline">Atrasos pendentes</p>
               </div>
               <div className="bg-surface-container rounded-lg p-3 text-center">
                 <p className="text-[20px] font-bold text-emerald-600">{detalhe.total_faltas_justificadas + detalhe.total_atrasos_justificados}</p>
@@ -383,6 +387,13 @@ export default function FaltasPage() {
                 <p className="text-[20px] font-bold text-primary">{formatCurrency(detalhe.desconto_previsto)}</p>
                 <p className="text-[11px] text-outline">Desconto Previsto</p>
               </div>
+              {(detalhe.total_faltas_processadas > 0 || detalhe.total_atrasos_processados > 0) && (
+                <div className="col-span-2 bg-background/60 rounded-lg p-3 text-center border border-outline-variant/30">
+                  <p className="text-[12px] text-on-surface-variant">
+                    {detalhe.total_faltas_processadas + detalhe.total_atrasos_processados} falta(s)/atraso(s) já descontada(s) na folha processada — sem novo desconto.
+                  </p>
+                </div>
+              )}
             </div>
             {detalhe.faltas_detalhe.length > 0 && (
               <div className="mb-4">
