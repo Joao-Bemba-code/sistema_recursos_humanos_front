@@ -15,6 +15,17 @@ var TIPOS_SOLICITACAO = [
   { value: "justificacao", label: "Justificação" },
   { value: "outro", label: "Outro" },
 ];
+var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+var TIPOS_PRESENCA = [
+  { value: "", label: "Todos" },
+  { value: "presente", label: "Presente" },
+  { value: "ausencia", label: "Ausência" },
+  { value: "atraso", label: "Atraso" },
+  { value: "falta", label: "Faltas" },
+  { value: "licenca", label: "Licença" },
+  { value: "ferias", label: "Férias" },
+  { value: "fim_semana", label: "Fim de semana" },
+];
 function diasEntre(inicio, fim) {
   if (!inicio || !fim) return 0;
   var d1 = new Date(inicio);
@@ -116,6 +127,85 @@ export default function PortalPage() {
   var [uploadDrag, setUploadDrag] = useState(false);
   var fileInputRef = useRef(null);
 
+  var [search, setSearch] = useState("");
+  var [filterTipo, setFilterTipo] = useState("");
+  var [filterMes, setFilterMes] = useState("");
+  var [filterAno, setFilterAno] = useState("");
+  var [filterDia, setFilterDia] = useState("");
+  var [regPagina, setRegPagina] = useState(1);
+  var [registos, setRegistos] = useState([]);
+  var [regPaginacao, setRegPaginacao] = useState({ total: 0, pagina: 1, limite: 30, total_paginas: 0 });
+  var [regLoading, setRegLoading] = useState(false);
+  var registosTimer = useRef(null);
+  var registosRef = useRef({ busca: "", tipo: "", mes: "", ano: "", dia: "" });
+
+  var carregarRegistros = function (pagina) {
+    setRegLoading(true);
+    var f = registosRef.current;
+    var params = new URLSearchParams();
+    if (f.busca) params.set("busca", f.busca);
+    if (f.tipo) params.set("tipo", f.tipo);
+    if (f.mes) params.set("mes", f.mes);
+    if (f.ano) params.set("ano", f.ano);
+    if (f.dia) params.set("dia", f.dia);
+    params.set("pagina", pagina || 1);
+    var qs = params.toString();
+    api.get("/api/portal/registos-presenca" + (qs ? "?" + qs : "")).then(function (res) {
+      if (res) {
+        setRegistos(res.dados || []);
+        setRegPaginacao(res.paginacao || { total: 0, pagina: 1, limite: 30, total_paginas: 0 });
+        setRegPagina(pagina || 1);
+      }
+    }).catch(function () { setRegistos([]); setRegPaginacao({ total: 0, pagina: 1, limite: 30, total_paginas: 0 }); })
+      .finally(function () { setRegLoading(false); });
+  };
+
+  var handleFilterChange = function (campo, valor) {
+    if (campo === "tipo") setFilterTipo(valor);
+    if (campo === "mes") setFilterMes(valor);
+    if (campo === "ano") setFilterAno(valor);
+    if (campo === "dia") setFilterDia(valor);
+    setRegPagina(1);
+    setTimeout(function () {
+      var novo = {};
+      if (campo === "tipo") novo.tipo = valor;
+      if (campo === "mes") novo.mes = valor;
+      if (campo === "ano") novo.ano = valor;
+      if (campo === "dia") novo.dia = valor;
+      registosRef.current = Object.assign({}, registosRef.current, novo, { busca: search });
+      carregarRegistros(1);
+    }, 0);
+  };
+
+  var limparFiltros = function () {
+    setSearch(""); setFilterTipo(""); setFilterMes(""); setFilterAno(""); setFilterDia("");
+    setRegPagina(1);
+    registosRef.current = { busca: "", tipo: "", mes: "", ano: "", dia: "" };
+    setTimeout(function () { carregarRegistros(1); }, 0);
+  };
+
+  var handleSearchChange = function (e) {
+    var v = e.target.value;
+    setSearch(v);
+    if (registosTimer.current) clearTimeout(registosTimer.current);
+    registosTimer.current = setTimeout(function () {
+      registosRef.current = Object.assign({}, registosRef.current, { busca: v });
+      carregarRegistros(1);
+      setRegPagina(1);
+    }, 350);
+  };
+
+  var handleFilterSubmit = function (e) {
+    e.preventDefault();
+    registosRef.current = { busca: search, tipo: filterTipo, mes: filterMes, ano: filterAno, dia: filterDia };
+    carregarRegistros(1);
+  };
+
+  var anos = [];
+  var anoActual = new Date().getFullYear();
+  for (var i = 2020; i <= anoActual + 1; i++) anos.push(i);
+  var temFiltros = search || filterTipo || filterMes || filterAno || filterDia;
+
   var now = new Date();
   var hora = now.getHours();
   var saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
@@ -134,6 +224,10 @@ export default function PortalPage() {
     fetchData();
     var interval = setInterval(fetchData, 30000);
     return function () { clearInterval(interval); };
+  }, []);
+
+  useEffect(function () {
+    carregarRegistros(1);
   }, []);
 
   var handleFileDrop = function (e) {
@@ -183,7 +277,7 @@ export default function PortalPage() {
     api.upload("/api/pedidos", formData).then(function () {
       setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null });
       return api.get("/api/portal/stats");
-    }).then(function (res) { if (res && res.dados) setPortalData(res.dados); })
+    }).then(function (res) { if (res && res.dados) setPortalData(res.dados); carregarRegistros(regPagina); })
       .catch(function () {}).finally(function () { setSubmitting(false); });
   };
 
@@ -202,10 +296,7 @@ export default function PortalPage() {
   var ferias = portalData ? portalData.ferias : { disponiveis: 0, gozados: 0, planeados: 0 };
   var avaliacoes = portalData ? portalData.avaliacoes : { pontuacao: 0, ciclos: [] };
   var pedidosRecentes = portalData ? (portalData.pedidos_recentes || []) : [];
-  var faltas = portalData ? (portalData.faltas || []) : [];
-  var presencas = portalData ? (portalData.presencas || []) : [];
   var descontoEstimado = portalData ? (portalData.desconto_estimado || { valor: 0, faltas_mes: 0, atrasos_mes: 0, horas_descontar: 0 }) : { valor: 0, faltas_mes: 0, atrasos_mes: 0, horas_descontar: 0 };
-  var faltasNaoJustificadas = faltas.filter(function (f) { return !f.justificado; });
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -299,88 +390,55 @@ export default function PortalPage() {
       </div>
 
       <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
-        <h2 className="text-[14px] font-semibold text-on-surface mb-3">Faltas e Atrasos</h2>
-        {faltas.length === 0 ? (
-          <p className="text-[12px] text-outline">Sem faltas ou atrasos registados</p>
-        ) : (
-          <div className="space-y-2 sm:space-y-0">
-            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-hidden">
-              <table className="w-full text-left">
-                <thead className="bg-surface-container border-b border-outline-variant">
-                  <tr>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Data</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Tipo</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Estado</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Acção</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/30">
-                  {faltas.map(function (f, i) {
-                    return (
-                      <tr key={f.id || i} className="hover:bg-surface-container/50 transition-colors">
-                        <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{formatDate(f.data)}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + (f.estado === "Ausente" ? "bg-red-50 text-red-700 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200")}>
-                            {f.estado === "Ausente" ? "Falta" : "Atraso"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          {f.justificado ? (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Justificado</span>
-                          ) : (
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200">Não justificado</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          {!f.justificado && (
-                            <button onClick={function () { setJustificacaoForm({ falta: f, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[11px] font-medium text-primary hover:underline px-2 py-1 rounded hover:bg-primary/5">
-                              Justificar
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div className="sm:hidden space-y-2">
-              {faltas.map(function (f, i) {
-                return (
-                  <div key={f.id || i} className="border border-outline-variant rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[12px] font-medium text-on-surface">{formatDate(f.data)}</span>
-                      <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + (f.estado === "Ausente" ? "bg-red-50 text-red-700 border border-red-200" : "bg-amber-50 text-amber-700 border border-amber-200")}>
-                        {f.estado === "Ausente" ? "Falta" : "Atraso"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      {f.justificado ? (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Justificado</span>
-                      ) : (
-                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200">Não justificado</span>
-                      )}
-                      {!f.justificado && (
-                        <button onClick={function () { setJustificacaoForm({ falta: f, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[12px] font-medium text-primary hover:underline px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20">
-                          Justificar
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[14px] font-semibold text-on-surface">Histórico de Presença e Faltas</h2>
+          <span className="text-[11px] text-outline">{regPaginacao.total} registo(s)</span>
+        </div>
 
-      <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
-        <h2 className="text-[14px] font-semibold text-on-surface mb-3">Presenças</h2>
-        {presencas.length === 0 ? (
-          <p className="text-[12px] text-outline">Sem registos de presença</p>
+        <form onSubmit={handleFilterSubmit} className="space-y-2 mb-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={search}
+              onChange={handleSearchChange}
+              placeholder="Pesquisar data, estado ou observação..."
+              className="flex-1 px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors"
+            />
+            <button type="submit" className="px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-medium hover:bg-primary/90 transition-colors">Pesquisar</button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <select value={filterTipo} onChange={function (e) { handleFilterChange("tipo", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
+              {TIPOS_PRESENCA.map(function (t) { return <option key={t.value} value={t.value}>{t.label}</option>; })}
+            </select>
+            <select value={filterMes} onChange={function (e) { handleFilterChange("mes", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
+              <option value="">Mês</option>
+              {MESES.map(function (m, i) { return <option key={i + 1} value={i + 1}>{m}</option>; })}
+            </select>
+            <select value={filterAno} onChange={function (e) { handleFilterChange("ano", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
+              <option value="">Ano</option>
+              {anos.map(function (a) { return <option key={a} value={a}>{a}</option>; })}
+            </select>
+            <select value={filterDia} onChange={function (e) { handleFilterChange("dia", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
+              <option value="">Dia</option>
+              {Array.from({ length: 31 }, function (_, i) { return i + 1; }).map(function (d) {
+                return <option key={d} value={d}>{String(d).padStart(2, "0")}</option>;
+              })}
+            </select>
+            {temFiltros && (
+              <button type="button" onClick={limparFiltros} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors">
+                Limpar
+              </button>
+            )}
+          </div>
+        </form>
+
+        {regLoading && registos.length === 0 ? (
+          <p className="text-[12px] text-outline py-4 text-center">A carregar...</p>
+        ) : registos.length === 0 ? (
+          <p className="text-[12px] text-outline py-4 text-center">Sem registos encontrados</p>
         ) : (
-          <div className="space-y-2 sm:space-y-0">
-            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-hidden">
+          <>
+            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-hidden mb-4">
               <table className="w-full text-left">
                 <thead className="bg-surface-container border-b border-outline-variant">
                   <tr>
@@ -389,50 +447,97 @@ export default function PortalPage() {
                     <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Saída</th>
                     <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Horas</th>
                     <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Estado</th>
+                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Acção</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/30">
-                  {presencas.map(function (p, i) {
+                  {registos.map(function (r, i) {
+                    var faltaAtroso = r.estado === "Ausente" || r.estado === "Atrasado";
                     return (
-                      <tr key={p.id || i} className="hover:bg-surface-container/50 transition-colors">
-                        <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{formatDate(p.data)}</td>
-                        <td className="px-4 py-2.5 text-[12px] text-on-surface">{p.hora_entrada ? p.hora_entrada.slice(0, 5) : "—"}</td>
-                        <td className="px-4 py-2.5 text-[12px] text-on-surface">{p.hora_saida ? p.hora_saida.slice(0, 5) : "—"}</td>
-                        <td className="px-4 py-2.5 text-[12px] text-on-surface font-medium">{p.horas_trabalhadas ? Number(p.horas_trabalhadas).toFixed(1) : "—"}h</td>
-                        <td className="px-4 py-2.5"><span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + presencaClasses(p.estado)}>{presencaLabel(p.estado)}</span></td>
+                      <tr key={r.id || i} className="hover:bg-surface-container/50 transition-colors">
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{formatDate(r.data)}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface">{r.hora_entrada ? r.hora_entrada.slice(0, 5) : "—"}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface">{r.hora_saida ? r.hora_saida.slice(0, 5) : "—"}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface font-medium">{r.horas_trabalhadas ? Number(r.horas_trabalhadas).toFixed(1) : "—"}h</td>
+                        <td className="px-4 py-2.5">
+                          <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + presencaClasses(r.estado)}>{presencaLabel(r.estado)}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {faltaAtroso && !r.justificado && (
+                            <button onClick={function () { setJustificacaoForm({ falta: r, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[11px] font-medium text-primary hover:underline px-2 py-1 rounded hover:bg-primary/5">
+                              Justificar
+                            </button>
+                          )}
+                          {r.justificado && (
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Justificado</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-            <div className="sm:hidden space-y-2">
-              {presencas.map(function (p, i) {
+            <div className="sm:hidden space-y-2 mb-4">
+              {registos.map(function (r, i) {
+                var faltaAtroso = r.estado === "Ausente" || r.estado === "Atrasado";
                 return (
-                  <div key={p.id || i} className="border border-outline-variant rounded-lg p-3">
+                  <div key={r.id || i} className="border border-outline-variant rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[12px] font-medium text-on-surface">{formatDate(p.data)}</span>
-                      <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + presencaClasses(p.estado)}>{presencaLabel(p.estado)}</span>
+                      <span className="text-[12px] font-medium text-on-surface">{formatDate(r.data)}</span>
+                      <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + presencaClasses(r.estado)}>{presencaLabel(r.estado)}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="grid grid-cols-3 gap-2 text-center mb-2">
                       <div>
                         <p className="text-[10px] text-outline uppercase">Entrada</p>
-                        <p className="text-[13px] font-semibold text-on-surface">{p.hora_entrada ? p.hora_entrada.slice(0, 5) : "—"}</p>
+                        <p className="text-[13px] font-semibold text-on-surface">{r.hora_entrada ? r.hora_entrada.slice(0, 5) : "—"}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-outline uppercase">Saída</p>
-                        <p className="text-[13px] font-semibold text-on-surface">{p.hora_saida ? p.hora_saida.slice(0, 5) : "—"}</p>
+                        <p className="text-[13px] font-semibold text-on-surface">{r.hora_saida ? r.hora_saida.slice(0, 5) : "—"}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-outline uppercase">Horas</p>
-                        <p className="text-[13px] font-semibold text-on-surface">{p.horas_trabalhadas ? Number(p.horas_trabalhadas).toFixed(1) : "—"}</p>
+                        <p className="text-[13px] font-semibold text-on-surface">{r.horas_trabalhadas ? Number(r.horas_trabalhadas).toFixed(1) : "—"}</p>
                       </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      {faltaAtroso && !r.justificado && (
+                        <button onClick={function () { setJustificacaoForm({ falta: r, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[12px] font-medium text-primary hover:underline px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20">
+                          Justificar
+                        </button>
+                      )}
+                      {r.justificado && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">Justificado</span>
+                      )}
+                      {(!faltaAtroso || r.justificado) && <span />}
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+            {regPaginacao.total_paginas > 1 && (
+              <div className="flex items-center justify-between border-t border-outline-variant pt-3 mt-2">
+                <button
+                  disabled={regPagina <= 1}
+                  onClick={function () { var novaPagina = regPagina - 1; setRegPagina(novaPagina); carregarRegistros(novaPagina); }}
+                  className="px-3 py-1.5 rounded-lg border border-outline-variant text-[12px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors disabled:opacity-30"
+                >
+                  Anterior
+                </button>
+                <span className="text-[12px] text-on-surface-variant">
+                  Página <span className="font-semibold text-on-surface">{regPagina}</span> de <span className="font-semibold text-on-surface">{regPaginacao.total_paginas}</span>
+                </span>
+                <button
+                  disabled={regPagina >= regPaginacao.total_paginas}
+                  onClick={function () { var novaPagina = regPagina + 1; setRegPagina(novaPagina); carregarRegistros(novaPagina); }}
+                  className="px-3 py-1.5 rounded-lg border border-outline-variant text-[12px] font-medium text-on-surface-variant hover:bg-surface-container transition-colors disabled:opacity-30"
+                >
+                  Próxima
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
 
