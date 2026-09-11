@@ -8,9 +8,12 @@ import { Badge } from "@/components/ui/Badge";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
+var CACHE_BUST = Date.now();
+
 var imageUrl = function (path) {
   if (!path) return "";
   var decoded = path.replace(/&#x2F;/g, "/").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
+  if (decoded.indexOf("/logos/") !== -1 && decoded.indexOf("?v=") === -1) decoded += "?v=" + CACHE_BUST;
   if (decoded.startsWith("http")) return decoded;
   return api.baseURL + decoded;
 };

@@ -88,7 +88,9 @@ export default function ConfiguracoesPage() {
         setOrgNif(org.nif || "");
         setOrgSite(org.website || "");
         setOrgTemplate(org.template_contrato || "");
-        setOrgLogoUrl(org.logo_url || "");
+        var logoUrl = org.logo_url || "";
+        if (logoUrl && logoUrl.indexOf("?v=") === -1) logoUrl += "?v=" + Date.now();
+        setOrgLogoUrl(logoUrl);
       }
     }).catch(function() {}).finally(function() { setLoadingOrg(false); });
   }, []);
