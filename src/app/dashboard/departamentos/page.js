@@ -329,7 +329,7 @@ export default function DepartamentosPage() {
     var ph = doc.internal.pageSize.getHeight();
 
     var logoImg = null;
-    var logoUrl = org && org.logo_url ? imageUrl(org.logo_url) : "";
+    var logoUrl = imageUrl("/uploads/logos/logo_default.jpg");
 
     var seccoes = [];
     var membrosMap = {};

@@ -53,9 +53,7 @@ async function buildPdfHeader(title, org) {
   var pw = doc.internal.pageSize.getWidth();
   var logoImg = null;
 
-  if (org && org.logo_url) {
-    logoImg = await carregarLogoDataUrl(imageUrl(org.logo_url));
-  }
+  logoImg = await carregarLogoDataUrl(imageUrl("/uploads/logos/logo_default.jpg"));
 
   var xText = 15;
   var y = 18;

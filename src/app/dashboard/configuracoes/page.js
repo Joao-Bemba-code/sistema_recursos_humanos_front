@@ -19,6 +19,7 @@ export default function ConfiguracoesPage() {
   const [msg, setMsg] = useState(null);
   const [saving, setSaving] = useState(false);
   const [orgId, setOrgId] = useState(null);
+  const [organizacoes, setOrganizacoes] = useState([]);
   const [loadingOrg, setLoadingOrg] = useState(true);
   const [, setTick] = useState(0);
 
@@ -77,8 +78,10 @@ export default function ConfiguracoesPage() {
       setSegSessao(c.seguranca.sessaoInactiva !== false);
     }
     api.get("/api/organizacoes").then(function(data) {
-      if (data.dados && data.dados.length > 0) {
-        var org = data.dados[0];
+      var orgs = data.dados || [];
+      setOrganizacoes(orgs);
+      if (orgs.length > 0) {
+        var org = orgs[0];
         setOrgId(org.id);
         setOrgNome(org.nome || "");
         setOrgSigla(org.nome_curto || "");
@@ -94,6 +97,23 @@ export default function ConfiguracoesPage() {
       }
     }).catch(function() {}).finally(function() { setLoadingOrg(false); });
   }, []);
+
+  var selecionarOrganizacao = useCallback(function(id) {
+    var org = organizacoes.find(function(o) { return o.id === id; });
+    if (!org) return;
+    setOrgId(org.id);
+    setOrgNome(org.nome || "");
+    setOrgSigla(org.nome_curto || "");
+    setOrgEndereco(org.endereco || "");
+    setOrgTelefone(org.telefone || "");
+    setOrgEmail(org.email || "");
+    setOrgNif(org.nif || "");
+    setOrgSite(org.website || "");
+    setOrgTemplate(org.template_contrato || "");
+    var logoUrl = org.logo_url || "";
+    if (logoUrl && logoUrl.indexOf("?v=") === -1) logoUrl += "?v=" + Date.now();
+    setOrgLogoUrl(logoUrl);
+  }, [organizacoes]);
 
   var nome = "", email = "", perfil = "", userId = "";
   if (utilizador) {
@@ -225,6 +245,15 @@ export default function ConfiguracoesPage() {
           {activeTab === 0 && (
             <div className="space-y-6">
               <h3 className="text-[13px] font-bold text-on-surface uppercase tracking-wider mb-4">{T.dadosOrganizacao}</h3>
+              {!loadingOrg && organizacoes.length > 1 && (
+                <div className="mb-4">
+                  <label className="block text-[12px] font-semibold text-on-surface-variant mb-1.5">Organização</label>
+                  <select value={orgId || ""} onChange={function(e) { selecionarOrganizacao(e.target.value); }} className={inputCls}>
+                    {organizacoes.map(function(o) { return <option key={o.id} value={o.id}>{o.nome}</option>; })}
+                  </select>
+                  <p className="text-[11px] text-on-surface-variant/60 mt-1">O logo definido aqui aplica-se a todos os PDFs dos colaboradores desta organização.</p>
+                </div>
+              )}
               {loadingOrg ? (
                 <div className="space-y-4">{[1,2,3].map(function(i) { return <div key={i} className="h-11 bg-surface-container rounded-lg animate-pulse" />; })}</div>
               ) : (
