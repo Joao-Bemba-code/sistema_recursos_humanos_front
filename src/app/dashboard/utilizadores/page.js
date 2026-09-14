@@ -64,7 +64,6 @@ export default function UtilizadoresPage() {
   var [perfilEditando, setPerfilEditando] = useState(null);
   var [perfilPermissoes, setPerfilPermissoes] = useState({});
   var [savingPerfil, setSavingPerfil] = useState(false);
-  var [abaPerfil, setAbaPerfil] = useState(null);
 
   var carregarUtilizadores = useCallback(async function (page) {
     setLoading(true);
@@ -224,7 +223,6 @@ export default function UtilizadoresPage() {
   var abrirPerfil = function (perfil) {
     setPerfilEditando(perfil);
     setPerfilPermissoes(normalizarPermissoes(perfil.permissoes));
-    setAbaPerfil(null);
     setShowPerfilModal(true);
   };
 
@@ -643,6 +641,7 @@ export default function UtilizadoresPage() {
           </div>
         ) : (
           <div>
+            <p className="text-[12px] text-on-surface-variant/70 mb-3">Marque apenas os módulos e operações que este perfil pode aceder. O que não estiver marcado fica bloqueado.</p>
             {modulos.length === 0 ? (
               <p className="text-[13px] text-on-surface-variant/60 py-4 text-center">Nenhum módulo disponível</p>
             ) : (
@@ -661,23 +660,19 @@ export default function UtilizadoresPage() {
                 </div>
 
                 {modulos.map(function (mod) {
-                  var aplicaTodos = perfilEditando && perfilEditando.nivel >= 3 && mod.chave !== "utilizadores";
                   var ativos = perfilPermissoes[mod.chave] || [];
-
-                  if (abaPerfil && abaPerfil !== mod.chave) return null;
 
                   return (
                     <div key={mod.chave} className="grid grid-cols-[minmax(160px,1fr)_repeat(4,64px)_28px] gap-1 items-center px-1 py-1.5 rounded-lg hover:bg-surface-container/50 transition-colors">
                       <span className="text-[13px] font-semibold text-on-surface">{mod.nome}</span>
                       {OPERACOES.map(function (op) {
-                        var aceite = aplicaTodos || ativos.indexOf(op.chave) !== -1;
-                        var toggleable = !aplicaTodos;
+                        var aceite = ativos.indexOf(op.chave) !== -1;
                         return (
                           <div key={op.chave} className="flex justify-center">
                             <button
-                              onClick={function () { if (toggleable) togglePermissao(mod.chave, op.chave); }}
-                              disabled={!toggleable}
-                              title={aplicaTodos ? "Permitido por nível de direção" : op.label}
+                              type="button"
+                              onClick={function () { togglePermissao(mod.chave, op.chave); }}
+                              title={op.label}
                               className={"w-6 h-6 rounded-md border flex items-center justify-center transition-all " + (aceite ? "bg-primary border-primary text-white" : "border-outline-variant/50 text-transparent hover:border-primary/40")}
                             >
                               <span className="material-symbols-outlined text-[14px]">check</span>
@@ -685,16 +680,7 @@ export default function UtilizadoresPage() {
                           </div>
                         );
                       })}
-                      {perfilEditando && perfilEditando.nivel >= 3 && mod.chave === "utilizadores" && (
-                        <button
-                          onClick={function () { setAbaPerfil(abaPerfil === mod.chave ? null : mod.chave); }}
-                          className="text-on-surface-variant/60 hover:text-primary transition-colors"
-                          title="Configurar permissões específicas de utilizadores"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">{abaPerfil === mod.chave ? "expand_less" : "expand_more"}</span>
-                        </button>
-                      )}
-                      {(perfilEditando && perfilEditando.nivel < 3) && <span />}
+                      <span />
                     </div>
                   );
                 })}
