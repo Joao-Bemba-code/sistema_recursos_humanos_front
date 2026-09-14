@@ -222,7 +222,14 @@ export default function UtilizadoresPage() {
 
   var abrirPerfil = function (perfil) {
     setPerfilEditando(perfil);
-    setPerfilPermissoes(normalizarPermissoes(perfil.permissoes));
+    var perm = normalizarPermissoes(perfil.permissoes);
+    var soAtuais = {};
+    modulos.forEach(function (m) {
+      if (Array.isArray(perm[m.chave]) && perm[m.chave].length > 0) {
+        soAtuais[m.chave] = perm[m.chave];
+      }
+    });
+    setPerfilPermissoes(soAtuais);
     setShowPerfilModal(true);
   };
 

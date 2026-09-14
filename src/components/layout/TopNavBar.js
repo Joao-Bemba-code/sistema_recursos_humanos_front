@@ -309,11 +309,11 @@ export default function TopNavBar() {
                     <p className="text-[13px] font-semibold text-on-surface">{utilizador ? utilizador.nome_completo : ""}</p>
                     <p className="text-[11px] text-on-surface-variant/60">{utilizador ? utilizador.email : ""}</p>
                   </div>
-                  <Link href={soColaborador ? "/dashboard/portal" : "/dashboard/configuracoes"} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
+                  <Link href={soColaborador ? "/dashboard/portal" : (auth.hasPermission("configuracoes", "read") ? "/dashboard/configuracoes" : "/dashboard")} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
                     <span className="material-symbols-outlined text-[18px]">person</span>
                     {soColaborador ? "Os Meus Dados" : "Meu Perfil"}
                   </Link>
-                  {!soColaborador && (
+{auth.hasPermission("configuracoes", "read") && (
                     <Link href="/dashboard/configuracoes" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
                       <span className="material-symbols-outlined text-[18px]">settings</span>
                       Configurações

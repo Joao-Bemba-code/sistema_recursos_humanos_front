@@ -60,7 +60,6 @@ export function AuthProvider({ children }) {
       if (typeof permissoes === "string") {
         try { permissoes = JSON.parse(permissoes); } catch (e) { permissoes = {}; }
       }
-      if (permissoes._all && permissoes._all.indexOf(operacao) !== -1) return true;
       if (permissoes[modulo] && permissoes[modulo].indexOf(operacao) !== -1) return true;
     }
     return false;
