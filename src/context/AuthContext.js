@@ -26,6 +26,23 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const intervalo = setInterval(async () => {
+      try {
+        const response = await api.get("/auth/profile");
+        const user = response && response.utilizador ? response.utilizador : null;
+        if (user) {
+          setUtilizador(user);
+          localStorage.setItem("utilizador", JSON.stringify(user));
+        }
+      } catch (e) {
+        // 401 é tratado no api.js (remove token e redireciona)
+      }
+    }, 300000);
+    return () => clearInterval(intervalo);
+  }, [isAuthenticated]);
+
   const login = useCallback(async (email, password) => {
     const response = await api.post("/auth/login", { email, password });
     localStorage.setItem("token", response.token);
@@ -45,6 +62,20 @@ export function AuthProvider({ children }) {
   const updateUser = useCallback((user) => {
     setUtilizador(user);
     localStorage.setItem("utilizador", JSON.stringify(user));
+  }, []);
+
+  const refreshUtilizador = useCallback(async () => {
+    try {
+      const response = await api.get("/auth/profile");
+      const user = response && response.utilizador ? response.utilizador : null;
+      if (user) {
+        setUtilizador(user);
+        localStorage.setItem("utilizador", JSON.stringify(user));
+      }
+      return user;
+    } catch (e) {
+      return null;
+    }
   }, []);
 
   const hasPermission = useCallback((modulo, operacao) => {
@@ -80,6 +111,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     updateUser,
+    refreshUtilizador,
     hasPermission,
     isAdmin,
   };

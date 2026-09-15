@@ -7,6 +7,7 @@ import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/context/AuthContext";
 
 var OPERACOES = [
   { chave: "create", label: "Criar", icon: "add_circle" },
@@ -46,6 +47,7 @@ var normalizarPermissoes = function (perm) {
 
 export default function UtilizadoresPage() {
   var toast = useToast();
+  var auth = useAuth();
 
   var [utilizadores, setUtilizadores] = useState([]);
   var [perfis, setPerfis] = useState([]);
@@ -257,6 +259,16 @@ export default function UtilizadoresPage() {
       toast.addToast("success", "Permissões atualizadas com sucesso");
       setShowPerfilModal(false);
       carregarPerfis();
+      var utilizadorActual = auth.utilizador;
+      var perfisUsuario = Array.isArray(utilizadorActual && utilizadorActual.perfis)
+        ? utilizadorActual.perfis
+        : (utilizadorActual && utilizadorActual.perfil ? [utilizadorActual.perfil] : []);
+      var temPerfilEditado = perfisUsuario.some(function (p) {
+        return p && String(p.id) === String(perfilEditando.id);
+      });
+      if (temPerfilEditado && auth.refreshUtilizador) {
+        await auth.refreshUtilizador();
+      }
     } catch (e) {
       toast.addToast("error", e.message);
     } finally {
