@@ -6,6 +6,7 @@ export const NAV_ITEMS = [
     items: [
       { label: "Painel", href: "/dashboard", icon: "dashboard", modulo: null },
       { label: "Portal", href: "/dashboard/portal", icon: "person", modulo: "portal" },
+      { label: "Comunicados", href: "/dashboard/comunicados", icon: "campaign", modulo: null },
     ],
   },
   {

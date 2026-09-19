@@ -304,6 +304,28 @@ var PT = {
   tituloPedido: "Título do Pedido",
   descricaoPedido: "Descrição do Pedido",
   confirmar: "Confirmar",
+  // Comunicados
+  comunicados: "Comunicados",
+  comunicadosRH: "Comunicados RH",
+  novoComunicado: "Novo Comunicado",
+  editarComunicado: "Editar Comunicado",
+  detalhesComunicado: "Detalhes do Comunicado",
+  tituloComunicado: "Título",
+  conteudoComunicado: "Conteúdo",
+  tipoComunicado: "Tipo",
+  visivelPara: "Visível Para",
+  dataInicioComunicado: "Data de Início",
+  dataFimComunicado: "Data de Fim",
+  publicadoBadge: "Publicado",
+  rascunhoBadge: "Rascunho",
+  porDepartamento: "Por Departamento",
+  publicar: "Publicar",
+  despublicar: "Despublicar",
+  semComunicados: "Nenhum comunicado encontrado",
+  cliqueNovoComunicado: 'Clique em "Novo Comunicado" para adicionar',
+  exibindoComunicados: "A exibir {n} de {t} comunicados",
+  comunicadoPublicado: "Comunicado publicado com sucesso",
+  comunicadoDespublicado: "Comunicado despublicado",
 };
 
 var EN = {
@@ -595,6 +617,27 @@ var EN = {
   tituloPedido: "Request Title",
   descricaoPedido: "Request Description",
   confirmar: "Confirm",
+  comunicados: "Notices",
+  comunicadosRH: "HR Notices",
+  novoComunicado: "New Notice",
+  editarComunicado: "Edit Notice",
+  detalhesComunicado: "Notice Details",
+  tituloComunicado: "Title",
+  conteudoComunicado: "Content",
+  tipoComunicado: "Type",
+  visivelPara: "Visible To",
+  dataInicioComunicado: "Start Date",
+  dataFimComunicado: "End Date",
+  publicadoBadge: "Published",
+  rascunhoBadge: "Draft",
+  porDepartamento: "By Department",
+  publicar: "Publish",
+  despublicar: "Unpublish",
+  semComunicados: "No notices found",
+  cliqueNovoComunicado: 'Click "New Notice" to add',
+  exibindoComunicados: "Showing {n} of {t} notices",
+  comunicadoPublicado: "Notice published successfully",
+  comunicadoDespublicado: "Notice unpublished",
 };
 
 function getT() {
@@ -626,6 +669,7 @@ function getNavLabel(label) {
     "Configurações": t.configuracoes,
     "Configuracoes": t.configuracoes,
     "Portal do Colaborador": t.portalDoColaborador,
+    "Comunicados": t.comunicados,
   };
   return map[label] || label;
 }
