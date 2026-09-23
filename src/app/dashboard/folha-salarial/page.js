@@ -172,8 +172,21 @@ export default function FolhaSalarialPage() {
         }));
       }
       buscarDescontoFaltas(colabId, form.mes, form.ano);
+      buscarHorasExtras(colabId, form.mes, form.ano);
     } catch (e) {
       console.error("Erro ao buscar contrato:", e);
+    }
+  };
+
+  const buscarHorasExtras = async (colabId, mes, ano) => {
+    if (!colabId || !mes || !ano) return;
+    try {
+      const data = await api.get(`/api/folha-salarial/preview-horas-extras?colaborador_id=${colabId}&mes=${mes}&ano=${ano}`);
+      if (data && data.dados && data.dados.horas_extras !== undefined) {
+        setForm(prev => ({ ...prev, horas_extras: data.dados.horas_extras }));
+      }
+    } catch (e) {
+      console.error("Erro ao buscar horas extras:", e);
     }
   };
 
@@ -195,6 +208,7 @@ export default function FolhaSalarialPage() {
       const novo = { ...prev, [name]: value };
       if (novo.colaborador_id && novo.mes && novo.ano) {
         buscarDescontoFaltas(novo.colaborador_id, novo.mes, novo.ano);
+        buscarHorasExtras(novo.colaborador_id, novo.mes, novo.ano);
       }
       return novo;
     });

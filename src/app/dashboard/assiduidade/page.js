@@ -143,7 +143,7 @@ export default function AssiduidadePage() {
     try {
       var d1 = new Date("2000-01-01T" + entrada);
       var d2 = new Date("2000-01-01T" + saida);
-      if (d2 <= d1) return "";
+      if (d2 <= d1) d2 = new Date(d2.getTime() + 24 * 3600000);
       var diffMs = d2 - d1;
       var horas = Math.floor(diffMs / 3600000);
       var mins = Math.floor((diffMs % 3600000) / 60000);
@@ -162,7 +162,7 @@ export default function AssiduidadePage() {
     try {
       var d1 = new Date("2000-01-01T" + form.hora_entrada);
       var d2 = new Date("2000-01-01T" + form.hora_saida);
-      if (d2 <= d1) return "";
+      if (d2 <= d1) d2 = new Date(d2.getTime() + 24 * 3600000);
       var diffMs = d2 - d1;
       var totalHoras = diffMs / 3600000;
       var extras = totalHoras - 8;
@@ -394,7 +394,8 @@ export default function AssiduidadePage() {
                 </tr>
               ) : (
                 registos.map(function (r) {
-                  var horas = r.horas_trabalhadas || calcularHoras(r.hora_entrada, r.hora_saida);
+                  var horas = parseFloat(r.horas_trabalhadas) > 0 ? r.horas_trabalhadas : calcularHoras(r.hora_entrada, r.hora_saida);
+                  var extras = parseFloat(r.horas_extras) || 0;
                   return (
                     <tr key={r.id} className="hover:bg-primary/[0.02] transition-colors group">
                       <td className="px-6 py-4">
@@ -420,8 +421,8 @@ export default function AssiduidadePage() {
                       <td className="px-4 py-4">
                         <div className="flex flex-col">
                           <span className="text-on-surface font-semibold text-[13px]">{horas || "—"}</span>
-                          {r.horas_extras && r.horas_extras !== "0" && r.horas_extras !== "0h" && (
-                            <span className="text-[11px] text-warning font-bold">+{r.horas_extras} extra</span>
+                          {extras > 0 && (
+                            <span className="text-[11px] text-warning font-bold">+{extras} extra</span>
                           )}
                         </div>
                       </td>
@@ -598,8 +599,8 @@ export default function AssiduidadePage() {
                     ["Data", registoView.data ? helpers.formatDate(registoView.data) : null],
                     ["Hora Entrada", registoView.hora_entrada || null],
                     ["Hora Saída", registoView.hora_saida || null],
-                    ["Horas Trabalhadas", registoView.horas_trabalhadas || calcularHoras(registoView.hora_entrada, registoView.hora_saida) || null],
-                    ["Horas Extras", registoView.horas_extras || null],
+                    ["Horas Trabalhadas", (parseFloat(registoView.horas_trabalhadas) > 0 ? registoView.horas_trabalhadas : null) || calcularHoras(registoView.hora_entrada, registoView.hora_saida) || null],
+                    ["Horas Extras", (parseFloat(registoView.horas_extras) || 0) > 0 ? registoView.horas_extras : null],
                     ["Método", registoView.metodo || null],
                   ].map(function (pair) {
                     return (
