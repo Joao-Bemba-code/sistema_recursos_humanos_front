@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { formatDate } from "@/lib/helpers";
@@ -26,6 +27,7 @@ var TIPOS_PRESENCA = [
   { value: "ferias", label: "Férias" },
   { value: "fim_semana", label: "Fim de semana" },
 ];
+var COMUNICADO_BADGES = { Geral: "badge-primary", Urgente: "badge-danger", Informativo: "badge-secondary", Evento: "badge-warning" };
 function diasEntre(inicio, fim) {
   if (!inicio || !fim) return 0;
   var d1 = new Date(inicio);
@@ -117,6 +119,7 @@ export default function PortalPage() {
 
   var [portalData, setPortalData] = useState(null);
   var [loading, setLoading] = useState(true);
+  var [comunicados, setComunicados] = useState([]);
   var [showSolicitacaoModal, setShowSolicitacaoModal] = useState(false);
   var [showPasswordModal, setShowPasswordModal] = useState(false);
   var [justificacaoForm, setJustificacaoForm] = useState({ falta: null, tipo: "Atestado_Medico", ficheiro: null });
@@ -220,6 +223,9 @@ export default function PortalPage() {
       api.get("/api/portal/stats").then(function (res) {
         if (res && res.dados) setPortalData(res.dados);
       }).catch(function () {}).finally(function () { setLoading(false); });
+      api.get("/api/comunicados?page=1&limit=5").then(function (res) {
+        if (res && res.dados) setComunicados(res.dados);
+      }).catch(function () {});
     };
     fetchData();
     var interval = setInterval(fetchData, 30000);
@@ -304,6 +310,30 @@ export default function PortalPage() {
         <p className="text-[11px] text-outline uppercase tracking-widest mb-1">{dataHoje}</p>
         <h1 className="text-[22px] font-semibold text-on-surface">{saudacao}{nome}</h1>
       </div>
+
+      {comunicados.length > 0 && (
+        <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[14px] font-semibold text-on-surface">Comunicados</h2>
+            <Link href="/dashboard/comunicados" className="text-[12px] font-medium text-primary hover:underline">Ver todos</Link>
+          </div>
+          <div className="space-y-3">
+            {comunicados.map(function (c) {
+              var badge = COMUNICADO_BADGES[c.tipo] || "badge-secondary";
+              return (
+                <article key={c.id} className="border border-outline-variant rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className={"text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded " + badge}>{c.tipo || "Geral"}</span>
+                    <span className="text-[11px] text-outline">{formatDate(c.data_inicio)}</span>
+                  </div>
+                  <h3 className="text-[13px] font-semibold text-on-surface leading-snug break-words">{c.titulo}</h3>
+                  <p className="text-[12px] text-on-surface-variant leading-relaxed mt-1 whitespace-pre-line break-words line-clamp-3">{c.conteudo}</p>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="flex items-center justify-between mb-3">

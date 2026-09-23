@@ -17,6 +17,7 @@ var ALL_MODULES = [
   { label: "Assiduidade", href: "/dashboard/assiduidade", icon: "timer", modulo: "assiduidade" },
   { label: "Faltas e Atrasos", href: "/dashboard/faltas", icon: "event_busy", modulo: "faltas" },
   { label: "Advertências", href: "/dashboard/advertencias", icon: "warning", modulo: "advertencias" },
+  { label: "Comunicados", href: "/dashboard/comunicados", icon: "campaign", modulo: "comunicados" },
   { label: "Férias", href: "/dashboard/ferias", icon: "beach_access", modulo: "ferias" },
   { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment", modulo: "pedidos" },
   { label: "Avaliação", href: "/dashboard/avaliacao", icon: "query_stats", modulo: "avaliacao" },
