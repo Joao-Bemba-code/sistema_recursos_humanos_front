@@ -194,10 +194,10 @@ export default function FolhaSalarialPage() {
     }
   };
 
-  const buscarDescontoFaltas = async (colabId, mes, ano) => {
+  const buscarDescontoFaltas = async (colabId, mes, ano, apenasMes) => {
     if (!colabId || !mes || !ano) return;
     try {
-      const data = await api.get(`/api/folha-salarial/preview-desconto-faltas?colaborador_id=${colabId}&mes=${mes}&ano=${ano}`);
+      const data = await api.get(`/api/folha-salarial/preview-desconto-faltas?colaborador_id=${colabId}&mes=${mes}&ano=${ano}${apenasMes ? "&apenas_mes=true" : ""}`);
       if (data && data.dados && data.dados.desconto_faltas !== undefined) {
         setForm(prev => ({ ...prev, desconto_faltas: data.dados.desconto_faltas }));
       }
@@ -972,6 +972,27 @@ export default function FolhaSalarialPage() {
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Desconto Faltas</label>
                     <input type="number" step="0.01" name="desconto_faltas" value={form.desconto_faltas || ""} onChange={handleInput} placeholder="Calculado automaticamente" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
+
+                  {!editando && (
+                    <div className="sm:col-span-2">
+                      <label className="flex items-start gap-3 px-3 py-3 bg-warning/5 border border-warning/20 rounded-lg cursor-pointer select-none">
+                        <input type="checkbox" checked={!!form.apenas_mes} onChange={(e) => {
+                          const marcado = e.target.checked;
+                          setForm(prev => {
+                            const novo = { ...prev, apenas_mes: marcado };
+                            if (novo.colaborador_id && novo.mes && novo.ano) {
+                              buscarDescontoFaltas(novo.colaborador_id, novo.mes, novo.ano, marcado);
+                            }
+                            return novo;
+                          });
+                        }} className="w-4 h-4 rounded accent-warning mt-0.5" />
+                        <span className="text-[13px] font-semibold text-on-surface leading-snug">
+                          Restaurar folha — descontar apenas as faltas deste mês
+                          <span className="block text-[11px] font-medium text-on-surface-variant/70 mt-0.5">Para recriar uma folha apagada por engano: só as faltas/atrasos do mês escolhido são descontados e marcados como processados. As faltas de outros meses ficam pendentes para a folha delas.</span>
+                        </span>
+                      </label>
+                    </div>
+                  )}
 
                   <div className="sm:col-span-2 bg-success/5 border border-success/10 rounded-lg p-3 mt-1">
                     <div className="flex items-center justify-between">
