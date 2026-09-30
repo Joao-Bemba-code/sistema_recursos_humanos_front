@@ -18,6 +18,7 @@ var ROTAS_MODULOS = {
   "/dashboard/avaliacao": "avaliacao",
   "/dashboard/formacao": "formacao",
   "/dashboard/folha-salarial": "folha_salarial",
+  "/dashboard/creditos": "creditos",
   "/dashboard/pedidos": "pedidos",
   "/dashboard/utilizadores": "utilizadores",
   "/dashboard/advertencias": "advertencias",

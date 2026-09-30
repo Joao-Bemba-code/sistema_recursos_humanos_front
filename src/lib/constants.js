@@ -38,6 +38,7 @@ export const NAV_ITEMS = [
     titulo: "Financeiro",
     items: [
       { label: "Folha Salarial", href: "/dashboard/folha-salarial", icon: "paid", modulo: "folha_salarial" },
+      { label: "Créditos", href: "/dashboard/creditos", icon: "savings", modulo: "creditos" },
     ],
   },
   {

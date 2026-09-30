@@ -30,7 +30,9 @@ export default function TopNavBar() {
   const mainItems = itensPermitidos.filter((i) =>
     ["/dashboard", "/dashboard/portal", "/dashboard/colaboradores", "/dashboard/contratos", "/dashboard/departamentos"].includes(i.href)
   );
-  const temModulosAdministrativos = itensPermitidos.some((i) => i.href !== "/dashboard" && i.href !== "/dashboard/portal");
+  // Modulos que um simples colaborador pode ver (nao contam como administrativos)
+  const rotasColaborador = ["/dashboard/portal", "/dashboard/comunicados", "/dashboard/ferias", "/dashboard/pedidos"];
+  const temModulosAdministrativos = itensPermitidos.some((i) => i.href !== "/dashboard" && rotasColaborador.indexOf(i.href) === -1);
   const isAdmin = auth.isAdmin();
   const soColaborador = auth.hasPermission("portal", "read") && !isAdmin && !temModulosAdministrativos;
 

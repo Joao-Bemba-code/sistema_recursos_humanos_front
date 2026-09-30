@@ -39,12 +39,12 @@ const calcularIRT = (base) => {
   return 0;
 };
 
-const calcularDescontosObrigatorios = (salarioBase, subsidios, horasExtras) => {
+const calcularDescontosObrigatorios = (salarioBase, subsidios, horasExtras, temSegurancaSocial) => {
   const sb = parseFloat(salarioBase) || 0;
   const sub = parseFloat(subsidios) || 0;
   const he = parseFloat(horasExtras) || 0;
   const bruto = sb + sub + he;
-  const ss = calcularSegurancaSocial(bruto);
+  const ss = temSegurancaSocial ? calcularSegurancaSocial(bruto) : 0;
   const subsidiosTributaveis = Math.max(0, sub - ISENCAO_SUBSIDIO_ALIMENTACAO);
   const baseIRT = Math.max(0, sb + he + subsidiosTributaveis - ss);
   return { seguranca_social: ss, irt: calcularIRT(baseIRT) };
@@ -75,7 +75,7 @@ export default function FolhaSalarialPage() {
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, nome: "" });
   const [recalculando, setRecalculando] = useState(false);
   const [gerarAuto, setGerarAuto] = useState(false);
-  const [autogForm, setAutogForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear() });
+  const [autogForm, setAutogForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear(), marcar_pago: true });
   const [gerando, setGerando] = useState(false);
   const [resultadoGerar, setResultadoGerar] = useState(null);
   const [baixandoResumo, setBaixandoResumo] = useState(false);
@@ -144,7 +144,9 @@ export default function FolhaSalarialPage() {
     setForm(prev => {
       const novo = { ...prev, [nome]: valor };
       if (tab === "pagamentos" && (nome === "salario_base" || nome === "subsidios" || nome === "horas_extras")) {
-        const obrigatorios = calcularDescontosObrigatorios(novo.salario_base, novo.subsidios, novo.horas_extras);
+        const colabSel = colaboradores.find(c => String(c.id) === String(novo.colaborador_id));
+        const temSS = !!(colabSel && colabSel.numero_seguranca_social);
+        const obrigatorios = calcularDescontosObrigatorios(novo.salario_base, novo.subsidios, novo.horas_extras, temSS);
         novo.seguranca_social = obrigatorios.seguranca_social;
         novo.irt = obrigatorios.irt;
       }
@@ -161,7 +163,9 @@ export default function FolhaSalarialPage() {
       if (data && data.dados) {
         const sb = data.dados.salario_base || 0;
         const sub = data.dados.subsidio_alimentacao || 0;
-        const obrigatorios = calcularDescontosObrigatorios(sb, sub, 0);
+        const colabSel = colaboradores.find(c => String(c.id) === String(colabId));
+        const temSS = !!(colabSel && colabSel.numero_seguranca_social);
+        const obrigatorios = calcularDescontosObrigatorios(sb, sub, 0, temSS);
         setForm(prev => ({
           ...prev,
           colaborador_id: colabId,
@@ -775,7 +779,7 @@ export default function FolhaSalarialPage() {
                           <span>IRT: {helpers.formatCurrency(item.irt)}</span>
                           <span>SS: {helpers.formatCurrency(item.seguranca_social)}</span>
                           {(parseFloat(item.desconto_faltas) || 0) > 0 && <span className="text-red-600 font-semibold">Faltas: -{helpers.formatCurrency(item.desconto_faltas)}</span>}
-                          {(parseFloat(item.descontos) || 0) > 0 && <span className="text-red-600 font-semibold">Outros: -{helpers.formatCurrency(item.descontos)}</span>}
+                          {(parseFloat(item.descontos) || 0) > 0 && <span className="text-red-600 font-semibold">Descontos: -{helpers.formatCurrency(item.descontos)}</span>}
                         </div>
                       </td>
                       <td className="px-4 py-4">
@@ -954,6 +958,7 @@ export default function FolhaSalarialPage() {
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Outros Descontos</label>
                     <input type="number" step="0.01" name="descontos" value={form.descontos || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <p className="text-[11px] text-on-surface-variant/60 mt-1 px-1">Deixe vazio para descontar automaticamente os créditos activos do colaborador.</p>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">IRT (auto)</label>
@@ -1019,7 +1024,7 @@ export default function FolhaSalarialPage() {
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex items-start gap-3">
                     <span className="material-symbols-outlined text-[20px] text-primary mt-0.5">bolt</span>
                     <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                      Serão gerados pagamentos <strong>Pendentes</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e Segurança Social calculados automaticamente a partir do contrato ativo.
+                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e Segurança Social calculados automaticamente a partir do contrato ativo. Os <strong>créditos activos</strong> são descontados automaticamente neste processo.
                     </p>
                   </div>
                   <div>
@@ -1032,6 +1037,13 @@ export default function FolhaSalarialPage() {
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Ano *</label>
                     <input type="number" min="2000" max="2100" value={autogForm.ano} onChange={(e) => setAutogForm(prev => ({ ...prev, ano: e.target.value }))} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20" />
                   </div>
+                  <label className="flex items-center gap-3 px-3 py-3 bg-success/5 border border-success/20 rounded-lg cursor-pointer select-none">
+                    <input type="checkbox" checked={!!autogForm.marcar_pago} onChange={(e) => setAutogForm(prev => ({ ...prev, marcar_pago: e.target.checked }))} className="w-4 h-4 rounded accent-success" />
+                    <span className="text-[13px] font-semibold text-on-surface leading-snug">
+                      Marcar como <span className="text-success font-bold">Pago</span>
+                      <span className="block text-[11px] font-medium text-on-surface-variant/70 mt-0.5">Os pagamentos gerados ficam logo como Pago (e os pendentes deste mês também são marcados como pagos).</span>
+                    </span>
+                  </label>
                   <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-outline-variant/20">
                     <button type="button" onClick={() => setGerarAuto(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                     <button type="submit" disabled={gerando} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
@@ -1047,7 +1059,7 @@ export default function FolhaSalarialPage() {
                     <h4 className="text-[16px] font-bold text-on-surface">Pagamentos processados</h4>
                     <p className="text-[13px] text-on-surface-variant mt-1">{MESES[parseInt(autogForm.mes) - 1]}/{autogForm.ano}</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className={"grid gap-3 " + (resultadoGerar.marcados_pago !== undefined ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
                       <p className="text-[20px] font-bold text-success">{resultadoGerar.criados}</p>
                       <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Criados</p>
@@ -1060,6 +1072,12 @@ export default function FolhaSalarialPage() {
                       <p className="text-[20px] font-bold text-error">{resultadoGerar.erros}</p>
                       <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Erros</p>
                     </div>
+                    {resultadoGerar.marcados_pago !== undefined && (
+                      <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
+                        <p className="text-[20px] font-bold text-primary">{resultadoGerar.marcados_pago}</p>
+                        <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Marcados Pago</p>
+                      </div>
+                    )}
                   </div>
                   {resultadoGerar.erros_detalhe && resultadoGerar.erros_detalhe.length > 0 && (
                     <div className="bg-error/5 border border-error/10 rounded-lg p-3 max-h-40 overflow-y-auto">
