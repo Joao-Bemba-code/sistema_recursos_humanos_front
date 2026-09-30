@@ -176,21 +176,8 @@ export default function FolhaSalarialPage() {
         }));
       }
       buscarDescontoFaltas(colabId, form.mes, form.ano);
-      buscarHorasExtras(colabId, form.mes, form.ano);
     } catch (e) {
       console.error("Erro ao buscar contrato:", e);
-    }
-  };
-
-  const buscarHorasExtras = async (colabId, mes, ano) => {
-    if (!colabId || !mes || !ano) return;
-    try {
-      const data = await api.get(`/api/folha-salarial/preview-horas-extras?colaborador_id=${colabId}&mes=${mes}&ano=${ano}`);
-      if (data && data.dados && data.dados.horas_extras !== undefined) {
-        setForm(prev => ({ ...prev, horas_extras: data.dados.horas_extras }));
-      }
-    } catch (e) {
-      console.error("Erro ao buscar horas extras:", e);
     }
   };
 
@@ -212,7 +199,6 @@ export default function FolhaSalarialPage() {
       const novo = { ...prev, [name]: value };
       if (novo.colaborador_id && novo.mes && novo.ano) {
         buscarDescontoFaltas(novo.colaborador_id, novo.mes, novo.ano);
-        buscarHorasExtras(novo.colaborador_id, novo.mes, novo.ano);
       }
       return novo;
     });
@@ -954,6 +940,7 @@ export default function FolhaSalarialPage() {
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Horas Extras</label>
                     <input type="number" step="0.01" name="horas_extras" value={form.horas_extras || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                    <p className="text-[11px] text-on-surface-variant/60 mt-1 px-1">Preenchimento manual — deixe vazio para 0.</p>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Outros Descontos</label>
