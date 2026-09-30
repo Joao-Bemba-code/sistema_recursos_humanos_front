@@ -1032,7 +1032,7 @@ export default function FolhaSalarialPage() {
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex items-start gap-3">
                     <span className="material-symbols-outlined text-[20px] text-primary mt-0.5">bolt</span>
                     <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e Segurança Social calculados automaticamente a partir do contrato ativo. Os <strong>créditos activos</strong> são descontados automaticamente neste processo.
+                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e Segurança Social calculados automaticamente a partir do contrato ativo. As <strong>horas extras ficam a 0</strong> (preenchimento manual, se necessário) e os <strong>créditos activos</strong> são descontados automaticamente neste processo.
                     </p>
                   </div>
                   <div>
