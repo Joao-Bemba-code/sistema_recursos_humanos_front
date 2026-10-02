@@ -16,6 +16,7 @@ var ESTADOS_ASSIDUIDADE = [
   { value: "Licenca", label: "Licença" },
   { value: "Ferias", label: "Férias" },
   { value: "Fim_semana", label: "Fim de Semana" },
+  { value: "Em_Curso", label: "Em Curso" },
 ];
 
 var METODOS_REGISTO = [
@@ -33,6 +34,7 @@ var estadoBadgeClass = function (estado) {
     Licenca: "badge-info",
     Ferias: "badge-info",
     Fim_semana: "badge-secondary",
+    Em_Curso: "badge-info",
   };
   return map[estado] || "badge-secondary";
 };
@@ -45,6 +47,7 @@ var estadoDot = function (estado) {
     Licenca: "bg-info",
     Ferias: "bg-info",
     Fim_semana: "bg-outline",
+    Em_Curso: "bg-info",
   };
   return map[estado] || "bg-outline";
 };
