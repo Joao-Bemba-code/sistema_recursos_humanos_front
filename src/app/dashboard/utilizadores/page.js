@@ -62,6 +62,7 @@ export default function UtilizadoresPage() {
   var [form, setForm] = useState({});
   var [saving, setSaving] = useState(false);
   var [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, nome: "" });
+  var [confirmBloqueio, setConfirmBloqueio] = useState({ open: false, id: null, nome: "", bloquear: false });
   var [showPerfilModal, setShowPerfilModal] = useState(false);
   var [perfilEditando, setPerfilEditando] = useState(null);
   var [perfilPermissoes, setPerfilPermissoes] = useState({});
@@ -74,6 +75,7 @@ export default function UtilizadoresPage() {
       if (search) url += "&search=" + encodeURIComponent(search);
       if (filtroPerfil) url += "&perfil_id=" + filtroPerfil;
       if (filtroEstado) url += "&estado=" + (filtroEstado === "Activo");
+      if (filtroEstado === "Bloqueado") url += "&bloqueados=1";
       var data = await api.get(url);
       setUtilizadores(data.dados);
       setPaginacao(data.paginacao);
@@ -222,6 +224,20 @@ export default function UtilizadoresPage() {
     }
   };
 
+  // Bloquear / desbloquear a conta de acesso (login travado por tentativas)
+  var aplicarBloqueio = async function () {
+    try {
+      var resp = await api.put("/api/users/" + confirmBloqueio.id + "/bloqueio", {
+        bloqueado: confirmBloqueio.bloquear,
+      });
+      toast.addToast("success", resp.mensagem || (confirmBloqueio.bloquear ? "Conta bloqueada" : "Conta desbloqueada"));
+      setConfirmBloqueio({ open: false, id: null, nome: "", bloquear: false });
+      carregarUtilizadores(paginacao.pagina);
+    } catch (e) {
+      toast.addToast("error", e.message);
+    }
+  };
+
   var abrirPerfil = function (perfil) {
     setPerfilEditando(perfil);
     var perm = normalizarPermissoes(perfil.permissoes);
@@ -300,6 +316,21 @@ export default function UtilizadoresPage() {
         onCancel={function () { setConfirmDelete({ open: false, id: null, nome: "" }); }}
       />
 
+      <ConfirmDialog
+        open={confirmBloqueio.open}
+        titulo={confirmBloqueio.bloquear ? "Bloquear Conta" : "Desbloquear Conta"}
+        mensagem={
+          confirmBloqueio.bloquear
+            ? "A conta de " + confirmBloqueio.nome + " deixará de permitir login até ser desbloqueada. Usar quando suspectar de acesso indevido."
+            : "A conta de " + confirmBloqueio.nome + " volta a permitir login e as tentativas falhadas são reiniciadas. O utilizador entra com a senha habitual."
+        }
+        textoConfirmar={confirmBloqueio.bloquear ? "Sim, Bloquear" : "Sim, Desbloquear"}
+        textoCancelar="Cancelar"
+        variante={confirmBloqueio.bloquear ? "perigo" : "default"}
+        onConfirm={aplicarBloqueio}
+        onCancel={function () { setConfirmBloqueio({ open: false, id: null, nome: "", bloquear: false }); }}
+      />
+
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <nav className="flex items-center gap-2 text-[12px] text-on-surface-variant/60 font-medium uppercase tracking-wide">
@@ -349,6 +380,7 @@ export default function UtilizadoresPage() {
                   <option value="">Todos</option>
                   <option value="Activo">Activo</option>
                   <option value="Inactivo">Inactivo</option>
+                  <option value="Bloqueado">Bloqueados (login)</option>
                 </select>
               </div>
               <div className="flex items-end pb-0.5">
@@ -442,11 +474,23 @@ export default function UtilizadoresPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-on-surface-variant">{u.sem_conta ? "—" : formatData(u.ultimo_login)}</span>
+                        <div className="flex flex-col">
+                          <span className="text-on-surface-variant">{u.sem_conta ? "—" : formatData(u.ultimo_login)}</span>
+                          {!u.sem_conta && !u.bloqueado && (u.tentativas_login || 0) > 0 && (
+                            <span className="text-[11px] text-warning font-bold">
+                              {(u.tentativas_login || 0) + " tentativa(s) falhada(s)"}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         {u.sem_conta ? (
                           <Badge variant="secondary" className="uppercase">Sem acesso</Badge>
+                        ) : u.bloqueado ? (
+                          <div className="flex flex-col gap-1 items-start">
+                            <Badge variant="destructive" className="uppercase">Bloqueado</Badge>
+                            <span className="text-[11px] text-on-surface-variant/70">{(u.tentativas_login || 0) + "x sem sucesso"}</span>
+                          </div>
                         ) : (
                           <Badge variant={u.activo ? "success" : "secondary"} className="uppercase">
                             {u.activo ? "Activo" : "Inactivo"}
@@ -465,6 +509,27 @@ export default function UtilizadoresPage() {
                               <Button onClick={function () { abrirEditar(u); }} variant="ghost" size="icon-sm" title="Editar">
                                 <span className="material-symbols-outlined text-[15px]">edit</span>
                               </Button>
+                              {u.bloqueado ? (
+                                <Button
+                                  onClick={function () { setConfirmBloqueio({ open: true, id: u.id, nome: u.nome_completo, bloquear: false }); }}
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  title="Desbloquear conta (login travado por tentativas)"
+                                  className="text-success hover:bg-success/10"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">lock_open</span>
+                                </Button>
+                              ) : (
+                                <Button
+                                  onClick={function () { setConfirmBloqueio({ open: true, id: u.id, nome: u.nome_completo, bloquear: true }); }}
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  title="Bloquear conta"
+                                  className="text-warning hover:bg-warning/10"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">lock</span>
+                                </Button>
+                              )}
                               <Button onClick={function () { setConfirmDelete({ open: true, id: u.id, nome: u.nome_completo }); }} variant="ghost" size="icon-sm" title="Eliminar">
                                 <span className="material-symbols-outlined text-[15px]">delete</span>
                               </Button>
