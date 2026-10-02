@@ -58,7 +58,11 @@ export default function AssiduidadePage() {
   var [registos, setRegistos] = useState([]);
   var [colaboradores, setColaboradores] = useState([]);
   var [loading, setLoading] = useState(true);
+  var [aFiltrar, setAFiltrar] = useState(false);
+  var [dataInvertida, setDataInvertida] = useState(false);
   var [search, setSearch] = useState("");
+  // Texto da pesquisa efectivamente aplicado a consulta (evita um pedido por tecla)
+  var [searchAplicado, setSearchAplicado] = useState("");
   var [filtroEstado, setFiltroEstado] = useState("");
   var [filtroColaborador, setFiltroColaborador] = useState("");
   var [filtroDataInicio, setFiltroDataInicio] = useState("");
@@ -94,25 +98,55 @@ export default function AssiduidadePage() {
     }
   }, []);
 
-  var carregar = useCallback(async function (page, silencioso) {
-    page = page || 1;
-    if (!silencioso) setLoading(true);
-    try {
-      var url = "/api/assiduidade?page=" + page + "&limit=15";
-      if (search) url += "&search=" + encodeURIComponent(search);
-      if (filtroEstado) url += "&estado=" + filtroEstado;
-      if (filtroColaborador) url += "&colaborador_id=" + filtroColaborador;
-      if (filtroDataInicio) url += "&data_inicio=" + filtroDataInicio;
-      if (filtroDataFim) url += "&data_fim=" + filtroDataFim;
-      var data = await api.get(url);
-      setRegistos(data.dados || []);
-      setPaginacao(data.paginacao || { total: 0, pagina: 1, total_paginas: 1 });
-    } catch (e) {
-      if (!silencioso) setMsg({ tipo: "erro", texto: e.message });
-    } finally {
-      if (!silencioso) setLoading(false);
+  // Numero do pedido em curso: uma resposta antiga (pesquisa anterior) nunca
+// substitui o resultado do filtro que o utilizador fez depois.
+var pedidoEmCurso = useRef(0);
+
+var carregar = useCallback(async function (page, silencioso) {
+  page = page || 1;
+
+  // Datas invertidas nao podem ser consultadas: o filtro devolveria sempre 0
+  if (filtroDataInicio && filtroDataFim && filtroDataInicio > filtroDataFim) {
+    pedidoEmCurso.current++;
+    setDataInvertida(true);
+    setRegistos([]);
+    setPaginacao({ total: 0, pagina: 1, total_paginas: 1 });
+    setLoading(false);
+    setAFiltrar(false);
+    return;
+  }
+  setDataInvertida(false);
+
+  var meu = ++pedidoEmCurso.current;
+  if (!silencioso) setLoading(true);
+  else setAFiltrar(true);
+  try {
+    var url = "/api/assiduidade?page=" + page + "&limit=15";
+    if (searchAplicado) url += "&search=" + encodeURIComponent(searchAplicado);
+    if (filtroEstado) url += "&estado=" + encodeURIComponent(filtroEstado);
+    if (filtroColaborador) url += "&colaborador_id=" + encodeURIComponent(filtroColaborador);
+    if (filtroDataInicio) url += "&data_inicio=" + filtroDataInicio;
+    if (filtroDataFim) url += "&data_fim=" + filtroDataFim;
+    var data = await api.get(url);
+    if (meu !== pedidoEmCurso.current) return; // resposta obsoleta: ignora
+    setRegistos(data.dados || []);
+    setPaginacao(data.paginacao || { total: 0, pagina: 1, total_paginas: 1 });
+  } catch (e) {
+    if (meu !== pedidoEmCurso.current) return;
+    if (!silencioso) setMsg({ tipo: "erro", texto: e.message });
+  } finally {
+    if (meu === pedidoEmCurso.current) {
+      setLoading(false);
+      setAFiltrar(false);
     }
-  }, [search, filtroEstado, filtroColaborador, filtroDataInicio, filtroDataFim]);
+  }
+}, [searchAplicado, filtroEstado, filtroColaborador, filtroDataInicio, filtroDataFim]);
+
+// A pesquisa so e aplicada 350 ms depois de parar de escrever
+useEffect(function () {
+  var t = setTimeout(function () { setSearchAplicado(search.trim()); }, 350);
+  return function () { clearTimeout(t); };
+}, [search]);
 
   useEffect(function () {
     carregarColaboradores();
@@ -154,7 +188,20 @@ export default function AssiduidadePage() {
     setFiltroEstado("");
     setFiltroColaborador("");
     setSearch("");
+    setSearchAplicado("");
   };
+
+  // Limpa todos os filtros (pesquisa, estado, colaborador e datas)
+  var limparFiltros = function () {
+    setFiltroEstado("");
+    setFiltroColaborador("");
+    setFiltroDataInicio("");
+    setFiltroDataFim("");
+    setSearch("");
+    setSearchAplicado("");
+  };
+
+  var temFiltros = !!(searchAplicado || filtroEstado || filtroColaborador || filtroDataInicio || filtroDataFim);
 
   var abrirEditar = function (r) {
     setEditando(r);
@@ -285,6 +332,7 @@ export default function AssiduidadePage() {
   };
 
   var activeFilters = [];
+  if (searchAplicado) activeFilters.push({ label: "Pesquisa: " + searchAplicado, onClear: function () { setSearch(""); setSearchAplicado(""); } });
   if (filtroEstado) activeFilters.push({ label: "Estado: " + filtroEstado, onClear: function () { setFiltroEstado(""); } });
   if (filtroColaborador) {
     var fc = colaboradores.find(function (c) { return String(c.id) === String(filtroColaborador); });
@@ -344,9 +392,12 @@ export default function AssiduidadePage() {
                 placeholder="Nome do colaborador..."
                 value={search}
                 onChange={function (e) { setSearch(e.target.value); }}
-                onKeyDown={function (e) { if (e.key === "Enter") carregar(1); }}
+                onKeyDown={function (e) { if (e.key === "Enter") { setSearchAplicado(search.trim()); carregar(1); } }}
                 className="w-full pl-10 pr-4 py-2.5 bg-background border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[14px]"
               />
+              {aFiltrar && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-primary animate-spin">progress_activity</span>
+              )}
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full lg:w-auto">
@@ -388,6 +439,28 @@ export default function AssiduidadePage() {
             </button>
           </div>
         </div>
+        {dataInvertida && (
+          <div className="mt-4 p-3 rounded-lg badge-warning border border-warning/20 text-[13px] font-medium flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">warning</span>
+            A data de início é maior do que a data fim — corrija as datas para ver os registos.
+          </div>
+        )}
+        {!loading && !dataInvertida && (
+          <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-3">
+            <span className="text-[12px] text-on-surface-variant/70 font-medium">
+              {paginacao.total === 0
+                ? "Nenhum registo encontrado"
+                : paginacao.total + (paginacao.total === 1 ? " registo encontrado" : " registos encontrados")}
+              {temFiltros ? " com os filtros aplicados" : ""}
+            </span>
+            {aFiltrar && (
+              <span className="inline-flex items-center gap-1.5 text-[12px] text-primary font-medium">
+                <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                a filtrar...
+              </span>
+            )}
+          </div>
+        )}
         {activeFilters.length > 0 && (
           <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
             <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
@@ -401,7 +474,7 @@ export default function AssiduidadePage() {
                 </span>
               );
             })}
-            <button onClick={function () { setFiltroEstado(""); setFiltroColaborador(""); setFiltroDataInicio(""); setFiltroDataFim(""); setSearch(""); }} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
+            <button onClick={limparFiltros} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
           </div>
         )}
       </section>
@@ -436,8 +509,25 @@ export default function AssiduidadePage() {
                 <tr>
                   <td colSpan={8} className="px-6 py-12 text-center">
                     <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">event_available</span>
-                    <p className="text-on-surface-variant font-medium">Nenhum registo de assiduidade encontrado</p>
-                    <p className="text-[13px] text-outline mt-1">Clique em &quot;Novo Registo&quot; para adicionar</p>
+                    {dataInvertida ? (
+                      <>
+                        <p className="text-on-surface-variant font-medium">Intervalo de datas inválido</p>
+                        <p className="text-[13px] text-outline mt-1">A data de início tem de ser anterior à data fim</p>
+                      </>
+                    ) : temFiltros ? (
+                      <>
+                        <p className="text-on-surface-variant font-medium">Nenhum registo corresponde aos filtros aplicados</p>
+                        <p className="text-[13px] text-outline mt-1">Ajuste a pesquisa ou os filtros para ver os registos</p>
+                        <button onClick={limparFiltros} className="mt-4 px-4 py-2 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold uppercase tracking-wide">
+                          Limpar filtros
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-on-surface-variant font-medium">Nenhum registo de assiduidade encontrado</p>
+                        <p className="text-[13px] text-outline mt-1">Clique em &quot;Novo Registo&quot; para adicionar ou use &quot;Este Mês&quot; para ver as presenças</p>
+                      </>
+                    )}
                   </td>
                 </tr>
               ) : (
