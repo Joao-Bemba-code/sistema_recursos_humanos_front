@@ -8,18 +8,19 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
+// Valores iguais aos ENUM da base de dados (sem acentos)
 var ESTADOS_ASSIDUIDADE = [
   { value: "Presente", label: "Presente" },
   { value: "Ausente", label: "Ausente" },
   { value: "Atrasado", label: "Atrasado" },
-  { value: "Licença", label: "Licença" },
-  { value: "Férias", label: "Férias" },
+  { value: "Licenca", label: "Licença" },
+  { value: "Ferias", label: "Férias" },
   { value: "Fim_semana", label: "Fim de Semana" },
 ];
 
 var METODOS_REGISTO = [
   { value: "Manual", label: "Manual" },
-  { value: "Biométrico", label: "Biométrico" },
+  { value: "Biometrico", label: "Biométrico" },
   { value: "GPS", label: "GPS" },
   { value: "QR_Code", label: "QR Code" },
 ];
@@ -29,8 +30,8 @@ var estadoBadgeClass = function (estado) {
     Presente: "badge-success",
     Atrasado: "badge-warning",
     Ausente: "badge-danger",
-    Licença: "badge-info",
-    Férias: "badge-info",
+    Licenca: "badge-info",
+    Ferias: "badge-info",
     Fim_semana: "badge-secondary",
   };
   return map[estado] || "badge-secondary";
@@ -41,8 +42,8 @@ var estadoDot = function (estado) {
     Presente: "bg-success",
     Atrasado: "bg-warning",
     Ausente: "bg-error",
-    Licença: "bg-info",
-    Férias: "bg-info",
+    Licenca: "bg-info",
+    Ferias: "bg-info",
     Fim_semana: "bg-outline",
   };
   return map[estado] || "bg-outline";
@@ -77,6 +78,8 @@ export default function AssiduidadePage() {
     estado: "Presente",
     metodo: "Manual",
     observacoes: "",
+    justificado: false,
+    justificacao_observacoes: "",
   };
 
   var carregarColaboradores = useCallback(async function () {
@@ -137,16 +140,31 @@ export default function AssiduidadePage() {
     setMsg(null);
   };
 
+  // Atalho "Este Mês": a assiduidade so conta a partir do dia 1 do mes
+  var filtrarMes = function () {
+    var agora = new Date();
+    var p = function (n) { return String(n).padStart(2, "0"); };
+    var primeiroDia = agora.getFullYear() + "-" + p(agora.getMonth() + 1) + "-01";
+    var hoje = agora.getFullYear() + "-" + p(agora.getMonth() + 1) + "-" + p(agora.getDate());
+    setFiltroDataInicio(primeiroDia);
+    setFiltroDataFim(hoje);
+    setFiltroEstado("");
+    setFiltroColaborador("");
+    setSearch("");
+  };
+
   var abrirEditar = function (r) {
     setEditando(r);
     setForm({
       colaborador_id: r.colaborador_id || (r.colaborador ? r.colaborador.id : "") || "",
-      data: r.data || "",
-      hora_entrada: r.hora_entrada || "",
-      hora_saida: r.hora_saida || "",
+      data: (r.data || "").slice(0, 10),
+      hora_entrada: (r.hora_entrada || "").slice(0, 5),
+      hora_saida: (r.hora_saida || "").slice(0, 5),
       estado: r.estado || "Presente",
       metodo: r.metodo || "Manual",
       observacoes: r.observacoes || "",
+      justificado: !!r.justificado,
+      justificacao_observacoes: r.justificacao_observacoes || "",
     });
     setShowModal(true);
     setMsg(null);
@@ -202,6 +220,8 @@ export default function AssiduidadePage() {
         estado: form.estado,
         metodo: form.metodo,
         observacoes: form.observacoes,
+        justificado: !!form.justificado,
+        justificacao_observacoes: form.justificacao_observacoes || null,
       };
       if (editando) {
         await api.put("/api/assiduidade/" + editando.id, payload);
@@ -233,6 +253,13 @@ export default function AssiduidadePage() {
   var handleInput = function (e) {
     setForm(function (prev) {
       var next = { ...prev, [e.target.name]: e.target.value };
+      return next;
+    });
+  };
+
+  var handleCheck = function (e) {
+    setForm(function (prev) {
+      var next = { ...prev, [e.target.name]: e.target.checked };
       return next;
     });
   };
@@ -348,6 +375,10 @@ export default function AssiduidadePage() {
             </div>
           </div>
           <div className="flex items-end gap-2 pb-0.5">
+            <button onClick={function () { filtrarMes(); }} title="Mostrar do dia 1 do mês até hoje (a assiduidade só conta a partir do dia 1)" className="px-4 py-2.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
+              <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+              Este Mês
+            </button>
             <button onClick={function () { carregar(1); }} className="px-4 py-2.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
               <span className="material-symbols-outlined text-[18px]">filter_alt</span>
               Filtrar
@@ -447,7 +478,21 @@ export default function AssiduidadePage() {
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className="text-on-surface-variant text-[13px]">{r.metodo || "—"}</span>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-on-surface-variant text-[13px]">{r.metodo || "—"}</span>
+                          {r.ajustado_manual && (
+                            <span className="inline-flex items-center w-fit gap-1 px-1.5 py-0.5 rounded bg-info/10 text-info text-[10px] font-bold uppercase" title="Corrigido manualmente — o biometro não altera este registo">
+                              <span className="material-symbols-outlined text-[12px]">edit</span>
+                              Ajustado
+                            </span>
+                          )}
+                          {r.justificado && (
+                            <span className="inline-flex items-center w-fit gap-1 px-1.5 py-0.5 rounded bg-success/10 text-success text-[10px] font-bold uppercase" title="Falta/Atraso justificado">
+                              <span className="material-symbols-outlined text-[12px]">verified</span>
+                              Justificado
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end">
@@ -557,9 +602,27 @@ export default function AssiduidadePage() {
                     })}
                   </select>
                 </div>
+                <div className="flex items-end">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none px-1 pb-2.5">
+                    <input type="checkbox" name="justificado" checked={!!form.justificado} onChange={handleCheck} className="w-4 h-4 rounded border-outline-variant accent-primary" />
+                    <span className="text-[13px] font-semibold text-on-surface">Falta/Atraso justificado</span>
+                  </label>
+                </div>
+                {form.justificado && (
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Motivo da Justificação</label>
+                    <textarea name="justificacao_observacoes" value={form.justificacao_observacoes || ""} onChange={handleInput} rows={2} placeholder="Ex.: o colaborador esqueceu-se de passar o dedo no biómetro; entrada confirmada pelo encarregado." className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                  </div>
+                )}
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observações</label>
                   <textarea name="observacoes" value={form.observacoes || ""} onChange={handleInput} rows={3} placeholder="Notas adicionais sobre a assiduidade..." className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div className="sm:col-span-2 flex items-start gap-2 bg-info/5 border border-info/20 rounded-lg p-3">
+                  <span className="material-symbols-outlined text-[18px] text-info mt-px">info</span>
+                  <p className="text-[12px] text-on-surface-variant leading-snug">
+                    Ao gravar, este registo fica marcado como <strong>ajustado manualmente</strong>: a ponte do biómetro deixa de alterar a hora e o estado. Use isto quando alguém se esquecer de passar o dedo — ponha a entrada/saída à mão e escolha <strong>Presente</strong> ou <strong>Atrasado</strong> conforme o caso.
+                  </p>
                 </div>
               </div>
 
@@ -625,6 +688,28 @@ export default function AssiduidadePage() {
                     );
                   })}
                 </div>
+                {(registoView.ajustado_manual || registoView.justificado) && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {registoView.ajustado_manual && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-info/10 text-info text-[11px] font-bold uppercase">
+                        <span className="material-symbols-outlined text-[14px]">edit</span>
+                        Ajustado manualmente (o biómetro não altera este registo)
+                      </span>
+                    )}
+                    {registoView.justificado && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 text-success text-[11px] font-bold uppercase">
+                        <span className="material-symbols-outlined text-[14px]">verified</span>
+                        Falta/Atraso justificado
+                      </span>
+                    )}
+                  </div>
+                )}
+                {registoView.justificacao_observacoes && (
+                  <div className="mt-3 bg-background/50 rounded-lg p-3 border border-outline-variant/20">
+                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Motivo da Justificação</p>
+                    <p className="text-[13px] text-on-surface">{registoView.justificacao_observacoes}</p>
+                  </div>
+                )}
                 {registoView.observacoes && (
                   <div className="mt-3 bg-background/50 rounded-lg p-3 border border-outline-variant/20">
                     <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Observações</p>
