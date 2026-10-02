@@ -67,7 +67,7 @@ export default function ColaboradoresPage() {
 
   const defaultForm = {
     nome_completo: "", data_admissao: "", genero: "", estado_civil: "",
-    nif: "", bi: "", bi_validade: "", telefone: "", email_pessoal: "",
+    nif: "", bi: "", bi_validade: "", id_biometrico: "", telefone: "", email_pessoal: "",
     email_institucional: "", telefone_emergencia: "", tipo_colaborador: "Interno",
     estado: "Activo", endereco: "", cidade: "", provincia: "",
     data_nascimento: "", nome_curto: "",
@@ -456,6 +456,10 @@ export default function ColaboradoresPage() {
                     <input name="bi" value={form.bi || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">ID Biómetro</label>
+                    <input name="id_biometrico" value={form.id_biometrico || ""} onChange={handleInput} placeholder="Nº do utilizador no biómetro" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                  </div>
+                  <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Validade BI</label>
                     <input name="bi_validade" type="date" value={form.bi_validade || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
@@ -700,6 +704,7 @@ export default function ColaboradoresPage() {
                   {[
                     ["Data de Admissão", colaboradorView.data_admissao ? helpers.formatDate(colaboradorView.data_admissao) : null],
                     ["Nº Segurança Social", colaboradorView.numero_seguranca_social],
+                    ["ID Biómetro", colaboradorView.id_biometrico],
                   ].map(function(pair) {
                     return (
                       <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">

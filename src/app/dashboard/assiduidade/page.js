@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { getT } from "@/lib/translations";
@@ -88,9 +88,9 @@ export default function AssiduidadePage() {
     }
   }, []);
 
-  var carregar = useCallback(async function (page) {
+  var carregar = useCallback(async function (page, silencioso) {
     page = page || 1;
-    setLoading(true);
+    if (!silencioso) setLoading(true);
     try {
       var url = "/api/assiduidade?page=" + page + "&limit=15";
       if (search) url += "&search=" + encodeURIComponent(search);
@@ -102,9 +102,9 @@ export default function AssiduidadePage() {
       setRegistos(data.dados || []);
       setPaginacao(data.paginacao || { total: 0, pagina: 1, total_paginas: 1 });
     } catch (e) {
-      setMsg({ tipo: "erro", texto: e.message });
+      if (!silencioso) setMsg({ tipo: "erro", texto: e.message });
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
   }, [search, filtroEstado, filtroColaborador, filtroDataInicio, filtroDataFim]);
 
@@ -114,6 +114,20 @@ export default function AssiduidadePage() {
 
   useEffect(function () {
     carregar(1);
+  }, [carregar]);
+
+  // Actualizacao automatica (1 em 1 minuto): a lista reflecte as picagens do
+  // biometro assim que a ponte as sincroniza, sem precisar de recarregar a pagina.
+  var paginaActual = useRef(1);
+  useEffect(function () {
+    paginaActual.current = paginacao.pagina;
+  }, [paginacao.pagina]);
+
+  useEffect(function () {
+    var intervalo = setInterval(function () {
+      carregar(paginaActual.current, true);
+    }, 60000);
+    return function () { clearInterval(intervalo); };
   }, [carregar]);
 
   var abrirNovo = function () {
