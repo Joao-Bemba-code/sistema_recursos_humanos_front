@@ -44,6 +44,7 @@ export default function AdvertenciasPage() {
   var [colaboradores, setColaboradores] = useState([]);
   var [loading, setLoading] = useState(true);
   var [search, setSearch] = useState("");
+  var [searchAplicado, setSearchAplicado] = useState("");
   var [filtroTipo, setFiltroTipo] = useState("");
   var [filtroEstado, setFiltroEstado] = useState("");
   var [filtroColaborador, setFiltroColaborador] = useState("");
@@ -61,7 +62,7 @@ export default function AdvertenciasPage() {
     setLoading(true);
     try {
       var url = "/api/ocorrencias?page=" + (page || 1) + "&limit=15";
-      if (search) url += "&search=" + encodeURIComponent(search);
+      if (searchAplicado) url += "&search=" + encodeURIComponent(searchAplicado);
       if (filtroTipo) url += "&tipo=" + encodeURIComponent(filtroTipo);
       if (filtroEstado) url += "&estado=" + encodeURIComponent(filtroEstado);
       if (filtroColaborador) url += "&colaborador_id=" + encodeURIComponent(filtroColaborador);
@@ -73,7 +74,7 @@ export default function AdvertenciasPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, filtroTipo, filtroEstado, filtroColaborador, toast]);
+  }, [searchAplicado, filtroTipo, filtroEstado, filtroColaborador, toast]);
 
   var carregarColaboradores = useCallback(async function () {
     try {
@@ -91,6 +92,17 @@ export default function AdvertenciasPage() {
   useEffect(function () {
     carregarOcorrencias(1);
   }, [carregarOcorrencias]);
+
+  // Debounce da pesquisa (aplica de imediato ao limpar)
+  useEffect(function () {
+    if (!searchAplicado && !search) return;
+    if (!search) {
+      setSearchAplicado("");
+      return;
+    }
+    var timer = setTimeout(function () { setSearchAplicado(search); }, 350);
+    return function () { clearTimeout(timer); };
+  }, [search]);
 
   var defaultForm = {
     colaborador_id: "", tipo: "Advertencia", data_ocorrencia: "",

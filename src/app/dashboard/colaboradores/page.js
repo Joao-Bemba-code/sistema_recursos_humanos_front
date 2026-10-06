@@ -20,6 +20,21 @@ var imageUrl = function (path) {
   return api.baseURL + decoded;
 };
 
+// Nomes dos dias da semana (0=domingo ... 6=sabado, numeracao do getDay)
+var NOME_DIA_SEMANA = { 0: "Domingo", 1: "Segunda", 2: "Terça", 3: "Quarta", 4: "Quinta", 5: "Sexta", 6: "Sábado" };
+
+// Converte "0,6" (dias_descanso) em "Sábado, Domingo" para mostrar na ficha
+var formatarDescanso = function (texto) {
+  var partes = String(texto || "").split(",");
+  var nomes = [];
+  for (var i = 0; i < partes.length; i++) {
+    var n = parseInt(partes[i], 10);
+    if (!isNaN(n) && NOME_DIA_SEMANA[n]) nomes.push(NOME_DIA_SEMANA[n]);
+  }
+  if (nomes.length === 0) nomes = ["Sábado", "Domingo"];
+  return nomes.join(", ");
+};
+
 export default function ColaboradoresPage() {
   const toast = useToast();
   const [colaboradores, setColaboradores] = useState([]);
@@ -56,7 +71,11 @@ export default function ColaboradoresPage() {
     }
   };
 
-  useEffect(() => { carregar(); }, []);
+  // Recarrega sempre que a pesquisa ou os filtros mudam (debounce na pesquisa)
+  useEffect(() => {
+    const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [search, filtroEstado, filtroTipo]);
 
   useEffect(() => {
     if (!statusDropdown.open) return;
@@ -73,6 +92,7 @@ export default function ColaboradoresPage() {
     data_nascimento: "", nome_curto: "",
     habilitacoes: "", formacao_academica: "", conta_bancaria: "", banco: "", iban: "",
     numero_seguranca_social: "", fotografia: "", curriculo: "", observacoes: "",
+    dias_descanso: "0,6",
   };
 
   const abrirNovo = () => {
@@ -148,6 +168,32 @@ export default function ColaboradoresPage() {
 
   const handleInput = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const DIAS_SEMANA = [
+    { valor: 1, sigla: "Seg" },
+    { valor: 2, sigla: "Ter" },
+    { valor: 3, sigla: "Qua" },
+    { valor: 4, sigla: "Qui" },
+    { valor: 5, sigla: "Sex" },
+    { valor: 6, sigla: "Sáb" },
+    { valor: 0, sigla: "Dom" },
+  ];
+
+  // Marca/desmarca um dia de descanso na ficha (multi-selecao de dias da semana)
+  const toggleDiaDescanso = (dia) => {
+    var dias = String(form.dias_descanso || "")
+      .split(",")
+      .map(function (d) { return parseInt(d, 10); })
+      .filter(function (d) { return !isNaN(d) && d >= 0 && d <= 6; });
+    var idx = dias.indexOf(dia);
+    if (idx !== -1) {
+      dias.splice(idx, 1);
+    } else {
+      dias.push(dia);
+      dias.sort();
+    }
+    setForm({ ...form, dias_descanso: dias.join(",") });
   };
 
   const abrirVer = (c) => {
@@ -530,6 +576,30 @@ export default function ColaboradoresPage() {
                     <input name="numero_seguranca_social" value={form.numero_seguranca_social || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div className="sm:col-span-2">
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Dias de Descanso Semanal</label>
+                    <div className="flex flex-wrap gap-2">
+                      {DIAS_SEMANA.map(function (d) {
+                        var seleccionado = String(form.dias_descanso || "0,6").split(",").map(function (x) { return x.trim(); }).indexOf(String(d.valor)) !== -1;
+                        return (
+                          <button
+                            key={d.valor}
+                            type="button"
+                            onClick={() => toggleDiaDescanso(d.valor)}
+                            className={
+                              "px-3.5 py-2 rounded-lg text-[13px] font-semibold border transition-all " +
+                              (seleccionado
+                                ? "bg-primary text-white border-primary shadow-sm"
+                                : "bg-background text-on-surface-variant border-outline-variant/50 hover:border-primary/40")
+                            }
+                          >
+                            {d.sigla}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">Marcados = dias em que NÃO trabalha. Quem trabalha ao sábado, desmarque "Sáb". Sem picagem num dia de trabalho, o biómetro marca falta.</p>
+                  </div>
+                  <div className="sm:col-span-2">
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observações</label>
                     <textarea name="observacoes" value={form.observacoes || ""} onChange={handleInput} rows={3} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
@@ -705,6 +775,7 @@ export default function ColaboradoresPage() {
                     ["Data de Admissão", colaboradorView.data_admissao ? helpers.formatDate(colaboradorView.data_admissao) : null],
                     ["Nº Segurança Social", colaboradorView.numero_seguranca_social],
                     ["ID Biómetro", colaboradorView.id_biometrico],
+                    ["Dias de Descanso", formatarDescanso(colaboradorView.dias_descanso || "0,6")],
                   ].map(function(pair) {
                     return (
                       <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">

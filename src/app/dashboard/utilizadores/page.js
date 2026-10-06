@@ -54,6 +54,7 @@ export default function UtilizadoresPage() {
   var [modulos, setModulos] = useState([]);
   var [loading, setLoading] = useState(true);
   var [search, setSearch] = useState("");
+  var [searchAplicado, setSearchAplicado] = useState("");
   var [filtroPerfil, setFiltroPerfil] = useState("");
   var [filtroEstado, setFiltroEstado] = useState("");
   var [paginacao, setPaginacao] = useState({ total: 0, pagina: 1, total_paginas: 1 });
@@ -72,7 +73,7 @@ export default function UtilizadoresPage() {
     setLoading(true);
     try {
       var url = "/api/users?page=" + (page || 1) + "&limit=15";
-      if (search) url += "&search=" + encodeURIComponent(search);
+      if (searchAplicado) url += "&search=" + encodeURIComponent(searchAplicado);
       if (filtroPerfil) url += "&perfil_id=" + filtroPerfil;
       if (filtroEstado) url += "&estado=" + (filtroEstado === "Activo");
       if (filtroEstado === "Bloqueado") url += "&bloqueados=1";
@@ -84,7 +85,7 @@ export default function UtilizadoresPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, filtroPerfil, filtroEstado, toast]);
+  }, [searchAplicado, filtroPerfil, filtroEstado, toast]);
 
   var carregarPerfis = useCallback(async function () {
     try {
@@ -105,6 +106,17 @@ export default function UtilizadoresPage() {
   useEffect(function () {
     carregarUtilizadores(1);
   }, [carregarUtilizadores]);
+
+  // Debounce da pesquisa (aplica de imediato ao limpar)
+  useEffect(function () {
+    if (!searchAplicado && !search) return;
+    if (!search) {
+      setSearchAplicado("");
+      return;
+    }
+    var timer = setTimeout(function () { setSearchAplicado(search); }, 350);
+    return function () { clearTimeout(timer); };
+  }, [search]);
 
   var defaultForm = {
     nome_completo: "", email: "", username: "", password: "",
@@ -258,8 +270,16 @@ export default function UtilizadoresPage() {
       var idx = novo[modulo].indexOf(operacao);
       if (idx !== -1) {
         novo[modulo].splice(idx, 1);
+        // Sem "Ver" nada funciona: ao tirar o "Ver" o modulo fica todo bloqueado
+        if (operacao === "read") {
+          delete novo[modulo];
+        }
       } else {
         novo[modulo].push(operacao);
+        // Qualquer operacao implica "Ver" (sem ler o modulo nem aparece no menu)
+        if (operacao !== "read" && novo[modulo].indexOf("read") === -1) {
+          novo[modulo].push("read");
+        }
       }
       return novo;
     });
@@ -726,6 +746,10 @@ export default function UtilizadoresPage() {
         ) : (
           <div>
             <p className="text-[12px] text-on-surface-variant/70 mb-3">Marque apenas os módulos e operações que este perfil pode aceder. O que não estiver marcado fica bloqueado.</p>
+            <div className="flex items-start gap-2 p-3 mb-3 rounded-lg bg-primary/5 border border-primary/15">
+              <span className="material-symbols-outlined text-[18px] text-primary mt-px">info</span>
+              <p className="text-[12px] text-on-surface-variant/80 leading-relaxed">Qualquer operação marcada ativa automaticamente o <strong>Ver</strong> — sem ele o módulo nem aparece no menu. Ao retirar o <strong>Ver</strong>, todo o módulo fica bloqueado.</p>
+            </div>
             {modulos.length === 0 ? (
               <p className="text-[13px] text-on-surface-variant/60 py-4 text-center">Nenhum módulo disponível</p>
             ) : (

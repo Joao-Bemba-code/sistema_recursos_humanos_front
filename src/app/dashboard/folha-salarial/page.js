@@ -136,7 +136,11 @@ export default function FolhaSalarialPage() {
   };
 
   useEffect(() => { loadColaboradores(); }, []);
-  useEffect(() => { carregar(1); }, [tab]);
+  // Recarrega sempre que a aba, a pesquisa ou os filtros mudam (debounce na pesquisa)
+  useEffect(() => {
+    const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [tab, search, filtroEstado, filtroColaborador, filtroMes, filtroAno]);
 
   const handleInput = (e) => {
     const nome = e.target.name;

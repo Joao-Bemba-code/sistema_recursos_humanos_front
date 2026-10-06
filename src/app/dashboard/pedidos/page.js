@@ -72,9 +72,16 @@ export default function PedidosPage() {
   };
 
   useEffect(function () {
-    carregar();
     carregarStats();
   }, []);
+
+  // Recarrega sempre que a pesquisa ou os filtros mudam (com debounce na pesquisa)
+  useEffect(function () {
+    var timer = setTimeout(function () {
+      carregar(1);
+    }, search ? 400 : 0);
+    return function () { clearTimeout(timer); };
+  }, [search, filtroEstado, filtroTipo]);
 
   var handleSearch = function (e) {
     e.preventDefault();
@@ -180,7 +187,7 @@ export default function PedidosPage() {
             />
             <select
               value={filtroEstado}
-              onChange={function (e) { setFiltroEstado(e.target.value); carregar(1); }}
+              onChange={function (e) { setFiltroEstado(e.target.value); }}
               className="px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors"
             >
               <option value="">Todos os estados</option>
@@ -190,7 +197,7 @@ export default function PedidosPage() {
             </select>
             <select
               value={filtroTipo}
-              onChange={function (e) { setFiltroTipo(e.target.value); carregar(1); }}
+              onChange={function (e) { setFiltroTipo(e.target.value); }}
               className="px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors"
             >
               <option value="">Todos os tipos</option>

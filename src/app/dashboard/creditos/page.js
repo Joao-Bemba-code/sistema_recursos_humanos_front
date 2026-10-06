@@ -96,10 +96,12 @@ export default function CreditosPage() {
     carregarResumo();
   }, [pronto]);
 
+  // Recarrega sempre que a pesquisa ou os filtros mudam (debounce na pesquisa)
   useEffect(() => {
     if (!pronto) return;
-    carregar(1);
-  }, [pronto]);
+    const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [pronto, search, filtroEstado]);
 
   if (auth && auth.loading) {
     return (

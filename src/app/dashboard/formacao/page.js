@@ -138,15 +138,21 @@ export default function FormacaoPage() {
   };
 
   useEffect(function () {
-    carregarCursos();
-    carregarInscricoes();
     carregarDropdowns();
   }, []);
 
+  // Recarrega os cursos quando a pesquisa/filtros de cursos mudam (debounce)
   useEffect(function () {
-    if (aba === "cursos") carregarCursos(1);
-    if (aba === "inscricoes") carregarInscricoes(1);
-  }, [aba]);
+    if (aba !== "cursos") return;
+    var timer = setTimeout(function () { carregarCursos(1); }, searchCurso ? 400 : 0);
+    return function () { clearTimeout(timer); };
+  }, [aba, searchCurso, filtroEstadoCurso, filtroTipoCurso]);
+
+  // Recarrega as inscricoes quando os filtros de inscricoes mudam
+  useEffect(function () {
+    if (aba !== "inscricoes") return;
+    carregarInscricoes(1);
+  }, [aba, filtroCursoInsc, filtroColabInsc, filtroEstadoInsc]);
 
   var abrirNovoCurso = function () {
     setEditandoCurso(null);

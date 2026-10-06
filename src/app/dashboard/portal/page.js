@@ -36,6 +36,28 @@ function diasEntre(inicio, fim) {
   return diff > 0 ? diff : 0;
 }
 
+// Estrelas 0-20 -> 5 estrelas cheias (cada estrela vale 4 valores)
+function Estrelas({ nota, tamanho }) {
+  var valor = parseFloat(nota);
+  if (isNaN(valor)) valor = 0;
+  var cheias = Math.round(Math.max(0, Math.min(20, valor)) / 4);
+  return (
+    <span className="flex items-center gap-0.5" aria-label={valor.toFixed(1) + " de 20"}>
+      {[0, 1, 2, 3, 4].map(function (i) {
+        return (
+          <span
+            key={i}
+            className={"material-symbols-outlined " + (i < cheias ? "text-amber-500" : "text-outline/40")}
+            style={tamanho ? { fontSize: tamanho } : undefined}
+          >
+            {i < cheias ? "star" : "star_outline"}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 function FeriasWaveChart({ data }) {
   var total = (data.disponiveis || 0) + (data.gozados || 0) + (data.planeados || 0) || 1;
   var segments = [
@@ -118,6 +140,7 @@ export default function PortalPage() {
   var utilizador = auth ? auth.utilizador : null;
 
   var [portalData, setPortalData] = useState(null);
+  var [tarefasStats, setTarefasStats] = useState(null);
   var [loading, setLoading] = useState(true);
   var [comunicados, setComunicados] = useState([]);
   var [showSolicitacaoModal, setShowSolicitacaoModal] = useState(false);
@@ -226,6 +249,11 @@ export default function PortalPage() {
       api.get("/api/comunicados?page=1&limit=5").then(function (res) {
         if (res && res.dados) setComunicados(res.dados);
       }).catch(function () {});
+      if (auth && auth.hasPermission && auth.hasPermission("tarefas", "read")) {
+        api.get("/api/tarefas/estatisticas").then(function (res) {
+          if (res && res.dados) setTarefasStats(res.dados);
+        }).catch(function () {});
+      }
     };
     fetchData();
     var interval = setInterval(fetchData, 30000);
@@ -300,7 +328,8 @@ export default function PortalPage() {
   };
 
   var ferias = portalData ? portalData.ferias : { disponiveis: 0, gozados: 0, planeados: 0 };
-  var avaliacoes = portalData ? portalData.avaliacoes : { pontuacao: 0, ciclos: [] };
+  var avaliacoes = portalData ? portalData.avaliacoes : { pontuacao: 0, ciclos: [], tarefas: [] };
+  var tarefasAvaliadas = (avaliacoes && avaliacoes.tarefas) || [];
   var pedidosRecentes = portalData ? (portalData.pedidos_recentes || []) : [];
   var descontoEstimado = portalData ? (portalData.desconto_estimado || { valor: 0, faltas_mes: 0, atrasos_mes: 0, horas_descontar: 0 }) : { valor: 0, faltas_mes: 0, atrasos_mes: 0, horas_descontar: 0 };
 
@@ -331,6 +360,35 @@ export default function PortalPage() {
                 </article>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {tarefasStats && (
+        <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[14px] font-semibold text-on-surface">As Minhas Tarefas</h2>
+            <Link href="/dashboard/tarefas" className="text-[12px] font-medium text-primary hover:underline">Ver todas</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-px bg-outline-variant rounded-lg overflow-hidden">
+            <div className="bg-surface-card p-3 text-center">
+              <p className="text-[18px] font-bold text-amber-600">{tarefasStats.por_estado ? (tarefasStats.por_estado.Pendente || 0) : 0}</p>
+              <p className="text-[10px] text-outline mt-0.5">Pendentes</p>
+            </div>
+            <div className="bg-surface-card p-3 text-center">
+              <p className="text-[18px] font-bold text-sky-600">{tarefasStats.por_estado ? (tarefasStats.por_estado.Em_curso || 0) : 0}</p>
+              <p className="text-[10px] text-outline mt-0.5">Em Curso</p>
+            </div>
+            <div className="bg-surface-card p-3 text-center">
+              <p className="text-[18px] font-bold text-emerald-600">
+                {tarefasStats.por_estado ? ((tarefasStats.por_estado.Concluida || 0) + (tarefasStats.por_estado.Validada || 0)) : 0}
+              </p>
+              <p className="text-[10px] text-outline mt-0.5">Concluídas</p>
+            </div>
+            <div className="bg-surface-card p-3 text-center">
+              <p className={"text-[18px] font-bold " + (tarefasStats.atrasadas > 0 ? "text-red-600" : "text-on-surface")}>{tarefasStats.atrasadas || 0}</p>
+              <p className="text-[10px] text-outline mt-0.5">Atrasadas</p>
+            </div>
           </div>
         </section>
       )}
@@ -393,12 +451,17 @@ export default function PortalPage() {
 
         <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
           <h2 className="text-[14px] font-semibold text-on-surface mb-3">Avaliações</h2>
-          <div className="flex items-baseline gap-2 mb-3">
+          <div className="flex items-baseline gap-2">
             <span className="text-[28px] font-bold text-on-surface">{avaliacoes.pontuacao > 0 ? avaliacoes.pontuacao.toFixed(1) : "0.0"}</span>
             {avaliacoes.pontuacao > 0 && <span className="text-[12px] text-outline">/ 20</span>}
           </div>
-          {avaliacoes.ciclos.length > 0 ? (
-            <div className="space-y-2">
+          <p className="text-[11px] text-outline mb-3">
+            {avaliacoes.origem === "tarefas"
+              ? "Média de " + (avaliacoes.total_tarefas || 0) + " tarefa(s) concluída(s)"
+              : avaliacoes.origem === "ciclo" ? "Última avaliação de desempenho" : ""}
+          </p>
+          {avaliacoes.ciclos.length > 0 && (
+            <div className="space-y-2 mb-3">
               {avaliacoes.ciclos.slice(0, 3).map(function (ciclo, i) {
                 return (
                   <div key={i}>
@@ -413,9 +476,33 @@ export default function PortalPage() {
                 );
               })}
             </div>
-          ) : (
-            <p className="text-[12px] text-outline">Sem avaliações registadas</p>
           )}
+          {tarefasAvaliadas.length > 0 ? (
+            <div className={avaliacoes.ciclos.length > 0 ? "pt-3 border-t border-outline-variant/50" : ""}>
+              <p className="text-[11px] font-semibold text-on-surface-variant uppercase mb-2">Tarefas avaliadas</p>
+              <div className="space-y-2">
+                {tarefasAvaliadas.map(function (t) {
+                  return (
+                    <div key={t.id} className="flex items-start justify-between gap-3 border-b border-outline-variant/30 last:border-0 pb-2 last:pb-0">
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-medium text-on-surface truncate">{t.titulo}</p>
+                        <p className="text-[10px] text-outline">
+                          {t.no_prazo ? "No prazo" : "Com atraso"}
+                          {t.data_conclusao ? " · " + formatDate(t.data_conclusao) : ""}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <Estrelas nota={t.nota} />
+                        <p className="text-[11px] font-semibold text-on-surface">{parseFloat(t.nota).toFixed(1)} <span className="text-outline font-normal">/ 20</span></p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : avaliacoes.ciclos.length === 0 ? (
+            <p className="text-[12px] text-outline">Sem avaliações registadas</p>
+          ) : null}
         </section>
       </div>
 

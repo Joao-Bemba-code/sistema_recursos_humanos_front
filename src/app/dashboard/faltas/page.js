@@ -68,9 +68,13 @@ export default function FaltasPage() {
 
   useEffect(() => {
     carregarColaboradores();
-    carregarResumo();
-    carregarRegistos();
   }, []);
+
+  // Recarrega sempre que qualquer filtro muda (inclui "Limpar Tudo" e os chips)
+  useEffect(() => {
+    carregarResumo();
+    carregarRegistos(1);
+  }, [dataInicio, dataFim, filtroColab, filtroTipo]);
 
   const aplicarFiltros = () => {
     carregarResumo();
@@ -152,7 +156,11 @@ export default function FaltasPage() {
   };
 
   const totais = resumo ? resumo.totais : { total_faltas: 0, total_atrasos: 0, total_desconto: 0 };
-  const lista = resumo ? resumo.colaboradores.filter(function (r) { return r.total_faltas > 0 || r.total_atrasos > 0; }) : [];
+  const lista = resumo ? resumo.colaboradores.filter(function (r) {
+    if (filtroTipo === "faltas") return r.total_faltas > 0;
+    if (filtroTipo === "atrasos") return r.total_atrasos > 0;
+    return r.total_faltas > 0 || r.total_atrasos > 0;
+  }) : [];
 
   return (
     <div className="space-y-6">
@@ -223,9 +231,9 @@ export default function FaltasPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[14px] font-semibold text-on-surface">Resumo por Colaborador</h2>
             <div className="flex gap-2">
-              <button onClick={() => { setFiltroTipo(""); carregarResumo(); carregarRegistos(1); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (!filtroTipo ? "bg-primary text-white" : "text-on-surface-variant hover:bg-surface-container-high")}>Todos</button>
-              <button onClick={() => { setFiltroTipo("faltas"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "faltas" ? "bg-red-100 text-red-700" : "text-on-surface-variant hover:bg-surface-container-high")}>Faltas</button>
-              <button onClick={() => { setFiltroTipo("atrasos"); }} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "atrasos" ? "bg-amber-100 text-amber-700" : "text-on-surface-variant hover:bg-surface-container-high")}>Atrasos</button>
+              <button onClick={() => setFiltroTipo("")} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (!filtroTipo ? "bg-primary text-white" : "text-on-surface-variant hover:bg-surface-container-high")}>Todos</button>
+              <button onClick={() => setFiltroTipo("faltas")} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "faltas" ? "bg-red-100 text-red-700" : "text-on-surface-variant hover:bg-surface-container-high")}>Faltas</button>
+              <button onClick={() => setFiltroTipo("atrasos")} className={"text-[12px] font-medium px-3 py-1.5 rounded-lg transition-colors " + (filtroTipo === "atrasos" ? "bg-amber-100 text-amber-700" : "text-on-surface-variant hover:bg-surface-container-high")}>Atrasos</button>
             </div>
           </div>
         </div>

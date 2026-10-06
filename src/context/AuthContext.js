@@ -39,7 +39,7 @@ export function AuthProvider({ children }) {
       } catch (e) {
         // 401 é tratado no api.js (remove token e redireciona)
       }
-    }, 300000);
+    }, 60000);
     return () => clearInterval(intervalo);
   }, [isAuthenticated]);
 

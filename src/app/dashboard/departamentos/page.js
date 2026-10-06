@@ -80,7 +80,11 @@ export default function DepartamentosPage() {
     }
   };
 
-  useEffect(() => { carregar(); }, []);
+  // Recarrega sempre que a pesquisa ou os filtros mudam (debounce na pesquisa)
+  useEffect(() => {
+    const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [search, filtroTipo]);
 
   useEffect(() => {
     api.get("/api/organizacoes").then(function (data) {

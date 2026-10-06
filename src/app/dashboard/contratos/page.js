@@ -57,7 +57,13 @@ export default function ContratosPage() {
     } catch (e) { /* ignore */ }
   };
 
-  useEffect(() => { carregar(); carregarColaboradores(); }, []);
+  useEffect(() => { carregarColaboradores(); }, []);
+
+  // Recarrega sempre que a pesquisa ou os filtros mudam (debounce na pesquisa)
+  useEffect(() => {
+    const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [search, filtroTipo, filtroEstado]);
 
   const abrirNovo = () => {
     setEditando(null);

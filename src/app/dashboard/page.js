@@ -15,6 +15,7 @@ var ALL_MODULES = [
   { label: "Contratos", href: "/dashboard/contratos", icon: "description", modulo: "contratos" },
   { label: "Departamentos", href: "/dashboard/departamentos", icon: "corporate_fare", modulo: "departamentos" },
   { label: "Assiduidade", href: "/dashboard/assiduidade", icon: "timer", modulo: "assiduidade" },
+  { label: "Escalas e Turnos", href: "/dashboard/escalas", icon: "work_history", modulo: "assiduidade" },
   { label: "Faltas e Atrasos", href: "/dashboard/faltas", icon: "event_busy", modulo: "faltas" },
   { label: "Advertências", href: "/dashboard/advertencias", icon: "warning", modulo: "advertencias" },
   { label: "Comunicados", href: "/dashboard/comunicados", icon: "campaign", modulo: "comunicados" },

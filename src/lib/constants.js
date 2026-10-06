@@ -22,6 +22,7 @@ export const NAV_ITEMS = [
     titulo: "Tempo e Presença",
     items: [
       { label: "Assiduidade", href: "/dashboard/assiduidade", icon: "schedule", modulo: "assiduidade" },
+      { label: "Escalas e Turnos", href: "/dashboard/escalas", icon: "work_history", modulo: "assiduidade" },
       { label: "Faltas e Atrasos", href: "/dashboard/faltas", icon: "event_busy", modulo: "faltas" },
       { label: "Férias", href: "/dashboard/ferias", icon: "calendar_month", modulo: "ferias" },
       { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment", modulo: "pedidos" },
@@ -32,6 +33,7 @@ export const NAV_ITEMS = [
     items: [
       { label: "Avaliação", href: "/dashboard/avaliacao", icon: "star", modulo: "avaliacao" },
       { label: "Formação", href: "/dashboard/formacao", icon: "school", modulo: "formacao" },
+      { label: "Tarefas", href: "/dashboard/tarefas", icon: "task_alt", modulo: "tarefas" },
     ],
   },
   {

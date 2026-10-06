@@ -156,16 +156,22 @@ export default function AvaliacaoPage() {
   };
 
   useEffect(function () {
-    carregarCiclos();
     carregarColaboradores();
     carregarCiclosParaSelect();
   }, []);
 
+  // Recarrega os ciclos quando a pesquisa/filtros mudam (debounce na pesquisa)
   useEffect(function () {
-    if (aba === "avaliacoes") {
-      carregarAvaliacoes();
-    }
-  }, [aba]);
+    if (aba !== "ciclos") return;
+    var timer = setTimeout(function () { carregarCiclos(1); }, ciclosSearch ? 400 : 0);
+    return function () { clearTimeout(timer); };
+  }, [aba, ciclosSearch, filtroEstadoCiclo]);
+
+  // Recarrega as avaliacoes quando os filtros mudam
+  useEffect(function () {
+    if (aba !== "avaliacoes") return;
+    carregarAvaliacoes(1);
+  }, [aba, filtroCicloId, filtroColaboradorId, filtroEstadoAval, filtroClassificacao]);
 
   var cicloEstadoOptions = ["Planeado", "Em_curso", "Concluido", "Cancelado"];
   var avalEstadoOptions = ["Rascunho", "Submetida", "Validada", "Arquivada"];

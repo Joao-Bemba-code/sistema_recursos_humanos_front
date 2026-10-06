@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -35,6 +35,10 @@ export default function ComunicadosPage() {
   const [avisoView, setAvisoView] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, titulo: "" });
   const [departamentos, setDepartamentos] = useState([]);
+  const [anexosExistentes, setAnexosExistentes] = useState([]);
+  const [anexosNovos, setAnexosNovos] = useState([]);
+  const [anexosRemover, setAnexosRemover] = useState([]);
+  const fileInputRef = useRef(null);
 
   var rolesRH = ["Administrador Geral", "Director Geral", "Director de Recursos Humanos", "Técnico de RH"];
   var hasRoleRh = !!auth && !!auth.utilizador && (function () {
@@ -63,7 +67,11 @@ export default function ComunicadosPage() {
     }
   };
 
-  useEffect(() => { carregar(); }, []);
+  // Recarrega sempre que a pesquisa ou os filtros mudam (debounce na pesquisa)
+  useEffect(() => {
+    const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [search, filtroTipo]);
 
   useEffect(() => {
     api.get("/api/departamentos?limit=100").then(function (data) {
@@ -83,6 +91,9 @@ export default function ComunicadosPage() {
       data_fim: "",
       publicado: true,
     });
+    setAnexosExistentes([]);
+    setAnexosNovos([]);
+    setAnexosRemover([]);
     setShowModal(true);
     setMsg(null);
   };
@@ -99,6 +110,9 @@ export default function ComunicadosPage() {
       data_fim: d.data_fim ? new Date(d.data_fim).toISOString().slice(0, 16) : "",
       publicado: d.publicado !== false,
     });
+    setAnexosExistentes(Array.isArray(d.anexos) ? d.anexos : []);
+    setAnexosNovos([]);
+    setAnexosRemover([]);
     setShowModal(true);
     setMsg(null);
   };
@@ -111,6 +125,8 @@ export default function ComunicadosPage() {
       var payload = { ...form };
       if (!payload.departamento_id) delete payload.departamento_id;
       if (!payload.data_fim) delete payload.data_fim;
+      if (anexosNovos.length > 0) payload.anexos = anexosNovos;
+      if (editando && anexosRemover.length > 0) payload.anexos_remover = anexosRemover;
       if (editando) {
         await api.put(`/api/comunicados/${editando.id}`, payload);
         setMsg({ tipo: "sucesso", texto: "Comunicado atualizado com sucesso" });
@@ -125,6 +141,59 @@ export default function ComunicadosPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const adicionarAnexos = (e) => {
+    var ficheiros = Array.prototype.slice.call(e.target.files || []);
+    var novos = [];
+    ficheiros.forEach(function (f) {
+      if (f.size > 10 * 1024 * 1024) {
+        setMsg({ tipo: "erro", texto: "O ficheiro \"" + f.name + "\" ultrapassa 10MB e não foi adicionado" });
+        return;
+      }
+      var leitor = new FileReader();
+      leitor.onload = function () {
+        setAnexosNovos(function (prev) {
+          return prev.concat([{
+            nome: f.name,
+            tipo: f.type || "application/octet-stream",
+            tamanho: f.size,
+            dados: leitor.result,
+          }]);
+        });
+      };
+      leitor.readAsDataURL(f);
+    });
+    e.target.value = "";
+  };
+
+  const removerAnexoNovo = (idx) => {
+    setAnexosNovos(function (prev) {
+      var novo = prev.slice();
+      novo.splice(idx, 1);
+      return novo;
+    });
+  };
+
+  const removerAnexoExistente = (id) => {
+    setAnexosRemover(function (prev) {
+      return prev.indexOf(id) === -1 ? prev.concat([id]) : prev;
+    });
+  };
+
+  const descarregarAnexo = async (comunicadoId, anexo) => {
+    try {
+      await api.downloadPdf(`/api/comunicados/${comunicadoId}/anexos/${anexo.id}`, anexo.nome);
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message });
+    }
+  };
+
+  const formatarTamanho = (bytes) => {
+    if (!bytes && bytes !== 0) return "";
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
   const eliminar = async () => {
@@ -300,6 +369,13 @@ export default function ComunicadosPage() {
                   )}
                 </div>
 
+                {Array.isArray(c.anexos) && c.anexos.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-primary bg-primary/5 border border-primary/10 rounded-lg px-2.5 py-1.5 w-fit">
+                    <span className="material-symbols-outlined text-[14px]">attach_file</span>
+                    {c.anexos.length} anexo{c.anexos.length > 1 ? "s" : ""}
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between gap-2 pt-3 border-t border-outline-variant/20">
                   <button onClick={() => abrirVer(c)} className="flex items-center gap-1.5 text-[13px] font-semibold text-primary hover:bg-primary/5 rounded-lg px-3 py-1.5 transition-colors">
                     <span className="material-symbols-outlined text-[16px]">visibility</span>
@@ -393,6 +469,55 @@ export default function ComunicadosPage() {
                   <input name="data_fim" type="datetime-local" value={form.data_fim || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20" />
                 </div>
               </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Anexos (opcional)</label>
+                  <span className="text-[11px] text-on-surface-variant/50">PDF, Word, Excel, imagens... máx. 10MB por ficheiro</span>
+                </div>
+
+                {(anexosExistentes.length > 0 || anexosNovos.length > 0) && (
+                  <div className="space-y-2">
+                    {anexosExistentes.map(function (a) {
+                      var removido = anexosRemover.indexOf(a.id) !== -1;
+                      return (
+                        <div key={a.id} className={"flex items-center gap-2.5 px-3 py-2 rounded-lg border " + (removido ? "border-error/30 bg-error/5 opacity-60" : "border-outline-variant/30 bg-background/50")}>
+                          <span className="material-symbols-outlined text-[18px] text-primary">attach_file</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold text-on-surface truncate">{a.nome}</p>
+                            <p className="text-[11px] text-on-surface-variant/60">{formatarTamanho(a.tamanho)}</p>
+                          </div>
+                          {!removido && (
+                            <button type="button" onClick={() => removerAnexoExistente(a.id)} title="Remover (ao guardar)" className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-colors">
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {anexosNovos.map(function (a, idx) {
+                      return (
+                        <div key={"novo-" + idx} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-primary/25 bg-primary/5">
+                          <span className="material-symbols-outlined text-[18px] text-primary">note_add</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold text-on-surface truncate">{a.nome}</p>
+                            <p className="text-[11px] text-on-surface-variant/60">{formatarTamanho(a.tamanho)} · novo</p>
+                          </div>
+                          <button type="button" onClick={() => removerAnexoNovo(idx)} title="Remover" className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-colors">
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <input ref={fileInputRef} type="file" multiple onChange={adicionarAnexos} className="hidden" />
+                <button type="button" onClick={() => fileInputRef.current && fileInputRef.current.click()} className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-outline-variant/60 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all">
+                  <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                  Adicionar documentos
+                </button>
+              </div>
               <div className="flex items-center justify-between pt-4 border-t border-outline-variant/20">
                 <div className="flex items-center gap-2">
                   <input id="publicado" name="publicado" type="checkbox" checked={form.publicado !== false} onChange={(e) => setForm({ ...form, publicado: e.target.checked })} className="w-4 h-4 accent-primary" />
@@ -460,6 +585,27 @@ export default function ComunicadosPage() {
                 <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary text-[18px]">apartment</span>
                   <span className="text-[13px] font-semibold text-on-surface">Destinado ao departamento: {avisoView.departamento.nome}</span>
+                </div>
+              )}
+
+              {Array.isArray(avisoView.anexos) && avisoView.anexos.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wide">Documentos anexos</p>
+                  {avisoView.anexos.map(function (a) {
+                    return (
+                      <div key={a.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-outline-variant/30 bg-background/50">
+                        <span className="material-symbols-outlined text-[18px] text-primary">attach_file</span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-semibold text-on-surface truncate">{a.nome}</p>
+                          <p className="text-[11px] text-on-surface-variant/60">{formatarTamanho(a.tamanho)}</p>
+                        </div>
+                        <button onClick={() => descarregarAnexo(avisoView.id, a)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
+                          <span className="material-symbols-outlined text-[16px]">download</span>
+                          Descarregar
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
