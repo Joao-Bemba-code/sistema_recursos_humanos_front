@@ -23,6 +23,7 @@ var ALL_MODULES = [
   { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment", modulo: "pedidos" },
   { label: "Avaliação", href: "/dashboard/avaliacao", icon: "query_stats", modulo: "avaliacao" },
   { label: "Formação", href: "/dashboard/formacao", icon: "school", modulo: "formacao" },
+  { label: "Tarefas", href: "/dashboard/tarefas", icon: "task_alt", modulo: "tarefas" },
   { label: "Folha Salarial", href: "/dashboard/folha-salarial", icon: "payments", modulo: "folha_salarial" },
   { label: "Créditos", href: "/dashboard/creditos", icon: "savings", modulo: "creditos" },
   { label: "Relatórios", href: "/dashboard/relatorios", icon: "analytics", modulo: "relatorios" },
