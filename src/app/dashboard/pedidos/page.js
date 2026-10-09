@@ -177,7 +177,7 @@ export default function PedidosPage() {
 
       <div className="bg-surface-card rounded-xl border border-outline-variant">
         <div className="p-4 border-b border-outline-variant/30">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
+          <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-3">
             <input
               type="text"
               value={search}
@@ -212,7 +212,7 @@ export default function PedidosPage() {
           </form>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-[13px] text-outline">A carregar...</div>
           ) : pedidos.length === 0 ? (
@@ -288,6 +288,54 @@ export default function PedidosPage() {
           )}
         </div>
 
+        {!loading && pedidos.length > 0 && (
+          <div className="md:hidden divide-y divide-outline-variant/30">
+            {pedidos.map(function (p) {
+              var colab = p.colaborador || {};
+              return (
+                <div key={p.id} className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-on-surface leading-tight">{p.titulo}</p>
+                      <p className="text-[11px] text-outline mt-0.5">
+                        {colab.nome_completo || "—"} · {TIPO_LABELS[p.tipo] || p.tipo}
+                      </p>
+                    </div>
+                    <span className={"text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 " + estadoClasses(p.estado)}>
+                      {p.estado.charAt(0).toUpperCase() + p.estado.slice(1)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[11px] text-outline">{timeAgo(p.createdAt)}</span>
+                    <div className="flex flex-wrap gap-1 ml-auto">
+                      <button
+                        onClick={function () { handleVerDetalhe(p); }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-primary border border-primary/30 hover:bg-primary/5 transition-colors"
+                      >
+                        Ver detalhe
+                      </button>
+                      {p.estado === "pendente" && (
+                        <button
+                          onClick={function () { handleVerDetalhe(p); }}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-green-600 border border-green-200 hover:bg-green-50 transition-colors"
+                        >
+                          Aprovar
+                        </button>
+                      )}
+                      <button
+                        onClick={function () { setConfirmDelete({ open: true, id: p.id, titulo: p.titulo }); }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-red-500 border border-red-200 hover:bg-red-50 transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {paginacao.total_paginas > 1 && (
           <div className="p-4 border-t border-outline-variant/30 flex items-center justify-between">
             <p className="text-[12px] text-outline">
@@ -314,10 +362,10 @@ export default function PedidosPage() {
       </div>
 
       {showDetalhe && pedidoDetalhe && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setShowDetalhe(false); }} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-md max-h-[85vh] overflow-y-auto">
-            <div className="sticky top-0 bg-surface-card border-b border-outline-variant/30 px-5 py-4 flex items-center justify-between rounded-t-xl">
+          <div className="relative bg-surface-card shadow-xl w-full max-w-md max-h-[88vh] overflow-y-auto rounded-t-2xl sm:rounded-xl">
+            <div className="sticky top-0 bg-surface-card border-b border-outline-variant/30 px-5 py-4 flex items-center justify-between rounded-t-2xl sm:rounded-t-xl">
               <h3 className="text-[15px] font-semibold text-on-surface">Detalhe do Pedido</h3>
               <button onClick={function () { setShowDetalhe(false); }} className="text-outline hover:text-on-surface-variant text-[14px]">
                 Fechar

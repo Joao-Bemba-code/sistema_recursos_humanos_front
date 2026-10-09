@@ -7,6 +7,10 @@ import { getT } from "@/lib/translations";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import PageHeader from "@/components/ui/PageHeader";
+import Toolbar from "@/components/ui/Toolbar";
+import EmptyState from "@/components/ui/EmptyState";
+import Skeleton from "@/components/ui/Skeleton";
 
 // Valores iguais aos ENUM da base de dados (sem acentos)
 var ESTADOS_ASSIDUIDADE = [
@@ -354,22 +358,18 @@ useEffect(function () {
         onCancel={function () { setConfirmDelete({ open: false, id: null, nome: "" }); }}
       />
 
-      <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <nav className="flex items-center gap-2 text-[12px] text-on-surface-variant/60 font-medium uppercase tracking-wide">
-            <span>SGHR</span>
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-primary/70">Assiduidade</span>
-          </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão de Assiduidade e Presença</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
-            <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            Novo Registo
-          </button>
-        </div>
-      </section>
+      <PageHeader
+        titulo="Gestão de Assiduidade e Presença"
+        breadcrumb={[{ label: "SGHR" }, { label: "Assiduidade" }]}
+        acoes={
+          <>
+            <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
+              <span className="material-symbols-outlined text-[18px]">add_circle</span>
+              Novo Registo
+            </button>
+          </>
+        }
+      />
 
       {msg && (
         <div className={"p-3 rounded-lg text-[13px] font-medium flex items-center gap-2 " + (msg.tipo === "sucesso" ? "badge-success border border-success/10" : "badge-danger border border-error/10")}>
@@ -381,117 +381,119 @@ useEffect(function () {
         </div>
       )}
 
-      <section className="glass-panel p-5 rounded-xl border border-outline-variant/30 shadow-sm">
-        <div className="flex flex-col lg:flex-row gap-4 items-end">
-          <div className="flex-grow space-y-2 w-full lg:w-auto">
-            <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Buscar Colaborador</label>
-            <div className="relative">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
-              <input
-                type="text"
-                placeholder="Nome do colaborador..."
-                value={search}
-                onChange={function (e) { setSearch(e.target.value); }}
-                onKeyDown={function (e) { if (e.key === "Enter") { setSearchAplicado(search.trim()); carregar(1); } }}
-                className="w-full pl-10 pr-4 py-2.5 bg-background border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[14px]"
-              />
+      <Toolbar>
+        <div className="w-full">
+          <div className="flex flex-col lg:flex-row gap-4 items-end">
+            <div className="flex-grow space-y-2 w-full lg:w-auto">
+              <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Buscar Colaborador</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                <input
+                  type="text"
+                  placeholder="Nome do colaborador..."
+                  value={search}
+                  onChange={function (e) { setSearch(e.target.value); }}
+                  onKeyDown={function (e) { if (e.key === "Enter") { setSearchAplicado(search.trim()); carregar(1); } }}
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[14px]"
+                />
+                {aFiltrar && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-primary animate-spin">progress_activity</span>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full lg:w-auto">
+              <div className="space-y-2">
+                <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Estado</label>
+                <select value={filtroEstado} onChange={function (e) { setFiltroEstado(e.target.value); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                  <option value="">Todos</option>
+                  {ESTADOS_ASSIDUIDADE.map(function (e) {
+                    return <option key={e.value} value={e.value}>{e.label}</option>;
+                  })}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Colaborador</label>
+                <select value={filtroColaborador} onChange={function (e) { setFiltroColaborador(e.target.value); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                  <option value="">Todos</option>
+                  {colaboradores.map(function (c) {
+                    return <option key={c.id} value={c.id}>{c.nome_completo}</option>;
+                  })}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Data de Início</label>
+                <input type="date" value={filtroDataInicio} onChange={function (e) { setFiltroDataInicio(e.target.value); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Data Fim</label>
+                <input type="date" value={filtroDataFim} onChange={function (e) { setFiltroDataFim(e.target.value); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
+              </div>
+            </div>
+            <div className="flex items-end gap-2 pb-0.5">
+              <button onClick={function () { filtrarMes(); }} title="Mostrar do dia 1 do mês até hoje (a assiduidade só conta a partir do dia 1)" className="px-4 py-2.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
+                <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+                Este Mês
+              </button>
+              <button onClick={function () { carregar(1); }} className="px-4 py-2.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
+                <span className="material-symbols-outlined text-[18px]">filter_alt</span>
+                Filtrar
+              </button>
+            </div>
+          </div>
+          {dataInvertida && (
+            <div className="mt-4 p-3 rounded-lg badge-warning border border-warning/20 text-[13px] font-medium flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">warning</span>
+              A data de início é maior do que a data fim — corrija as datas para ver os registos.
+            </div>
+          )}
+          {!loading && !dataInvertida && (
+            <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-3">
+              <span className="text-[12px] text-on-surface-variant/70 font-medium">
+                {paginacao.total === 0
+                  ? "Nenhum registo encontrado"
+                  : paginacao.total + (paginacao.total === 1 ? " registo encontrado" : " registos encontrados")}
+                {temFiltros ? " com os filtros aplicados" : ""}
+              </span>
               {aFiltrar && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-[18px] text-primary animate-spin">progress_activity</span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-primary font-medium">
+                  <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
+                  a filtrar...
+                </span>
               )}
             </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full lg:w-auto">
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Estado</label>
-              <select value={filtroEstado} onChange={function (e) { setFiltroEstado(e.target.value); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
-                <option value="">Todos</option>
-                {ESTADOS_ASSIDUIDADE.map(function (e) {
-                  return <option key={e.value} value={e.value}>{e.label}</option>;
-                })}
-              </select>
+          )}
+          {activeFilters.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
+              <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
+              {activeFilters.map(function (f, i) {
+                return (
+                  <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-semibold">
+                    {f.label}
+                    <button onClick={f.onClear} className="hover:text-error">
+                      <span className="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                  </span>
+                );
+              })}
+              <button onClick={limparFiltros} className="text-[11px] font-medium text-primary hover:underline ml-2">Limpar Tudo</button>
             </div>
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Colaborador</label>
-              <select value={filtroColaborador} onChange={function (e) { setFiltroColaborador(e.target.value); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
-                <option value="">Todos</option>
-                {colaboradores.map(function (c) {
-                  return <option key={c.id} value={c.id}>{c.nome_completo}</option>;
-                })}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Data de Início</label>
-              <input type="date" value={filtroDataInicio} onChange={function (e) { setFiltroDataInicio(e.target.value); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Data Fim</label>
-              <input type="date" value={filtroDataFim} onChange={function (e) { setFiltroDataFim(e.target.value); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
-            </div>
-          </div>
-          <div className="flex items-end gap-2 pb-0.5">
-            <button onClick={function () { filtrarMes(); }} title="Mostrar do dia 1 do mês até hoje (a assiduidade só conta a partir do dia 1)" className="px-4 py-2.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
-              <span className="material-symbols-outlined text-[18px]">calendar_month</span>
-              Este Mês
-            </button>
-            <button onClick={function () { carregar(1); }} className="px-4 py-2.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors whitespace-nowrap">
-              <span className="material-symbols-outlined text-[18px]">filter_alt</span>
-              Filtrar
-            </button>
-          </div>
+          )}
         </div>
-        {dataInvertida && (
-          <div className="mt-4 p-3 rounded-lg badge-warning border border-warning/20 text-[13px] font-medium flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">warning</span>
-            A data de início é maior do que a data fim — corrija as datas para ver os registos.
-          </div>
-        )}
-        {!loading && !dataInvertida && (
-          <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-3">
-            <span className="text-[12px] text-on-surface-variant/70 font-medium">
-              {paginacao.total === 0
-                ? "Nenhum registo encontrado"
-                : paginacao.total + (paginacao.total === 1 ? " registo encontrado" : " registos encontrados")}
-              {temFiltros ? " com os filtros aplicados" : ""}
-            </span>
-            {aFiltrar && (
-              <span className="inline-flex items-center gap-1.5 text-[12px] text-primary font-medium">
-                <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>
-                a filtrar...
-              </span>
-            )}
-          </div>
-        )}
-        {activeFilters.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
-            {activeFilters.map(function (f, i) {
-              return (
-                <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
-                  {f.label}
-                  <button onClick={f.onClear} className="hover:text-error">
-                    <span className="material-symbols-outlined text-[14px]">close</span>
-                  </button>
-                </span>
-              );
-            })}
-            <button onClick={limparFiltros} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
-          </div>
-        )}
-      </section>
+      </Toolbar>
 
       <section className="bg-surface rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse data-grid-tight">
             <thead>
               <tr className="bg-background/50 border-b border-outline-variant/20">
-                <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider w-[260px]">Colaborador</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Data</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Entrada</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Saída</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Horas</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Método</th>
-                <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
+                <th className="px-6 py-4 font-medium text-on-surface-variant/70 w-[260px]">Colaborador</th>
+                <th className="px-4 py-4 font-medium text-on-surface-variant/70">Data</th>
+                <th className="px-4 py-4 font-medium text-on-surface-variant/70">Entrada</th>
+                <th className="px-4 py-4 font-medium text-on-surface-variant/70">Saída</th>
+                <th className="px-4 py-4 font-medium text-on-surface-variant/70">Horas</th>
+                <th className="px-4 py-4 font-medium text-on-surface-variant/70">Estado</th>
+                <th className="px-4 py-4 font-medium text-on-surface-variant/70">Método</th>
+                <th className="px-6 py-4 font-medium text-on-surface-variant/70 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
@@ -500,33 +502,37 @@ useEffect(function () {
                   return (
                     <tr key={i}>
                       <td colSpan={8} className="px-6 py-4">
-                        <div className="animate-pulse h-10 bg-surface-container rounded-lg" />
+                        <Skeleton className="h-10 w-full" />
                       </td>
                     </tr>
                   );
                 })
               ) : registos.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">event_available</span>
+                  <td colSpan={8}>
                     {dataInvertida ? (
-                      <>
-                        <p className="text-on-surface-variant font-medium">Intervalo de datas inválido</p>
-                        <p className="text-[13px] text-outline mt-1">A data de início tem de ser anterior à data fim</p>
-                      </>
+                      <EmptyState
+                        icon="event_busy"
+                        title="Intervalo de datas inválido"
+                        description="A data de início tem de ser anterior à data fim"
+                      />
                     ) : temFiltros ? (
-                      <>
-                        <p className="text-on-surface-variant font-medium">Nenhum registo corresponde aos filtros aplicados</p>
-                        <p className="text-[13px] text-outline mt-1">Ajuste a pesquisa ou os filtros para ver os registos</p>
-                        <button onClick={limparFiltros} className="mt-4 px-4 py-2 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold uppercase tracking-wide">
-                          Limpar filtros
-                        </button>
-                      </>
+                      <EmptyState
+                        icon="search_off"
+                        title="Nenhum registo corresponde aos filtros aplicados"
+                        description="Ajuste a pesquisa ou os filtros para ver os registos"
+                        action={
+                          <button onClick={limparFiltros} className="px-4 py-2 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-medium">
+                            Limpar filtros
+                          </button>
+                        }
+                      />
                     ) : (
-                      <>
-                        <p className="text-on-surface-variant font-medium">Nenhum registo de assiduidade encontrado</p>
-                        <p className="text-[13px] text-outline mt-1">Clique em &quot;Novo Registo&quot; para adicionar ou use &quot;Este Mês&quot; para ver as presenças</p>
-                      </>
+                      <EmptyState
+                        icon="calendar_month"
+                        title="Nenhum registo de assiduidade encontrado"
+                        description="Clique em &quot;Novo Registo&quot; para adicionar ou use &quot;Este Mês&quot; para ver as presenças"
+                      />
                     )}
                   </td>
                 </tr>
@@ -565,7 +571,7 @@ useEffect(function () {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={"inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider " + estadoBadgeClass(r.estado)}>
+                        <span className={"inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold " + estadoBadgeClass(r.estado)}>
                           <span className={"w-1.5 h-1.5 rounded-full " + estadoDot(r.estado)} />
                           {r.estado}
                         </span>
@@ -574,13 +580,13 @@ useEffect(function () {
                         <div className="flex flex-col gap-1">
                           <span className="text-on-surface-variant text-[13px]">{r.metodo || "—"}</span>
                           {r.ajustado_manual && (
-                            <span className="inline-flex items-center w-fit gap-1 px-1.5 py-0.5 rounded bg-info/10 text-info text-[10px] font-bold uppercase" title="Corrigido manualmente — o biometro não altera este registo">
+                            <span className="inline-flex items-center w-fit gap-1 px-1.5 py-0.5 rounded bg-info/10 text-info text-[10px] font-semibold" title="Corrigido manualmente — o biometro não altera este registo">
                               <span className="material-symbols-outlined text-[12px]">edit</span>
                               Ajustado
                             </span>
                           )}
                           {r.justificado && (
-                            <span className="inline-flex items-center w-fit gap-1 px-1.5 py-0.5 rounded bg-success/10 text-success text-[10px] font-bold uppercase" title="Falta/Atraso justificado">
+                            <span className="inline-flex items-center w-fit gap-1 px-1.5 py-0.5 rounded bg-success/10 text-success text-[10px] font-semibold" title="Falta/Atraso justificado">
                               <span className="material-symbols-outlined text-[12px]">verified</span>
                               Justificado
                             </span>
@@ -608,7 +614,7 @@ useEffect(function () {
           </table>
         </div>
         <div className="px-6 py-4 border-t border-outline-variant/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="text-[12px] font-semibold text-on-surface-variant/70 uppercase tracking-wide">
+          <div className="text-[12px] font-medium text-on-surface-variant/70">
             Exibindo {registos.length} de {paginacao.total} registos
           </div>
           {paginacao.total_paginas > 1 && (
@@ -639,7 +645,7 @@ useEffect(function () {
             <form onSubmit={guardar} className="p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Colaborador *</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Colaborador *</label>
                   <select name="colaborador_id" value={form.colaborador_id || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                     <option value="">Selecionar colaborador</option>
                     {colaboradores.map(function (c) {
@@ -648,11 +654,11 @@ useEffect(function () {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Data *</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Data *</label>
                   <input name="data" type="date" value={form.data || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado *</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Estado *</label>
                   <select name="estado" value={form.estado || "Presente"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                     {ESTADOS_ASSIDUIDADE.map(function (e) {
                       return <option key={e.value} value={e.value}>{e.label}</option>;
@@ -660,11 +666,11 @@ useEffect(function () {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Hora Entrada</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Hora Entrada</label>
                   <input name="hora_entrada" type="time" value={form.hora_entrada || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Hora Saída</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Hora Saída</label>
                   <input name="hora_saida" type="time" value={form.hora_saida || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
 
@@ -673,13 +679,13 @@ useEffect(function () {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[18px] text-primary">schedule</span>
-                        <span className="text-[12px] font-bold text-primary uppercase">Horas Trabalhadas:</span>
+                        <span className="text-[12px] font-medium text-primary">Horas Trabalhadas:</span>
                         <span className="text-[14px] font-bold text-on-surface">{calcularHorasTrabalhadas()}</span>
                       </div>
                       {calcularHorasExtras() && calcularHorasExtras() !== "0h" && (
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-[18px] text-warning">more_time</span>
-                          <span className="text-[12px] font-bold text-warning uppercase">Extras:</span>
+                          <span className="text-[12px] font-medium text-warning">Extras:</span>
                           <span className="text-[14px] font-bold text-on-surface">{calcularHorasExtras()}</span>
                         </div>
                       )}
@@ -688,7 +694,7 @@ useEffect(function () {
                 )}
 
                 <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Método de Registo</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Método de Registo</label>
                   <select name="metodo" value={form.metodo || "Manual"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                     {METODOS_REGISTO.map(function (m) {
                       return <option key={m.value} value={m.value}>{m.label}</option>;
@@ -703,12 +709,12 @@ useEffect(function () {
                 </div>
                 {form.justificado && (
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Motivo da Justificação</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Motivo da Justificação</label>
                     <textarea name="justificacao_observacoes" value={form.justificacao_observacoes || ""} onChange={handleInput} rows={2} placeholder="Ex.: o colaborador esqueceu-se de passar o dedo no biómetro; entrada confirmada pelo encarregado." className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                 )}
                 <div className="sm:col-span-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observações</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Observações</label>
                   <textarea name="observacoes" value={form.observacoes || ""} onChange={handleInput} rows={3} placeholder="Notas adicionais sobre a assiduidade..." className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
                 <div className="sm:col-span-2 flex items-start gap-2 bg-info/5 border border-info/20 rounded-lg p-3">
@@ -751,7 +757,7 @@ useEffect(function () {
                   <h2 className="text-xl font-bold text-on-surface">{nomeColaborador(registoView)}</h2>
                   <div className="flex items-center gap-3 mt-1">
                     <span className="text-[13px] text-on-surface-variant/70">{numeroColaborador(registoView)}</span>
-                    <span className={"inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider " + estadoBadgeClass(registoView.estado)}>
+                    <span className={"inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold " + estadoBadgeClass(registoView.estado)}>
                       <span className={"w-1.5 h-1.5 rounded-full " + estadoDot(registoView.estado)} />
                       {registoView.estado}
                     </span>
@@ -760,7 +766,7 @@ useEffect(function () {
               </div>
 
               <div>
-                <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <h4 className="text-[11px] font-medium text-on-surface-variant/70 mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px] text-primary">event</span>
                   Dados do Registo
                 </h4>
@@ -775,7 +781,7 @@ useEffect(function () {
                   ].map(function (pair) {
                     return (
                       <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                        <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">{pair[0]}</p>
+                        <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">{pair[0]}</p>
                         <p className="text-[13px] font-semibold text-on-surface">{pair[1] || "—"}</p>
                       </div>
                     );
@@ -784,13 +790,13 @@ useEffect(function () {
                 {(registoView.ajustado_manual || registoView.justificado) && (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {registoView.ajustado_manual && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-info/10 text-info text-[11px] font-bold uppercase">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-info/10 text-info text-[11px] font-semibold">
                         <span className="material-symbols-outlined text-[14px]">edit</span>
                         Ajustado manualmente (o biómetro não altera este registo)
                       </span>
                     )}
                     {registoView.justificado && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 text-success text-[11px] font-bold uppercase">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success/10 text-success text-[11px] font-semibold">
                         <span className="material-symbols-outlined text-[14px]">verified</span>
                         Falta/Atraso justificado
                       </span>
@@ -799,13 +805,13 @@ useEffect(function () {
                 )}
                 {registoView.justificacao_observacoes && (
                   <div className="mt-3 bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Motivo da Justificação</p>
+                    <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Motivo da Justificação</p>
                     <p className="text-[13px] text-on-surface">{registoView.justificacao_observacoes}</p>
                   </div>
                 )}
                 {registoView.observacoes && (
                   <div className="mt-3 bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Observações</p>
+                    <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Observações</p>
                     <p className="text-[13px] text-on-surface">{registoView.observacoes}</p>
                   </div>
                 )}

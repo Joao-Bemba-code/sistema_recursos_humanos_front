@@ -5,6 +5,10 @@ import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { getT } from "@/lib/translations";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import PageHeader from "@/components/ui/PageHeader";
+import Toolbar from "@/components/ui/Toolbar";
+import EmptyState from "@/components/ui/EmptyState";
+import Skeleton from "@/components/ui/Skeleton";
 
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
@@ -421,7 +425,7 @@ export default function FolhaSalarialPage() {
       else cls = "badge-danger";
     }
     return (
-      <span className={`inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${cls}`}>
+      <span className={`inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold ${cls}`}>
         <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" />
         {estado}
       </span>
@@ -430,7 +434,7 @@ export default function FolhaSalarialPage() {
 
   const renderPagination = () => (
     <div className="px-6 py-4 border-t border-outline-variant/10 flex flex-col md:flex-row items-center justify-between gap-4">
-      <div className="text-[12px] font-semibold text-on-surface-variant/70 uppercase tracking-wide">
+      <div className="text-[12px] font-medium text-on-surface-variant/70">
         Exibindo {dados.length} de {paginacao.total} registos
       </div>
       {paginacao.total_paginas > 1 && (
@@ -482,47 +486,45 @@ export default function FolhaSalarialPage() {
         onCancel={() => setConfirmDelete({ open: false, id: null, nome: "" })}
       />
 
-      <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <nav className="flex items-center gap-2 text-[12px] text-on-surface-variant/60 font-medium uppercase tracking-wide">
-            <span>SGHR</span>
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-primary/70">Financeiro</span>
-            <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span className="text-primary/70">Folha Salarial</span>
-          </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão de Folha Salarial</h1>
-        </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {tab === "pagamentos" && (
-            <>
-              <button onClick={() => { setResumoOpen(!resumoOpen); setResultadoGerar(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-success/10 text-success text-[13px] font-semibold rounded-lg border border-success/20 hover:bg-success/20 transition-all active:scale-95">
-                <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
-                Resumo PDF
-              </button>
-              <button onClick={() => { setGerarAuto(true); setResultadoGerar(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-secondary/10 text-secondary text-[13px] font-semibold rounded-lg border border-secondary/20 hover:bg-secondary/20 transition-all active:scale-95">
-                <span className="material-symbols-outlined text-[18px]">bolt</span>
-                Gerar Automático
-              </button>
-            </>
-          )}
-          <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
-            <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            {tab === "vencimentos" ? "Novo Vencimento" : "Novo Pagamento"}
-          </button>
-        </div>
-      </section>
+      <PageHeader
+        titulo="Gestão de Folha Salarial"
+        breadcrumb={[
+          { label: "SGHR" },
+          { label: "Financeiro" },
+          { label: "Folha Salarial" },
+        ]}
+        acoes={
+          <>
+            {tab === "pagamentos" && (
+              <>
+                <button onClick={() => { setResumoOpen(!resumoOpen); setResultadoGerar(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-success/10 text-success text-[13px] font-semibold rounded-lg border border-success/20 hover:bg-success/20 transition-all active:scale-95">
+                  <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                  Resumo PDF
+                </button>
+                <button onClick={() => { setGerarAuto(true); setResultadoGerar(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-secondary/10 text-secondary text-[13px] font-semibold rounded-lg border border-secondary/20 hover:bg-secondary/20 transition-all active:scale-95">
+                  <span className="material-symbols-outlined text-[18px]">bolt</span>
+                  Gerar Automático
+                </button>
+              </>
+            )}
+            <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
+              <span className="material-symbols-outlined text-[18px]">add_circle</span>
+              {tab === "vencimentos" ? "Novo Vencimento" : "Novo Pagamento"}
+            </button>
+          </>
+        }
+      />
 
       {resumoOpen && (
-        <section className="glass-panel rounded-xl border border-outline-variant/30 p-5 flex flex-col md:flex-row md:items-end gap-4">
+        <section className="bg-surface-card rounded-xl border border-outline-variant/30 p-5 flex flex-col md:flex-row md:items-end gap-4">
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Mês do resumo</label>
+            <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Mês do resumo</label>
             <select value={resumoMes} onChange={(e) => setResumoMes(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
               {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
             </select>
           </div>
           <div className="space-y-2">
-            <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Ano do resumo</label>
+            <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Ano do resumo</label>
             <input type="number" min="2000" value={resumoAno} onChange={(e) => setResumoAno(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
           </div>
           <div className="flex items-end pb-0.5">
@@ -535,13 +537,13 @@ export default function FolhaSalarialPage() {
         </section>
       )}
 
-      <section className="glass-panel rounded-xl border border-outline-variant/30 overflow-hidden">
-        <div className="flex border-b border-outline-variant/20">
-          <button onClick={() => { setTab("vencimentos"); setSearch(""); setFiltroEstado(""); setFiltroColaborador(""); setFiltroMes(""); setFiltroAno(""); }} className={`flex items-center gap-2 px-6 py-3.5 text-[13px] font-semibold transition-all ${tab === "vencimentos" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"}`}>
+      <section className="bg-surface-card rounded-xl border border-outline-variant/30 overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-outline-variant/20">
+          <button onClick={() => { setTab("vencimentos"); setSearch(""); setFiltroEstado(""); setFiltroColaborador(""); setFiltroMes(""); setFiltroAno(""); }} className={`flex-shrink-0 flex items-center gap-2 px-4 sm:px-6 py-3.5 text-[13px] font-semibold transition-all ${tab === "vencimentos" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"}`}>
             <span className="material-symbols-outlined text-[18px]">payments</span>
             Vencimentos
           </button>
-          <button onClick={() => { setTab("pagamentos"); setSearch(""); setFiltroEstado(""); setFiltroColaborador(""); setFiltroMes(""); setFiltroAno(""); }} className={`flex items-center gap-2 px-6 py-3.5 text-[13px] font-semibold transition-all ${tab === "pagamentos" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"}`}>
+          <button onClick={() => { setTab("pagamentos"); setSearch(""); setFiltroEstado(""); setFiltroColaborador(""); setFiltroMes(""); setFiltroAno(""); }} className={`flex-shrink-0 flex items-center gap-2 px-4 sm:px-6 py-3.5 text-[13px] font-semibold transition-all ${tab === "pagamentos" ? "text-primary border-b-2 border-primary bg-primary/5" : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"}`}>
             <span className="material-symbols-outlined text-[18px]">receipt_long</span>
             Pagamentos
           </button>
@@ -558,10 +560,10 @@ export default function FolhaSalarialPage() {
         </div>
       )}
 
-      <section className="glass-panel p-5 rounded-xl border border-outline-variant/30 shadow-sm">
-        <div className="flex flex-col lg:flex-row gap-4 items-end">
+      <Toolbar resultados={paginacao.total} resultadosLabel="registos">
+        <div className="flex flex-col lg:flex-row gap-4 items-end w-full">
           <div className="flex-grow space-y-2 w-full lg:w-auto">
-            <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Buscar</label>
+            <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Buscar</label>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
               <input
@@ -578,20 +580,20 @@ export default function FolhaSalarialPage() {
             {tab === "pagamentos" && (
               <>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Mês</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Mês</label>
                   <select value={filtroMes} onChange={(e) => setFiltroMes(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                     <option value="">Todos</option>
                     {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Ano</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Ano</label>
                   <input type="number" placeholder="2024" value={filtroAno} onChange={(e) => setFiltroAno(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
                 </div>
               </>
             )}
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Estado</label>
+              <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Estado</label>
               <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                 <option value="">Todos</option>
                 {tab === "vencimentos" ? (
@@ -609,7 +611,7 @@ export default function FolhaSalarialPage() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Colaborador</label>
+              <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Colaborador</label>
               <select value={filtroColaborador} onChange={(e) => setFiltroColaborador(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                 <option value="">Todos</option>
                 {colaboradores.map(c => (
@@ -626,18 +628,18 @@ export default function FolhaSalarialPage() {
           </div>
         </div>
         {activeFilters.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
+          <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2 w-full">
             <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
             {activeFilters.map((f, i) => (
-              <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
+              <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-semibold">
                 {f.label}
                 <button onClick={f.onClear} className="hover:text-error"><span className="material-symbols-outlined text-[14px]">close</span></button>
               </span>
             ))}
-            <button onClick={limparFiltros} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
+            <button onClick={limparFiltros} className="text-[11px] font-medium text-primary hover:underline ml-2">Limpar Tudo</button>
           </div>
         )}
-      </section>
+      </Toolbar>
 
       {tab === "vencimentos" && (
         <section className="bg-surface rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
@@ -645,26 +647,28 @@ export default function FolhaSalarialPage() {
             <table className="w-full text-left border-collapse data-grid-tight">
               <thead>
                 <tr className="bg-background/50 border-b border-outline-variant/20">
-                  <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider w-[280px]">Colaborador</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Salário Base</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsídios</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Bruto</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Descontos</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Líquido</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
-                  <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
+                  <th className="px-6 py-4 font-medium text-on-surface-variant/70 w-[280px]">Colaborador</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Salário Base</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Subsídios</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Total Bruto</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Descontos</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Total Líquido</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Estado</th>
+                  <th className="px-6 py-4 font-medium text-on-surface-variant/70 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {loading ? (
-                  [1,2,3,4,5].map(i => (
-                    <tr key={i}><td colSpan={8} className="px-6 py-4"><div className="animate-pulse h-10 bg-surface-container rounded-lg" /></td></tr>
+                  [1,2,3,4].map(i => (
+                    <tr key={i}><td colSpan={8} className="px-6 py-4"><Skeleton className="h-10 w-full" /></td></tr>
                   ))
                 ) : dados.length === 0 ? (
-                  <tr><td colSpan={8} className="px-6 py-12 text-center">
-                    <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">payments</span>
-                    <p className="text-on-surface-variant font-medium">Nenhum vencimento encontrado</p>
-                    <p className="text-[13px] text-outline mt-1">Clique em "Novo Vencimento" para adicionar</p>
+                  <tr><td colSpan={8} className="px-6 py-2">
+                    <EmptyState
+                      icon="payments"
+                      title="Nenhum vencimento encontrado"
+                      description={'Clique em "Novo Vencimento" para adicionar'}
+                    />
                   </td></tr>
                 ) : (
                   dados.map((item) => (
@@ -726,27 +730,29 @@ export default function FolhaSalarialPage() {
             <table className="w-full text-left border-collapse data-grid-tight">
               <thead>
                 <tr className="bg-background/50 border-b border-outline-variant/20">
-                  <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider w-[280px]">Colaborador</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Mês/Ano</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Salário Base</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsídios+Extras</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">IRT + SS + Faltas</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Total Líquido</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
-                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Data Pagamento</th>
-                  <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
+                  <th className="px-6 py-4 font-medium text-on-surface-variant/70 w-[280px]">Colaborador</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Mês/Ano</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Salário Base</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Subsídios+Extras</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">IRT + SS + Faltas</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Total Líquido</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Estado</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">Data Pagamento</th>
+                  <th className="px-6 py-4 font-medium text-on-surface-variant/70 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
                 {loading ? (
-                  [1,2,3,4,5].map(i => (
-                    <tr key={i}><td colSpan={9} className="px-6 py-4"><div className="animate-pulse h-10 bg-surface-container rounded-lg" /></td></tr>
+                  [1,2,3,4].map(i => (
+                    <tr key={i}><td colSpan={9} className="px-6 py-4"><Skeleton className="h-10 w-full" /></td></tr>
                   ))
                 ) : dados.length === 0 ? (
-                  <tr><td colSpan={9} className="px-6 py-12 text-center">
-                    <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">receipt_long</span>
-                    <p className="text-on-surface-variant font-medium">Nenhum pagamento encontrado</p>
-                    <p className="text-[13px] text-outline mt-1">Clique em "Novo Pagamento" para adicionar</p>
+                  <tr><td colSpan={9} className="px-6 py-2">
+                    <EmptyState
+                      icon="receipt_long"
+                      title="Nenhum pagamento encontrado"
+                      description={'Clique em "Novo Pagamento" para adicionar'}
+                    />
                   </td></tr>
                 ) : (
                   dados.map((item) => (
@@ -824,7 +830,7 @@ export default function FolhaSalarialPage() {
               {tab === "vencimentos" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Colaborador *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Colaborador *</label>
                     <select name="colaborador_id" value={form.colaborador_id || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                       <option value="">Selecionar colaborador</option>
                       {colaboradores.map(c => (
@@ -833,36 +839,36 @@ export default function FolhaSalarialPage() {
                     </select>
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Salário Base (AOA) *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Salário Base (AOA) *</label>
                     <input type="number" step="0.01" name="salario_base" value={form.salario_base || ""} onChange={handleInput} required placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
 
                   <div className="sm:col-span-2">
                     <div className="flex items-center gap-2 mb-2 mt-1">
                       <span className="material-symbols-outlined text-[16px] text-success">trending_up</span>
-                      <span className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Subsídios</span>
+                      <span className="text-[11px] font-medium text-on-surface-variant/70">Subsídios</span>
                     </div>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídio Alimentação</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Subsídio Alimentação</label>
                     <input type="number" step="0.01" name="subsidio_alimentacao" value={form.subsidio_alimentacao || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídio Transporte</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Subsídio Transporte</label>
                     <input type="number" step="0.01" name="subsidio_transporte" value={form.subsidio_transporte || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídio Educação</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Subsídio Educação</label>
                     <input type="number" step="0.01" name="subsidio_educacao" value={form.subsidio_educacao || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Outros Subsídios</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Outros Subsídios</label>
                     <input type="number" step="0.01" name="outros_subsidios" value={form.outros_subsidios || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
 
                   <div className="sm:col-span-2 bg-success/5 border border-success/10 rounded-lg p-3 mt-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-success uppercase tracking-wider">Total Bruto</span>
+                      <span className="text-[11px] font-medium text-success">Total Bruto</span>
                       <span className="text-[16px] font-bold text-success">{helpers.formatCurrency(calcularTotalBrutoVenc(form))}</span>
                     </div>
                   </div>
@@ -870,39 +876,39 @@ export default function FolhaSalarialPage() {
                   <div className="sm:col-span-2">
                     <div className="flex items-center gap-2 mb-2 mt-1">
                       <span className="material-symbols-outlined text-[16px] text-error">trending_down</span>
-                      <span className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Descontos</span>
+                      <span className="text-[11px] font-medium text-on-surface-variant/70">Descontos</span>
                     </div>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Desconto IRT</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto IRT</label>
                     <input type="number" step="0.01" name="desconto_irt" value={form.desconto_irt || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Desconto Seg. Social</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto Seg. Social</label>
                     <input type="number" step="0.01" name="desconto_seguranca_social" value={form.desconto_seguranca_social || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Outros Descontos</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Outros Descontos</label>
                     <input type="number" step="0.01" name="outros_descontos" value={form.outros_descontos || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
 
                   <div className="sm:col-span-2 bg-error/5 border border-error/10 rounded-lg p-3 mt-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-error uppercase tracking-wider">Total Líquido</span>
+                      <span className="text-[11px] font-medium text-error">Total Líquido</span>
                       <span className={`text-[16px] font-bold ${calcularTotalLiquidoVenc(form) >= 0 ? "text-success" : "text-error"}`}>{helpers.formatCurrency(calcularTotalLiquidoVenc(form))}</span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Data de Início *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Data de Início *</label>
                     <input type="date" name="data_inicio" value={form.data_inicio || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Data Fim</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Data Fim</label>
                     <input type="date" name="data_fim" value={form.data_fim || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Estado</label>
                     <select name="estado" value={form.estado || "Activo"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       <option value="Activo">Ativo</option>
                       <option value="Inactivo">Inativo</option>
@@ -914,7 +920,7 @@ export default function FolhaSalarialPage() {
               {tab === "pagamentos" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Colaborador *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Colaborador *</label>
                     <select name="colaborador_id" value={form.colaborador_id || ""} onChange={handleColaboradorChange} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                       <option value="">Selecionar colaborador</option>
                       {colaboradores.map(c => (
@@ -923,44 +929,44 @@ export default function FolhaSalarialPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Mês *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Mês *</label>
                     <select name="mes" value={form.mes || ""} onChange={handleMesAnoChange} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       <option value="">Selecionar mês</option>
                       {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Ano *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Ano *</label>
                     <input type="number" name="ano" value={form.ano || ""} onChange={handleMesAnoChange} required placeholder="2024" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Salário Base (AOA) *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Salário Base (AOA) *</label>
                     <input type="number" step="0.01" name="salario_base" value={form.salario_base || ""} onChange={handleInput} required placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Subsídios</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Subsídios</label>
                     <input type="number" step="0.01" name="subsidios" value={form.subsidios || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Horas Extras</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Horas Extras</label>
                     <input type="number" step="0.01" name="horas_extras" value={form.horas_extras || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                     <p className="text-[11px] text-on-surface-variant/60 mt-1 px-1">Preenchimento manual — deixe vazio para 0.</p>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Outros Descontos</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Outros Descontos</label>
                     <input type="number" step="0.01" name="descontos" value={form.descontos || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                     <p className="text-[11px] text-on-surface-variant/60 mt-1 px-1">Deixe vazio para descontar automaticamente os créditos activos do colaborador.</p>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">IRT (auto)</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">IRT (auto)</label>
                     <input type="number" step="0.01" name="irt" value={form.irt || ""} onChange={handleInput} placeholder="0.00" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Segurança Social (auto)</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Segurança Social (auto)</label>
                     <input type="number" step="0.01" name="seguranca_social" value={form.seguranca_social || ""} onChange={handleInput} placeholder="0.00" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Desconto Faltas</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto Faltas</label>
                     <input type="number" step="0.01" name="desconto_faltas" value={form.desconto_faltas || ""} onChange={handleInput} placeholder="Calculado automaticamente" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
 
@@ -987,17 +993,17 @@ export default function FolhaSalarialPage() {
 
                   <div className="sm:col-span-2 bg-success/5 border border-success/10 rounded-lg p-3 mt-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-success uppercase tracking-wider">Total Líquido</span>
+                      <span className="text-[11px] font-medium text-success">Total Líquido</span>
                       <span className={`text-[16px] font-bold ${calcularTotalLiquidoPag(form) >= 0 ? "text-success" : "text-error"}`}>{helpers.formatCurrency(calcularTotalLiquidoPag(form))}</span>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Data Pagamento</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Data Pagamento</label>
                     <input type="date" name="data_pagamento" value={form.data_pagamento || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Estado *</label>
                     <select name="estado" value={form.estado || "Pendente"} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       <option value="Pendente">Pendente</option>
                       <option value="Pago">Pago</option>
@@ -1040,13 +1046,13 @@ export default function FolhaSalarialPage() {
                     </p>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Mês *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Mês *</label>
                     <select value={autogForm.mes} onChange={(e) => setAutogForm(prev => ({ ...prev, mes: e.target.value }))} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       {MESES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Ano *</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Ano *</label>
                     <input type="number" min="2000" max="2100" value={autogForm.ano} onChange={(e) => setAutogForm(prev => ({ ...prev, ano: e.target.value }))} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20" />
                   </div>
                   <label className="flex items-center gap-3 px-3 py-3 bg-success/5 border border-success/20 rounded-lg cursor-pointer select-none">
@@ -1074,26 +1080,26 @@ export default function FolhaSalarialPage() {
                   <div className={"grid gap-3 " + (resultadoGerar.marcados_pago !== undefined ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
                       <p className="text-[20px] font-bold text-success">{resultadoGerar.criados}</p>
-                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Criados</p>
+                      <p className="text-[10px] font-medium text-on-surface-variant/60 mt-1">Criados</p>
                     </div>
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
                       <p className="text-[20px] font-bold text-warning">{resultadoGerar.ignorados}</p>
-                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Já existentes</p>
+                      <p className="text-[10px] font-medium text-on-surface-variant/60 mt-1">Já existentes</p>
                     </div>
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
                       <p className="text-[20px] font-bold text-error">{resultadoGerar.erros}</p>
-                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Erros</p>
+                      <p className="text-[10px] font-medium text-on-surface-variant/60 mt-1">Erros</p>
                     </div>
                     {resultadoGerar.marcados_pago !== undefined && (
                       <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
                         <p className="text-[20px] font-bold text-primary">{resultadoGerar.marcados_pago}</p>
-                        <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mt-1">Marcados Pago</p>
+                        <p className="text-[10px] font-medium text-on-surface-variant/60 mt-1">Marcados Pago</p>
                       </div>
                     )}
                   </div>
                   {resultadoGerar.erros_detalhe && resultadoGerar.erros_detalhe.length > 0 && (
                     <div className="bg-error/5 border border-error/10 rounded-lg p-3 max-h-40 overflow-y-auto">
-                      <p className="text-[11px] font-bold text-error uppercase tracking-wider mb-2">Sem contrato ativo:</p>
+                      <p className="text-[11px] font-medium text-error mb-2">Sem contrato ativo:</p>
                       <ul className="space-y-1">
                         {resultadoGerar.erros_detalhe.map((e, i) => (
                           <li key={i} className="text-[12px] text-on-surface-variant flex items-center gap-2">
@@ -1159,7 +1165,7 @@ export default function FolhaSalarialPage() {
               {tab === "vencimentos" && (
                 <>
                   <div>
-                    <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h4 className="text-[11px] font-medium text-on-surface-variant/70 mb-3 flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-success">trending_up</span>
                       Vencimentos
                     </h4>
@@ -1174,7 +1180,7 @@ export default function FolhaSalarialPage() {
                       ].map(function(pair) {
                         return (
                           <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                            <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">{pair[0]}</p>
+                            <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">{pair[0]}</p>
                             <p className="text-[13px] font-semibold text-on-surface">{pair[1] || "—"}</p>
                           </div>
                         );
@@ -1183,7 +1189,7 @@ export default function FolhaSalarialPage() {
                   </div>
 
                   <div>
-                    <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h4 className="text-[11px] font-medium text-on-surface-variant/70 mb-3 flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-error">trending_down</span>
                       Descontos
                     </h4>
@@ -1195,7 +1201,7 @@ export default function FolhaSalarialPage() {
                       ].map(function(pair) {
                         return (
                           <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                            <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">{pair[0]}</p>
+                            <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">{pair[0]}</p>
                             <p className="text-[13px] font-semibold text-on-surface">{pair[1] || "—"}</p>
                           </div>
                         );
@@ -1205,23 +1211,23 @@ export default function FolhaSalarialPage() {
 
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Total Líquido</span>
+                      <span className="text-[11px] font-medium text-primary">Total Líquido</span>
                       <span className="text-[20px] font-bold text-primary">{helpers.formatCurrency(viewItem.total_liquido)}</span>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h4 className="text-[11px] font-medium text-on-surface-variant/70 mb-3 flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-primary">calendar_today</span>
                       Período
                     </h4>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                        <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Data de Início</p>
+                        <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Data de Início</p>
                         <p className="text-[13px] font-semibold text-on-surface">{viewItem.data_inicio ? helpers.formatDate(viewItem.data_inicio) : "—"}</p>
                       </div>
                       <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                        <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Data Fim</p>
+                        <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Data Fim</p>
                         <p className="text-[13px] font-semibold text-on-surface">{viewItem.data_fim ? helpers.formatDate(viewItem.data_fim) : "—"}</p>
                       </div>
                     </div>
@@ -1233,17 +1239,17 @@ export default function FolhaSalarialPage() {
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Período</p>
+                      <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Período</p>
                       <p className="text-[14px] font-bold text-on-surface">{MESES[parseInt(viewItem.mes) - 1] || viewItem.mes}/{viewItem.ano}</p>
                     </div>
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">Data Pagamento</p>
+                      <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Data Pagamento</p>
                       <p className="text-[14px] font-bold text-on-surface">{viewItem.data_pagamento ? helpers.formatDate(viewItem.data_pagamento) : "—"}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h4 className="text-[11px] font-medium text-on-surface-variant/70 mb-3 flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-success">trending_up</span>
                       Vencimentos
                     </h4>
@@ -1255,7 +1261,7 @@ export default function FolhaSalarialPage() {
                       ].map(function(pair) {
                         return (
                           <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                            <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">{pair[0]}</p>
+                            <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">{pair[0]}</p>
                             <p className="text-[13px] font-semibold text-on-surface">{pair[1] || "—"}</p>
                           </div>
                         );
@@ -1264,7 +1270,7 @@ export default function FolhaSalarialPage() {
                   </div>
 
                   <div>
-                    <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <h4 className="text-[11px] font-medium text-on-surface-variant/70 mb-3 flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-error">trending_down</span>
                       Descontos
                     </h4>
@@ -1277,7 +1283,7 @@ export default function FolhaSalarialPage() {
                       ].map(function(pair) {
                         return (
                           <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                            <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-0.5">{pair[0]}</p>
+                            <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">{pair[0]}</p>
                             <p className="text-[13px] font-semibold text-on-surface">{pair[1] || "—"}</p>
                           </div>
                         );
@@ -1287,7 +1293,7 @@ export default function FolhaSalarialPage() {
 
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-bold text-primary uppercase tracking-wider">Total Líquido</span>
+                      <span className="text-[11px] font-medium text-primary">Total Líquido</span>
                       <span className="text-[20px] font-bold text-primary">{helpers.formatCurrency(viewItem.total_liquido)}</span>
                     </div>
                   </div>
@@ -1301,7 +1307,7 @@ export default function FolhaSalarialPage() {
 
                   {viewItem.recibo && (
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                      <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Recibo</p>
+                      <p className="text-[10px] font-medium text-on-surface-variant/60 mb-1">Recibo</p>
                       <a href={viewItem.recibo} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
                         <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                         Ver Recibo

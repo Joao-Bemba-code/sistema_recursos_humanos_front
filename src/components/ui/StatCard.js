@@ -5,7 +5,7 @@ export default function StatCard({ titulo, valor, icon, className = "" }) {
     <div className={"card p-5 " + className}>
       <div className="flex items-center justify-between">
         <div className="flex-1">
-          <p className="text-[11px] font-bold text-outline uppercase tracking-wider">{titulo}</p>
+          <p className="text-[11px] font-medium text-outline">{titulo}</p>
           <p className="mt-1.5 text-2xl font-bold text-on-surface tracking-tight">{valor}</p>
         </div>
         {icon && (

@@ -111,7 +111,7 @@ export default function DashboardLayout({ children }) {
             <span className="text-lg font-bold text-primary">SGHR</span>
             <span className="text-[13px] text-on-surface-variant/60 font-medium">&copy; 2026 CENFFOR. Todos os direitos reservados.</span>
           </div>
-          <div className="flex items-center gap-8">
+          <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-6 gap-y-2 md:gap-8 text-center md:text-right">
             <span className="text-[13px] font-medium text-on-surface-variant/80">Termos e Condições</span>
             <span className="text-[13px] font-medium text-on-surface-variant/80">Política de Dados</span>
             <span className="text-[13px] font-medium text-on-surface-variant/80">Canal de Suporte</span>

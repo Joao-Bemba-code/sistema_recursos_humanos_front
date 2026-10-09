@@ -563,7 +563,7 @@ export default function DepartamentosPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Departamentos</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Estrutura Organizacional</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Estrutura Organizacional</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
@@ -1033,10 +1033,10 @@ export default function DepartamentosPage() {
       )}
 
       {showSeccoesModal && showFormSeccao && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowFormSeccao(false)} />
-          <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant/30">
-            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
+          <div className="relative bg-surface shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant/30 rounded-t-2xl sm:rounded-xl">
+            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-2xl sm:rounded-t-xl flex items-center justify-between">
               <h3 className="text-lg font-bold text-on-surface tracking-tight">{editandoSeccao ? "Editar Secção" : "Nova Secção"}</h3>
               <button onClick={() => setShowFormSeccao(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
                 <span className="material-symbols-outlined text-[20px]">close</span>
@@ -1095,10 +1095,10 @@ export default function DepartamentosPage() {
       )}
 
       {showMembrosModal && seccaoMembros && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowMembrosModal(false)} />
-          <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
-            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
+          <div className="relative bg-surface shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-outline-variant/30 rounded-t-2xl sm:rounded-xl">
+            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-2xl sm:rounded-t-xl flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-on-surface tracking-tight">Pessoas na Secção</h3>
                 <p className="text-[13px] text-on-surface-variant/70">{seccaoMembros.nome}</p>

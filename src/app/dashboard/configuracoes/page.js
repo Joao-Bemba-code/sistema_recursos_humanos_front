@@ -215,7 +215,7 @@ export default function ConfiguracoesPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">{T.configuracoes}</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">{T.configuracoes}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">{T.configuracoes}</h1>
         </div>
       </section>
 

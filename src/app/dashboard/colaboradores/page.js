@@ -247,7 +247,7 @@ export default function ColaboradoresPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Colaboradores</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão Estratégica de Colaboradores</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Gestão Estratégica de Colaboradores</h1>
         </div>
         <div className="flex items-center gap-3">
           <Button onClick={abrirNovo} variant="default">

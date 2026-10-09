@@ -37,6 +37,8 @@ export default function CreditosPage() {
   const [viewItem, setViewItem] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
+  const [regularizando, setRegularizando] = useState(null);
+  const [msgDetalhe, setMsgDetalhe] = useState(null);
   const [confirmEliminar, setConfirmEliminar] = useState({ open: false, id: null, nome: "" });
   const [confirmCancelar, setConfirmCancelar] = useState({ open: false, id: null, nome: "" });
 
@@ -171,6 +173,7 @@ export default function CreditosPage() {
   const abrirVer = async (item) => {
     setViewItem(item);
     setShowViewModal(true);
+    setMsgDetalhe(null);
     setCarregandoDetalhe(true);
     try {
       const data = await api.get(`/api/creditos/${item.id}`);
@@ -179,6 +182,23 @@ export default function CreditosPage() {
       setMsg({ tipo: "erro", texto: e.message });
     } finally {
       setCarregandoDetalhe(false);
+    }
+  };
+
+  const regularizarMes = async (p, item) => {
+    const chave = `${p.ano}-${p.mes}`;
+    setRegularizando(chave);
+    setMsgDetalhe(null);
+    try {
+      const data = await api.post(`/api/creditos/${item.id}/regularizar`, { mes: p.mes, ano: p.ano });
+      if (data.dados) setViewItem(data.dados);
+      setMsgDetalhe({ tipo: "sucesso", texto: `${MESES[p.mes - 1]} de ${p.ano} marcado como pago manualmente.` });
+      carregar(paginacao.pagina);
+      carregarResumo();
+    } catch (e) {
+      setMsgDetalhe({ tipo: "erro", texto: e.message });
+    } finally {
+      setRegularizando(null);
     }
   };
 
@@ -261,6 +281,35 @@ export default function CreditosPage() {
     );
   };
 
+  const planoCreditos = (item) => {
+    if (item && Array.isArray(item.plano) && item.plano.length > 0) return item.plano;
+    if (item && Array.isArray(item.movimentos) && item.movimentos.length > 0) {
+      return item.movimentos.map((m) => ({
+        mes: parseInt(m.mes),
+        ano: parseInt(m.ano),
+        previsto: toNum(m.valor_descontado),
+        pago: toNum(m.valor_descontado),
+        estado: "Pago",
+      }));
+    }
+    return [];
+  };
+  const mesesPagos = (item) => planoCreditos(item).filter((p) => p.estado === "Pago").length;
+  const mesesPendentes = (item) => planoCreditos(item).filter((p) => p.estado !== "Pago").length;
+
+  const renderBadgePlano = (estado) => {
+    const mapa = {
+      Pago: "badge-success border border-success/10",
+      Parcial: "badge-warning border border-warning/10",
+      Pendente: "badge-secondary border border-outline-variant/10",
+    };
+    return (
+      <span className={`inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${mapa[estado] || mapa.Pendente}`}>
+        {estado}
+      </span>
+    );
+  };
+
   const renderPagination = () => (
     <div className="px-6 py-4 border-t border-outline-variant/10 flex flex-col md:flex-row items-center justify-between gap-4">
       <div className="text-[12px] font-semibold text-on-surface-variant/70 uppercase tracking-wide">
@@ -314,7 +363,7 @@ export default function CreditosPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Créditos</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão de Créditos</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Gestão de Créditos</h1>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
@@ -642,21 +691,54 @@ export default function CreditosPage() {
                 )}
 
                 <div>
-                  <p className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-2">Histórico de Descontos</p>
-                  {viewItem.movimentos && viewItem.movimentos.length > 0 ? (
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Plano de Descontos</p>
+                    {planoCreditos(viewItem).length > 0 && (
+                      <span className="text-[11px] font-semibold text-on-surface-variant/70">
+                        {mesesPagos(viewItem)} pagos · {mesesPendentes(viewItem)} por descontar
+                      </span>
+                    )}
+                  </div>
+                  {msgDetalhe && (
+                    <div className={`mb-2 p-2.5 rounded-lg text-[12px] font-medium flex items-center gap-2 ${msgDetalhe.tipo === "sucesso" ? "badge-success border border-success/10" : "badge-danger border border-error/10"}`}>
+                      <span className="material-symbols-outlined text-[16px]">{msgDetalhe.tipo === "sucesso" ? "check_circle" : "error"}</span>
+                      {msgDetalhe.texto}
+                    </div>
+                  )}
+                  {planoCreditos(viewItem).length > 0 ? (
                     <div className="overflow-x-auto rounded-lg border border-outline-variant/20">
                       <table className="w-full text-left data-grid-tight">
                         <thead>
                           <tr className="bg-background/50 border-b border-outline-variant/20">
                             <th className="px-4 py-2.5 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Mês</th>
-                            <th className="px-4 py-2.5 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Valor Descontado</th>
+                            <th className="px-4 py-2.5 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Previsto</th>
+                            <th className="px-4 py-2.5 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Descontado</th>
+                            <th className="px-4 py-2.5 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Estado</th>
+                            <th className="px-4 py-2.5 text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-outline-variant/10">
-                          {viewItem.movimentos.map((m) => (
-                            <tr key={m.id}>
-                              <td className="px-4 py-2.5 text-[13px] text-on-surface-variant">{MESES[parseInt(m.mes) - 1] || m.mes} de {m.ano}</td>
-                              <td className="px-4 py-2.5 text-[13px] font-semibold text-on-surface text-right">{helpers.formatCurrency(m.valor_descontado)}</td>
+                          {planoCreditos(viewItem).map((p, i) => (
+                            <tr key={i} className={p.estado === "Pendente" ? "opacity-60" : ""}>
+                              <td className="px-4 py-2.5 text-[13px] text-on-surface-variant">{MESES[p.mes - 1] || p.mes} de {p.ano}</td>
+                              <td className="px-4 py-2.5 text-[13px] text-on-surface-variant text-right">{helpers.formatCurrency(p.previsto)}</td>
+                              <td className={`px-4 py-2.5 text-[13px] font-semibold text-right ${p.pago > 0 ? "text-success" : "text-on-surface-variant/50"}`}>{helpers.formatCurrency(p.pago)}</td>
+                              <td className="px-4 py-2.5 text-right">{renderBadgePlano(p.estado)}</td>
+                              <td className="px-4 py-2.5 text-right">
+                                {p.estado !== "Pago" && viewItem.estado !== "Cancelado" ? (
+                                  <button
+                                    onClick={() => regularizarMes(p, viewItem)}
+                                    disabled={regularizando === `${p.ano}-${p.mes}`}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/10 disabled:opacity-50 transition-all"
+                                    title="Marcar este mês como pago manualmente (sem folha)"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">{regularizando === `${p.ano}-${p.mes}` ? "hourglass_empty" : "check_circle"}</span>
+                                    Marcar pago
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] text-on-surface-variant/40">—</span>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -664,7 +746,7 @@ export default function CreditosPage() {
                     </div>
                   ) : (
                     <p className="text-[13px] text-outline bg-background/40 border border-outline-variant/20 rounded-lg p-3">
-                      Ainda não há descontos. O primeiro desconto será aplicado na próxima folha salarial processada.
+                      Ainda não há descontos. O primeiro desconto será aplicado automaticamente na próxima folha salarial processada.
                     </p>
                   )}
                 </div>

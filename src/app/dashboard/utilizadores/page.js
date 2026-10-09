@@ -358,7 +358,7 @@ export default function UtilizadoresPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Utilizadores</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Gestão de Utilizadores</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Gestão de Utilizadores</h1>
           <p className="text-[13px] text-on-surface-variant/70">Administre as contas de acesso e as permissões de cada perfil.</p>
         </div>
         <div className="flex items-center gap-3">

@@ -6,9 +6,9 @@ export default function ConfirmDialog({ open, titulo, mensagem, textoConfirmar, 
   var isDanger = variante === "perigo";
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[1100] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="fixed inset-0 bg-scrim/50" onClick={onCancel} />
-      <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-[400px] border border-outline-variant/30 overflow-hidden">
+      <div className="relative bg-surface shadow-2xl w-full max-w-[400px] border border-outline-variant/30 overflow-hidden rounded-t-2xl sm:rounded-xl">
         <div className="p-6 text-center">
           <div className={`w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center ${isDanger ? "bg-error/10" : "bg-primary/10"}`}>
             <span className={`material-symbols-outlined text-[28px] ${isDanger ? "text-error" : "text-primary"}`}>

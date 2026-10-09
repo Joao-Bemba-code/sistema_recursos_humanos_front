@@ -257,7 +257,7 @@ export default function ComunicadosPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Comunicados</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Comunicados RH</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Comunicados RH</h1>
           <p className="text-[13px] text-on-surface-variant/70">Comunicações oficiais do Departamento de Recursos Humanos</p>
         </div>
         {canManage && (

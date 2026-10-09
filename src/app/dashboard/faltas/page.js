@@ -171,7 +171,7 @@ export default function FaltasPage() {
             <span>/</span>
             <span className="text-on-surface-variant">Faltas e Atrasos</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface">Gestão de Faltas e Atrasos</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface">Gestão de Faltas e Atrasos</h1>
         </div>
         <button onClick={() => setShowModal(true)} className="px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg hover:bg-primary/90 transition-all">
           Novo Registo
@@ -371,9 +371,9 @@ export default function FaltasPage() {
       </section>
 
       {detalheOpen && detalhe && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setDetalheOpen(false)} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-lg p-5 max-h-[85vh] overflow-y-auto">
+          <div className="relative bg-surface-card shadow-xl w-full max-w-lg p-5 max-h-[88vh] overflow-y-auto rounded-t-2xl sm:rounded-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-semibold text-on-surface">{detalhe.nome_completo}</h3>
               <button onClick={() => setDetalheOpen(false)} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
@@ -455,9 +455,9 @@ export default function FaltasPage() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setShowModal(false)} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-md p-5">
+          <div className="relative bg-surface-card shadow-xl w-full max-w-md p-5 max-h-[88vh] overflow-y-auto rounded-t-2xl sm:rounded-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-semibold text-on-surface">Novo Registo de Falta/Atraso</h3>
               <button onClick={() => setShowModal(false)} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
@@ -508,9 +508,9 @@ export default function FaltasPage() {
       )}
 
       {confirmModal.open && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[300] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setConfirmModal({ open: false, titulo: "", mensagem: "", onConfirm: null })} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-sm p-5">
+          <div className="relative bg-surface-card shadow-xl w-full max-w-sm p-5 max-h-[88vh] overflow-y-auto rounded-t-2xl sm:rounded-xl">
             <h3 className="text-[15px] font-semibold text-on-surface mb-2">{confirmModal.titulo}</h3>
             <p className="text-[13px] text-on-surface-variant mb-5">{confirmModal.mensagem}</p>
             <div className="flex gap-2">

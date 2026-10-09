@@ -174,24 +174,24 @@ export default function TopNavBar() {
 
   return (
     <>
-      <header className="bg-surface/80 backdrop-blur-md sticky top-0 z-50 border-b border-outline-variant/30">
+      <header className="bg-surface sticky top-0 z-50 border-b border-outline-variant/30">
         <div className="flex justify-between items-center w-full px-4 md:px-16 h-14 max-w-[1440px] mx-auto">
-          <div className="flex items-center gap-10">
+          <div className="flex items-center gap-4 md:gap-8 min-w-0">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors"
+              className="md:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors"
             >
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            <Link href={soColaborador ? "/dashboard/portal" : "/dashboard"} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
-            <nav className="hidden lg:flex items-center gap-8">
+            <Link href={soColaborador ? "/dashboard/portal" : "/dashboard"} className="text-xl font-bold tracking-tight text-primary flex-shrink-0">SGHR</Link>
+            <nav className="hidden md:flex items-center gap-4 lg:gap-8 overflow-x-auto min-w-0">
               {mainItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`text-[13px] font-medium transition-colors relative ${
+                    className={`text-[13px] font-medium transition-colors relative whitespace-nowrap flex-shrink-0 ${
                       isActive
                         ? "text-primary font-semibold after:absolute after:bottom-[-17px] after:left-0 after:w-full after:h-[2px] after:bg-primary"
                         : "text-on-surface-variant hover:text-primary"
@@ -295,7 +295,7 @@ export default function TopNavBar() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-3 pl-3 md:pl-4 border-l border-outline-variant/30 cursor-pointer"
               >
-                <div className="hidden sm:flex flex-col items-end">
+                <div className="hidden lg:flex flex-col items-end">
                   <span className="text-[12px] font-semibold">{utilizador ? utilizador.nome_completo : "Admin"}</span>
                   <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{rotuloPerfil || "CENFFOR"}</span>
                 </div>
@@ -334,7 +334,7 @@ export default function TopNavBar() {
       </header>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-[100] lg:hidden">
+        <div className="fixed inset-0 z-[100] md:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <div className="fixed inset-y-0 left-0 w-72 bg-surface shadow-2xl flex flex-col animate-slide-in">
             <div className="px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between">

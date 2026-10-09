@@ -357,7 +357,7 @@ export default function AvaliacaoPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Avaliação</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Avaliação de Desempenho</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Avaliação de Desempenho</h1>
         </div>
         <div className="flex items-center gap-3">
           {aba === "ciclos" && (

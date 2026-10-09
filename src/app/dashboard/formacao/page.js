@@ -385,7 +385,7 @@ export default function FormacaoPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Formacao</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Formacao e Desenvolvimento</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Formacao e Desenvolvimento</h1>
         </div>
         <div className="flex items-center gap-3">
           <button onClick={aba === "cursos" ? abrirNovoCurso : abrirNovoInscricao} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">

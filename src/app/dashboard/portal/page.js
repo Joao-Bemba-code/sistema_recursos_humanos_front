@@ -5,6 +5,8 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { formatDate } from "@/lib/helpers";
+import { useToast } from "@/components/ui/Toast";
+import PageHeader from "@/components/ui/PageHeader";
 
 var TIPO_LABELS = { ferias: "Férias", adiantamento: "Adiantamento", justificacao: "Justificação", aumento: "Aumento", dispensa: "Dispensa", licenca: "Licença", outro: "Outro" };
 var TIPOS_SOLICITACAO = [
@@ -85,14 +87,8 @@ function FeriasWaveChart({ data }) {
       <h2 className="text-[14px] font-semibold text-on-surface mb-3">Mapa de Férias</h2>
       <div className="relative mb-3">
         <svg viewBox={"0 0 " + w + " " + h} className="w-full h-16">
-          <polygon points={waveFill} fill="url(#portalWave)" opacity="0.12" />
+          <polygon points={waveFill} fill="#002b92" opacity="0.08" />
           <polyline points={waveLine} fill="none" stroke="#002b92" strokeWidth="1.5" strokeLinejoin="round" opacity="0.5" />
-          <defs>
-            <linearGradient id="portalWave" x1="0%" x2="0%" y1="0%" y2="100%">
-              <stop offset="0%" stopColor="#002b92" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#002b92" stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
         </svg>
       </div>
       <div className="flex gap-4">
@@ -135,12 +131,75 @@ function presencaClasses(estado) {
   return "bg-surface-container text-on-surface-variant border border-outline-variant";
 }
 
+// ==================== TAREFAS: progresso vivo e contagem regressiva ====================
+
+var EM_JANELA_PORTAL = ["Pendente", "Em_curso", "Reaberta"];
+
+function pad2Portal(n) {
+  return (n < 10 ? "0" : "") + n;
+}
+
+function progressoAlocPortal(a, agora) {
+  if (!a) return 0;
+  if (a.estado === "Concluida" || a.estado === "Validada" || a.estado === "Atrasada") return 100;
+  if (a.estado === "Pendente") return 0;
+  var inicio = new Date(a.janela_inicio).getTime();
+  var fim = new Date(a.janela_fim).getTime();
+  if (isNaN(inicio) || isNaN(fim) || fim <= inicio) return 0;
+  if (agora <= inicio) return 0;
+  if (agora >= fim) return 100;
+  return Math.min(99, Math.floor(((agora - inicio) / (fim - inicio)) * 100));
+}
+
+// Texto do tempo restante ("02h 14m 33s"); null quando nao se aplica.
+function restanteTextoPortal(a, agora) {
+  if (!a || !a.janela_fim) return null;
+  var fim = new Date(a.janela_fim).getTime();
+  if (isNaN(fim)) return null;
+  var resto = fim - agora;
+  var sinal = resto < 0 ? "-" : "";
+  var total = Math.abs(resto);
+  var dias = Math.floor(total / 86400000);
+  var horas = Math.floor((total % 86400000) / 3600000);
+  var mins = Math.floor((total % 3600000) / 60000);
+  var segs = Math.floor((total % 60000) / 1000);
+  if (dias > 0) return sinal + dias + "d " + pad2Portal(horas) + "h " + pad2Portal(mins) + "m";
+  return sinal + pad2Portal(horas) + "h " + pad2Portal(mins) + "m " + pad2Portal(segs) + "s";
+}
+
+// Mini-kanban do portal (colaborador): colunas + zona "Terminar".
+var COLUNAS_PORTAL_KANBAN = [
+  { chave: "Pendente", rotulo: "Por iniciar", icone: "pending_actions", dot: "bg-amber-500" },
+  { chave: "EmCurso", rotulo: "Em curso", icone: "play_circle", dot: "bg-sky-500" },
+  { chave: "Atrasada", rotulo: "Atrasada", icone: "alarm", dot: "bg-red-500" },
+];
+
+function colunaPortalDeAlocacao(a) {
+  if (!a) return "Atrasada";
+  if (a.estado === "Em_curso" || a.estado === "Reaberta" || a.estado === "Justificativa") return "EmCurso";
+  return a.estado === "Pendente" ? "Pendente" : "Atrasada";
+}
+
+function movimentoPortalValido(de, para) {
+  if (de === para) return false;
+  if (de === "Pendente") return para === "EmCurso";
+  if (de === "EmCurso") return para === "Terminar";
+  return false;
+}
+
 export default function PortalPage() {
   var auth = useAuth();
   var utilizador = auth ? auth.utilizador : null;
+  var toast = useToast();
 
   var [portalData, setPortalData] = useState(null);
   var [tarefasStats, setTarefasStats] = useState(null);
+  var [tarefasActivas, setTarefasActivas] = useState([]);
+  var [tarefasAgora, setTarefasAgora] = useState(function () { return Date.now(); });
+  var [confirmarTerminar, setConfirmarTerminar] = useState(null);
+  var [tarefaAcao, setTarefaAcao] = useState(false);
+  var [arrastoPortal, setArrastoPortal] = useState(null); // {tarefa, aloc, de}
+  var [sobreColunaPortal, setSobreColunaPortal] = useState(null); // coluna sob o arrasto
   var [loading, setLoading] = useState(true);
   var [comunicados, setComunicados] = useState([]);
   var [showSolicitacaoModal, setShowSolicitacaoModal] = useState(false);
@@ -253,12 +312,73 @@ export default function PortalPage() {
         api.get("/api/tarefas/estatisticas").then(function (res) {
           if (res && res.dados) setTarefasStats(res.dados);
         }).catch(function () {});
+        carregarTarefasActivas();
       }
     };
     fetchData();
     var interval = setInterval(fetchData, 30000);
     return function () { clearInterval(interval); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Tick de 1 segundo para a contagem regressiva das tarefas em curso.
+  useEffect(function () {
+    var intervalo = setInterval(function () {
+      if (typeof document !== "undefined" && document.hidden) return;
+      setTarefasAgora(Date.now());
+    }, 1000);
+    return function () { clearInterval(intervalo); };
+  }, []);
+
+  var carregarTarefasActivas = function () {
+    if (!(auth && auth.hasPermission && auth.hasPermission("tarefas", "read"))) return;
+    api.get("/api/tarefas?page=1&limit=6").then(function (res) {
+      var lista = (res && res.dados) || [];
+      var meuColabId = utilizador && utilizador.colaborador ? utilizador.colaborador.id : null;
+      var activas = [];
+      lista.forEach(function (t) {
+        var minha = null;
+        if (meuColabId) {
+          minha = (t.alocacoes || []).find(function (a) {
+            return String(a.colaborador_id) === String(meuColabId);
+          }) || null;
+        } else {
+          // O backend ja devolve so as alocacoes deste colaborador.
+          minha = (t.alocacoes || []).find(function (a) {
+            return ["Pendente", "Em_curso", "Reaberta", "Justificativa", "Atrasada"].indexOf(a.estado) !== -1;
+          }) || null;
+        }
+        if (minha) activas.push({ tarefa: t, aloc: minha });
+      });
+      setTarefasActivas(activas.slice(0, 4));
+    }).catch(function () { setTarefasActivas([]); });
+  };
+
+  var acaoTarefa = function (t, aloc, caminho) {
+    setTarefaAcao(true);
+    api.put("/api/tarefas/" + t.id + "/alocacoes/" + aloc.id + "/" + caminho, {})
+      .then(function () { setConfirmarTerminar(null); carregarTarefasActivas(); })
+      .catch(function () { setConfirmarTerminar(null); carregarTarefasActivas(); })
+      .finally(function () { setTarefaAcao(false); });
+  };
+
+  // Movimento do mini-kanban: iniciar, terminar (2 passos) ou aviso.
+  var moverCartaoPortal = function (de, para, item) {
+    if (de === para) return;
+    if (de === "Pendente" && para === "EmCurso") {
+      acaoTarefa(item.tarefa, item.aloc, "iniciar");
+      return;
+    }
+    if (de === "EmCurso" && para === "Terminar") {
+      if (["Em_curso", "Reaberta"].indexOf(item.aloc.estado) === -1) {
+        toast.addToast("error", "Só pode terminar participações em curso");
+        return;
+      }
+      setConfirmarTerminar(item.aloc.id);
+      return;
+    }
+    toast.addToast("error", "Não é possível mover esse cartão para aí");
+  };
 
   useEffect(function () {
     carregarRegistros(1);
@@ -335,10 +455,7 @@ export default function PortalPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="pt-2">
-        <p className="text-[11px] text-outline uppercase tracking-widest mb-1">{dataHoje}</p>
-        <h1 className="text-[22px] font-semibold text-on-surface">{saudacao}{nome}</h1>
-      </div>
+      <PageHeader titulo={saudacao + nome} subtitulo={dataHoje} />
 
       {comunicados.length > 0 && (
         <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
@@ -352,7 +469,7 @@ export default function PortalPage() {
               return (
                 <article key={c.id} className="border border-outline-variant rounded-lg p-4">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className={"text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded " + badge}>{c.tipo || "Geral"}</span>
+                    <span className={"text-[10px] font-semibold px-2 py-0.5 rounded " + badge}>{c.tipo || "Geral"}</span>
                     <span className="text-[11px] text-outline">{formatDate(c.data_inicio)}</span>
                   </div>
                   <h3 className="text-[13px] font-semibold text-on-surface leading-snug break-words">{c.titulo}</h3>
@@ -370,7 +487,7 @@ export default function PortalPage() {
             <h2 className="text-[14px] font-semibold text-on-surface">As Minhas Tarefas</h2>
             <Link href="/dashboard/tarefas" className="text-[12px] font-medium text-primary hover:underline">Ver todas</Link>
           </div>
-          <div className="grid grid-cols-4 gap-px bg-outline-variant rounded-lg overflow-hidden">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-outline-variant rounded-lg overflow-hidden">
             <div className="bg-surface-card p-3 text-center">
               <p className="text-[18px] font-bold text-amber-600">{tarefasStats.por_estado ? (tarefasStats.por_estado.Pendente || 0) : 0}</p>
               <p className="text-[10px] text-outline mt-0.5">Pendentes</p>
@@ -390,6 +507,201 @@ export default function PortalPage() {
               <p className="text-[10px] text-outline mt-0.5">Atrasadas</p>
             </div>
           </div>
+
+          {tarefasActivas.length > 0 && (
+            <div className="mt-4">
+              <p className="text-[11px] font-medium text-on-surface-variant mb-2">Tarefas em aberto</p>
+              <div className="flex gap-2 overflow-x-auto pb-2 items-stretch">
+                {COLUNAS_PORTAL_KANBAN.map(function (col) {
+                  var itens = tarefasActivas.filter(function (item) {
+                    return colunaPortalDeAlocacao(item.aloc) === col.chave;
+                  });
+                  var activa = sobreColunaPortal === col.chave;
+                  return (
+                    <div
+                      key={col.chave}
+                      onDragOver={function (e) {
+                        if (arrastoPortal && movimentoPortalValido(arrastoPortal.de, col.chave)) {
+                          e.preventDefault();
+                          if (sobreColunaPortal !== col.chave) setSobreColunaPortal(col.chave);
+                        }
+                      }}
+                      onDragLeave={function (e) {
+                        if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return;
+                        if (sobreColunaPortal === col.chave) setSobreColunaPortal(null);
+                      }}
+                      onDrop={function (e) {
+                        var alvo = arrastoPortal;
+                        setSobreColunaPortal(null);
+                        setArrastoPortal(null);
+                        if (alvo && movimentoPortalValido(alvo.de, col.chave)) {
+                          e.preventDefault();
+                          moverCartaoPortal(alvo.de, col.chave, alvo);
+                        }
+                      }}
+                      className={
+                        "flex-1 min-w-[230px] max-w-[290px] rounded-xl border bg-surface-container/40 transition-colors " +
+                        (activa ? "border-primary ring-2 ring-primary/20 bg-primary/5" : "border-outline-variant/40")
+                      }
+                    >
+                      <div className="flex items-center gap-1.5 px-2.5 pt-2.5 pb-2 border-b border-outline-variant/40">
+                        <span className={"w-2 h-2 rounded-full " + col.dot} />
+                        <span className="material-symbols-outlined text-[14px] text-outline">{col.icone}</span>
+                        <h4 className="text-[10px] font-semibold text-on-surface-variant">{col.rotulo}</h4>
+                        <span className="ml-auto text-[10px] font-semibold text-outline">{itens.length}</span>
+                      </div>
+                      <div className="p-2 space-y-2 min-h-[60px]">
+                        {itens.map(function (item) {
+                          var t = item.tarefa;
+                          var a = item.aloc;
+                          var progresso = progressoAlocPortal(a, tarefasAgora);
+                          var resto = restanteTextoPortal(a, tarefasAgora);
+                          var esgotado = resto !== null && resto.charAt(0) === "-";
+                          var fim = new Date(a.janela_fim).getTime();
+                          var urgente = !esgotado && fim - tarefasAgora < 3600000;
+                          var LABEL = { Pendente: "Pendente", Em_curso: "Em Curso", Reaberta: "Reaberta", Justificativa: "Justificativa", Atrasada: "Atrasada" };
+                          var COR = {
+                            Pendente: "bg-amber-50 text-amber-700 border-amber-200",
+                            Em_curso: "bg-sky-50 text-sky-700 border-sky-200",
+                            Reaberta: "bg-violet-50 text-violet-700 border-violet-200",
+                            Justificativa: "bg-orange-50 text-orange-700 border-orange-200",
+                            Atrasada: "bg-red-50 text-red-700 border-red-200",
+                          };
+                          return (
+                            <div
+                              key={t.id + "-" + a.id}
+                              draggable={true}
+                              onDragStart={function (e) {
+                                setArrastoPortal({ tarefa: t, aloc: a, de: col.chave });
+                                e.dataTransfer.effectAllowed = "move";
+                                try { e.dataTransfer.setData("text/plain", String(a.id)); } catch (err) { /* alguns navegadores */ }
+                              }}
+                              onDragEnd={function () { setArrastoPortal(null); setSobreColunaPortal(null); }}
+                              className={
+                                "bg-surface-card border rounded-lg p-2.5 cursor-grab active:cursor-grabbing transition-all " +
+                                (arrastoPortal && String(arrastoPortal.aloc.id) === String(a.id)
+                                  ? "opacity-40 border-dashed border-primary"
+                                  : "border-outline-variant hover:border-primary/50")
+                              }
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-[12px] font-medium text-on-surface leading-tight truncate">{t.titulo}</p>
+                                  {a.descricao && <p className="text-[10px] text-outline truncate mt-0.5">{a.descricao}</p>}
+                                </div>
+                                <span className={"inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded border whitespace-nowrap " + (COR[a.estado] || "")}>
+                                  {LABEL[a.estado] || a.estado}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                <div className="flex-1 h-1.5 bg-outline-variant/60 rounded-full overflow-hidden">
+                                  <div
+                                    className={"h-full rounded-full transition-all " + (progresso >= 100 ? "bg-emerald-500" : progresso >= 50 ? "bg-primary" : "bg-amber-500")}
+                                    style={{ width: progresso + "%" }}
+                                  />
+                                </div>
+                                <span className="text-[11px] font-semibold text-on-surface-variant w-9 text-right">{progresso}%</span>
+                              </div>
+                              {resto !== null && EM_JANELA_PORTAL.indexOf(a.estado) !== -1 && (
+                                <p className={"mt-1.5 flex items-center gap-1 text-[11px] font-medium tabular-nums " + (esgotado || urgente ? "text-red-600" : "text-on-surface-variant")}>
+                                  <span className="material-symbols-outlined text-[13px]">{esgotado ? "hourglass_bottom" : "timer"}</span>
+                                  {esgotado ? "Esgotado " : "Restam "}{resto}
+                                </p>
+                              )}
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {a.estado === "Pendente" && (
+                                  <button
+                                    onClick={function () { acaoTarefa(t, a, "iniciar"); }}
+                                    disabled={tarefaAcao}
+                                    className="px-3 py-1.5 text-[11px] font-semibold rounded-md bg-primary text-white hover:bg-primary/90 disabled:opacity-40"
+                                  >
+                                    Iniciar
+                                  </button>
+                                )}
+                                {(a.estado === "Em_curso" || a.estado === "Reaberta") && (
+                                  confirmarTerminar === a.id ? (
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={function () { acaoTarefa(t, a, "terminar"); }}
+                                        disabled={tarefaAcao}
+                                        className="px-3 py-1.5 text-[11px] font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40"
+                                      >
+                                        Confirmar
+                                      </button>
+                                      <button
+                                        onClick={function () { setConfirmarTerminar(null); }}
+                                        className="px-3 py-1.5 text-[11px] font-medium rounded-md border border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                                      >
+                                        Voltar
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={function () { setConfirmarTerminar(a.id); }}
+                                      disabled={tarefaAcao}
+                                      className="px-3 py-1.5 text-[11px] font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40"
+                                    >
+                                      Terminar
+                                    </button>
+                                  )
+                                )}
+                                {(EM_JANELA_PORTAL.indexOf(a.estado) !== -1 || a.estado === "Atrasada") && (
+                                  <Link
+                                    href="/dashboard/tarefas"
+                                    className="px-3 py-1.5 text-[11px] font-medium rounded-md border border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                                  >
+                                    Justificar
+                                  </Link>
+                                )}
+                                <span className="ml-auto text-[10px] text-outline self-center">
+                                  {a.estado === "Atrasada"
+                                    ? "o gestor decide"
+                                    : "até " + formatDate(new Date(a.janela_fim))}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {itens.length === 0 && (
+                          <p className="text-[10px] text-outline/50 text-center py-3">Sem tarefas</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div
+                  onDragOver={function (e) {
+                    if (arrastoPortal && movimentoPortalValido(arrastoPortal.de, "Terminar")) {
+                      e.preventDefault();
+                      if (sobreColunaPortal !== "Terminar") setSobreColunaPortal("Terminar");
+                    }
+                  }}
+                  onDragLeave={function (e) {
+                    if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return;
+                    if (sobreColunaPortal === "Terminar") setSobreColunaPortal(null);
+                  }}
+                  onDrop={function (e) {
+                    var alvo = arrastoPortal;
+                    setSobreColunaPortal(null);
+                    setArrastoPortal(null);
+                    if (alvo && movimentoPortalValido(alvo.de, "Terminar")) {
+                      e.preventDefault();
+                      moverCartaoPortal(alvo.de, "Terminar", alvo);
+                    }
+                  }}
+                  className={
+                    "flex-1 min-w-[140px] max-w-[190px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 px-3 py-4 text-center transition-colors " +
+                    (sobreColunaPortal === "Terminar" ? "border-emerald-500 bg-emerald-50" : "border-outline-variant/60")
+                  }
+                >
+                  <span className="material-symbols-outlined text-[20px] text-emerald-600">task_alt</span>
+                  <p className="text-[11px] font-semibold text-on-surface-variant">Terminar</p>
+                  <p className="text-[10px] text-outline">Largue aqui uma tarefa em curso</p>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -479,7 +791,7 @@ export default function PortalPage() {
           )}
           {tarefasAvaliadas.length > 0 ? (
             <div className={avaliacoes.ciclos.length > 0 ? "pt-3 border-t border-outline-variant/50" : ""}>
-              <p className="text-[11px] font-semibold text-on-surface-variant uppercase mb-2">Tarefas avaliadas</p>
+              <p className="text-[11px] font-medium text-on-surface-variant mb-2">Tarefas avaliadas</p>
               <div className="space-y-2">
                 {tarefasAvaliadas.map(function (t) {
                   return (
@@ -490,6 +802,14 @@ export default function PortalPage() {
                           {t.no_prazo ? "No prazo" : "Com atraso"}
                           {t.data_conclusao ? " · " + formatDate(t.data_conclusao) : ""}
                         </p>
+                        {t.desempenho !== null && t.desempenho !== undefined && (
+                          <p className="text-[9px] text-outline/80 mt-0.5">
+                            Desempenho {String(t.desempenho).replace(".", ",")} · Produtividade {String(t.produtividade).replace(".", ",")} · Prazo {String(t.cumprimento_prazo).replace(".", ",")}
+                          </p>
+                        )}
+                        {t.observacoes && (
+                          <p className="text-[10px] text-outline/90 mt-0.5 truncate">“{t.observacoes}”</p>
+                        )}
                       </div>
                       <div className="text-right shrink-0">
                         <Estrelas nota={t.nota} />
@@ -523,7 +843,7 @@ export default function PortalPage() {
             />
             <button type="submit" className="px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-medium hover:bg-primary/90 transition-colors">Pesquisar</button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
             <select value={filterTipo} onChange={function (e) { handleFilterChange("tipo", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
               {TIPOS_PRESENCA.map(function (t) { return <option key={t.value} value={t.value}>{t.label}</option>; })}
             </select>
@@ -555,16 +875,16 @@ export default function PortalPage() {
           <p className="text-[12px] text-outline py-4 text-center">Sem registos encontrados</p>
         ) : (
           <>
-            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-hidden mb-4">
+            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-x-auto mb-4">
               <table className="w-full text-left">
                 <thead className="bg-surface-container border-b border-outline-variant">
                   <tr>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Data</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Entrada</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Saída</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Horas</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Estado</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase text-center">Acção</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Data</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Entrada</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Saída</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Horas</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Estado</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant text-center">Acção</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/30">
@@ -606,15 +926,15 @@ export default function PortalPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center mb-2">
                       <div>
-                        <p className="text-[10px] text-outline uppercase">Entrada</p>
+                        <p className="text-[10px] text-outline">Entrada</p>
                         <p className="text-[13px] font-semibold text-on-surface">{r.hora_entrada ? r.hora_entrada.slice(0, 5) : "—"}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-outline uppercase">Saída</p>
+                        <p className="text-[10px] text-outline">Saída</p>
                         <p className="text-[13px] font-semibold text-on-surface">{r.hora_saida ? r.hora_saida.slice(0, 5) : "—"}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-outline uppercase">Horas</p>
+                        <p className="text-[10px] text-outline">Horas</p>
                         <p className="text-[13px] font-semibold text-on-surface">{r.horas_trabalhadas ? Number(r.horas_trabalhadas).toFixed(1) : "—"}</p>
                       </div>
                     </div>
@@ -659,9 +979,9 @@ export default function PortalPage() {
       </section>
 
       {justificacaoForm.falta && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-md p-5">
+          <div className="relative bg-surface-card shadow-xl w-full max-w-md p-5 rounded-t-2xl sm:rounded-xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-semibold text-on-surface">Justificar {justificacaoForm.falta.estado === "Ausente" ? "Falta" : "Atraso"}</h3>
               <button onClick={function () { setJustificacaoForm({ falta: null, tipo: "Atestado_Medico", ficheiro: null }); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
@@ -673,7 +993,7 @@ export default function PortalPage() {
             </div>
             <form onSubmit={handleSubmitJustificacao} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Tipo de Justificação</label>
+                <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Tipo de Justificação</label>
                 <select value={justificacaoForm.tipo} onChange={function (e) { setJustificacaoForm(Object.assign({}, justificacaoForm, { tipo: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
                   <option value="Atestado_Medico">Atestado Médico</option>
                   <option value="Assuntos_Pessoais">Assuntos Pessoais</option>
@@ -681,7 +1001,7 @@ export default function PortalPage() {
                 </select>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Comprovativo</label>
+                <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Comprovativo</label>
                 <div
                   className={"border border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors text-[12px] " + (uploadDrag ? "border-primary bg-primary/5 text-primary" : "border-outline-variant text-outline hover:border-outline")}
                   onDragOver={function (e) { e.preventDefault(); setUploadDrag(true); }}
@@ -712,14 +1032,14 @@ export default function PortalPage() {
           <p className="text-[12px] text-outline">Sem pedidos</p>
         ) : (
           <div className="space-y-2 sm:space-y-0">
-            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-hidden">
+            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-surface-container border-b border-outline-variant">
                   <tr>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Tipo</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Título</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Estado</th>
-                    <th className="px-4 py-2 text-[11px] font-semibold text-on-surface-variant uppercase">Data</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Tipo</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Título</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Estado</th>
+                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Data</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/30">
@@ -763,9 +1083,9 @@ export default function PortalPage() {
       </section>
 
       {showSolicitacaoModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setShowSolicitacaoModal(false); }} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-md p-5 max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-surface-card shadow-xl w-full max-w-md p-5 rounded-t-2xl sm:rounded-xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-semibold text-on-surface">Nova Solicitação</h3>
               <button onClick={function () { setShowSolicitacaoModal(false); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>
@@ -777,32 +1097,32 @@ export default function PortalPage() {
             )}
             <form onSubmit={handleSubmitSolicitacao} className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Tipo</label>
+                <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Tipo</label>
                 <select value={solicitacaoForm.tipo} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { tipo: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
                   {TIPOS_SOLICITACAO.map(function (t) { return <option key={t.value} value={t.value}>{t.label}</option>; })}
                 </select>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Título</label>
+                <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Título</label>
                 <input type="text" value={solicitacaoForm.titulo} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { titulo: e.target.value })); }} placeholder="Ex.: Dispensa por motivos pessoais" required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Conteúdo</label>
+                <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Conteúdo</label>
                 <textarea value={solicitacaoForm.descricao} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { descricao: e.target.value })); }} rows={2} placeholder="Descreva o motivo da solicitação" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Início</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Início</label>
                   <input type="date" value={solicitacaoForm.data_inicio} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { data_inicio: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Fim</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Fim</label>
                   <input type="date" value={solicitacaoForm.data_fim} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { data_fim: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Nº de dias</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Nº de dias</label>
                   <input type="number" min="1" value={solicitacaoForm.numero_dias} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { numero_dias: e.target.value })); }} placeholder="Opcional" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
                 </div>
                 <div className="hidden sm:block" />
@@ -811,7 +1131,7 @@ export default function PortalPage() {
                 <p className="text-[12px] text-on-surface-variant">Total: <span className="font-bold text-primary">{diasEntre(solicitacaoForm.data_inicio, solicitacaoForm.data_fim)} dia(s)</span></p>
               )}
               <div>
-                <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Comprovativo (opcional)</label>
+                <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Comprovativo (opcional)</label>
                 <div
                   className={"border border-dashed rounded-lg p-3 text-center cursor-pointer transition-colors text-[12px] " + (uploadDrag ? "border-primary bg-primary/5 text-primary" : "border-outline-variant text-outline hover:border-outline")}
                   onDragOver={function (e) { e.preventDefault(); setUploadDrag(true); }}
@@ -833,9 +1153,9 @@ export default function PortalPage() {
       )}
 
       {showPasswordModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="fixed inset-0 bg-black/30" onClick={function () { setShowPasswordModal(false); }} />
-          <div className="relative bg-surface-card rounded-xl shadow-xl w-full max-w-sm p-5">
+          <div className="relative bg-surface-card shadow-xl w-full max-w-sm p-5 rounded-t-2xl sm:rounded-xl max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[15px] font-semibold text-on-surface">Alterar Senha</h3>
               <button onClick={function () { setShowPasswordModal(false); }} className="text-[13px] text-outline hover:text-on-surface-variant">Fechar</button>

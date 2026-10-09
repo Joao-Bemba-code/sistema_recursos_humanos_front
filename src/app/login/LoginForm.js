@@ -43,26 +43,18 @@ export default function LoginForm() {
 
   return (
     <div className="flex min-h-screen">
-      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center overflow-hidden" style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-container) 100%)" }}>
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 25% 25%, white 1px, transparent 1px), radial-gradient(circle at 75% 75%, white 1px, transparent 1px)",
-            backgroundSize: "40px 40px, 80px 80px",
-          }}
-        />
+      <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center bg-primary">
         <div className="relative z-10 text-center px-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/15 backdrop-blur-sm rounded-2xl mb-6 border border-white/10">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 rounded-2xl mb-6 border border-white/15">
             <span className="material-symbols-outlined text-[40px] text-white">group</span>
           </div>
           <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">SGHR</h1>
-          <p className="text-lg text-white/70 leading-relaxed max-w-sm mx-auto">
+          <p className="text-lg text-white/80 leading-relaxed max-w-sm mx-auto">
             Sistema de Gestão de Recursos Humanos
           </p>
           <div className="mt-8 flex items-center justify-center gap-2">
             <div className="h-px w-12 bg-white/20" />
-            <span className="text-white/40 text-[13px] font-medium tracking-wider">CENFFOR</span>
+            <span className="text-white/50 text-[13px] font-medium tracking-wider">CENFFOR</span>
             <div className="h-px w-12 bg-white/20" />
           </div>
         </div>

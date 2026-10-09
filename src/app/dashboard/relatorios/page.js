@@ -491,7 +491,7 @@ export default function RelatoriosPage() {
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-primary/70">Relatorios</span>
           </nav>
-          <h1 className="text-2xl font-bold text-on-surface tracking-tight">Centro de Relatorios</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Centro de Relatorios</h1>
           <p className="text-[13px] text-on-surface-variant/60">Gere e descarrela relatorios detalhados de todos os modulos do sistema.</p>
         </div>
       </section>

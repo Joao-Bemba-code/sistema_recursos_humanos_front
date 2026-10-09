@@ -89,7 +89,7 @@ export default function AvisoAdvertenciaPage() {
               <span className="material-symbols-outlined text-[14px]">chevron_right</span>
               <span className="text-primary/70">{t.aviso_advertencia || "Aviso/Advertência"}</span>
             </nav>
-            <h1 className="text-2xl font-bold text-on-surface tracking-tight">{t.gestaoColaboradores || "Gestão de Colaboradores"}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">{t.gestaoColaboradores || "Gestão de Colaboradores"}</h1>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => setColaboradorSelecionado(null)} className="hidden sm:block px-4 py-2 rounded-lg border border-outline-variant/30 text-[13px] hover:bg-primary/5 transition-all">

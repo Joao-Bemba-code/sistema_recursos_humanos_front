@@ -27,18 +27,18 @@ export default function Modal({ isOpen, onClose, title, children, size = "md", f
         className={`modal-content ${sizeClasses[size] || "max-w-lg"}`}
         onClick={function (e) { e.stopPropagation(); }}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-outline-variant/50">
-          <h3 className="text-lg font-bold text-on-surface">{title}</h3>
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-5 border-b border-outline-variant/50">
+          <h3 className="text-base sm:text-lg font-bold text-on-surface min-w-0 break-words">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all"
+            className="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all flex-shrink-0"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
-        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="px-4 sm:px-6 py-5 max-h-[70vh] overflow-y-auto">{children}</div>
         {footer && (
-          <div className="px-6 py-4 border-t border-outline-variant/50 flex items-center justify-end gap-3">
+          <div className="px-4 sm:px-6 py-4 border-t border-outline-variant/50 flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             {footer}
           </div>
         )}
