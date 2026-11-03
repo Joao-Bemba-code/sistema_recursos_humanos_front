@@ -1,5 +1,9 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api-nexushr.onrender.com";
 
+// Modulos visiveis a qualquer utilizador autenticado, sem depender da matriz
+// de permissoes (o backend restringe os dados ao proprio utilizador).
+export const MODULOS_ABERTOS_TODOS = ["tarefas"];
+
 export const NAV_ITEMS = [
   {
     titulo: "Principal",

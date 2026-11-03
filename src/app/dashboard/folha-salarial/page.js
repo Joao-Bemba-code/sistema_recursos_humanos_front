@@ -30,6 +30,12 @@ const TABELA_IRT = [
 
 const arredondar = (v) => Math.round(v * 100) / 100;
 
+// Formata valores muito pequenos (centimos de kwanza) com mais casas decimais
+const formatPequeno = (valor, casas = 3) => {
+  if (valor === null || valor === undefined || isNaN(valor)) return "—";
+  return new Intl.NumberFormat("pt-AO", { minimumFractionDigits: casas, maximumFractionDigits: casas }).format(valor) + " AOA";
+};
+
 const calcularSegurancaSocial = (bruto) => arredondar(bruto * TAXA_SEGURANCA_SOCIAL);
 
 const calcularIRT = (base) => {
@@ -80,6 +86,7 @@ export default function FolhaSalarialPage() {
   const [recalculando, setRecalculando] = useState(false);
   const [gerarAuto, setGerarAuto] = useState(false);
   const [autogForm, setAutogForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear(), marcar_pago: true });
+  const [extrasList, setExtrasList] = useState([]);
   const [gerando, setGerando] = useState(false);
   const [resultadoGerar, setResultadoGerar] = useState(null);
   const [baixandoResumo, setBaixandoResumo] = useState(false);
@@ -164,7 +171,7 @@ export default function FolhaSalarialPage() {
 
   const handleColaboradorChange = async (e) => {
     const colabId = e.target.value;
-    setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: "", subsidios: "", desconto_faltas: "", seguranca_social: "", irt: "" }));
+    setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: "", subsidios: "", desconto_faltas: "", detalhe_faltas: null, seguranca_social: "", irt: "" }));
     if (!colabId) return;
     try {
       const data = await api.get(`/api/folha-salarial/contrato-actual/${colabId}`);
@@ -194,7 +201,7 @@ export default function FolhaSalarialPage() {
     try {
       const data = await api.get(`/api/folha-salarial/preview-desconto-faltas?colaborador_id=${colabId}&mes=${mes}&ano=${ano}${apenasMes ? "&apenas_mes=true" : ""}`);
       if (data && data.dados && data.dados.desconto_faltas !== undefined) {
-        setForm(prev => ({ ...prev, desconto_faltas: data.dados.desconto_faltas }));
+        setForm(prev => ({ ...prev, desconto_faltas: data.dados.desconto_faltas, detalhe_faltas: data.dados }));
       }
     } catch (e) {
       console.error("Erro ao buscar desconto de faltas:", e);
@@ -351,12 +358,30 @@ export default function FolhaSalarialPage() {
     }
   };
 
+  const adicionarExtra = () => {
+    setExtrasList(prev => [...prev, { colaborador_id: "", valor: "" }]);
+  };
+
+  const atualizarExtra = (idx, campo, valor) => {
+    setExtrasList(prev => prev.map((item, i) => (i === idx ? { ...item, [campo]: valor } : item)));
+  };
+
+  const removerExtra = (idx) => {
+    setExtrasList(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const gerarPagamentosAutomaticos = async (e) => {
     e.preventDefault();
     setGerando(true);
     setMsg(null);
     try {
-      const data = await api.post("/api/folha-salarial/pagamentos/gerar-automaticos", autogForm);
+      const payload = {
+        ...autogForm,
+        horas_extras_colaboradores: extrasList
+          .filter(x => x.colaborador_id && parseFloat(x.valor) > 0)
+          .map(x => ({ colaborador_id: x.colaborador_id, valor: parseFloat(x.valor) })),
+      };
+      const data = await api.post("/api/folha-salarial/pagamentos/gerar-automaticos", payload);
       setResultadoGerar(data.dados);
     } catch (e) {
       setMsg({ tipo: "erro", texto: e.message });
@@ -368,6 +393,7 @@ export default function FolhaSalarialPage() {
   const fecharGerar = () => {
     setGerarAuto(false);
     setResultadoGerar(null);
+    setExtrasList([]);
     setMsg(null);
     carregar(paginacao.pagina);
   };
@@ -966,9 +992,39 @@ export default function FolhaSalarialPage() {
                     <input type="number" step="0.01" name="seguranca_social" value={form.seguranca_social || ""} onChange={handleInput} placeholder="0.00" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto Faltas</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto Faltas/Atrasos</label>
                     <input type="number" step="0.01" name="desconto_faltas" value={form.desconto_faltas || ""} onChange={handleInput} placeholder="Calculado automaticamente" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
+
+                  {form.detalhe_faltas && (
+                    <div className="sm:col-span-2 bg-error/5 border border-error/10 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[16px] text-error">schedule</span>
+                        <span className="text-[11px] font-semibold text-error">Detalhe do desconto (entrada permitida até às 08:15)</span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div>
+                          <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Por hora</p>
+                          <p className="text-[12px] font-semibold text-on-surface">{helpers.formatCurrency(form.detalhe_faltas.valor_hora)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Por minuto</p>
+                          <p className="text-[12px] font-semibold text-on-surface">{formatPequeno(form.detalhe_faltas.valor_minuto)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Por segundo</p>
+                          <p className="text-[12px] font-semibold text-on-surface">{formatPequeno(form.detalhe_faltas.valor_segundo, 4)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-medium text-on-surface-variant/60 mb-0.5">Por milissegundo</p>
+                          <p className="text-[12px] font-semibold text-on-surface">{formatPequeno(form.detalhe_faltas.valor_milissegundo, 6)}</p>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-on-surface-variant leading-snug">
+                        Atrasos: <strong>{form.detalhe_faltas.minutos_atraso} min</strong> além das 08:15 (desconto ao minuto) · Faltas completas: <strong>{form.detalhe_faltas.horas_falta} h</strong> (8h por dia) · Total: <strong className="text-error">{helpers.formatCurrency(form.detalhe_faltas.desconto_faltas)}</strong>
+                      </p>
+                    </div>
+                  )}
 
                   {!editando && (
                     <div className="sm:col-span-2">
@@ -1042,7 +1098,7 @@ export default function FolhaSalarialPage() {
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex items-start gap-3">
                     <span className="material-symbols-outlined text-[20px] text-primary mt-0.5">bolt</span>
                     <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e Segurança Social calculados automaticamente a partir do contrato ativo. As <strong>horas extras ficam a 0</strong> (preenchimento manual, se necessário) e os <strong>créditos activos</strong> são descontados automaticamente neste processo.
+                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e Segurança Social calculados automaticamente a partir do contrato ativo. Os <strong>créditos activos</strong> e os <strong>descontos de faltas/atrasos</strong> são calculados automaticamente neste processo. Podes indicar <strong>horas extras por colaborador</strong> abaixo (os restantes ficam a 0).
                     </p>
                   </div>
                   <div>
@@ -1054,6 +1110,37 @@ export default function FolhaSalarialPage() {
                   <div>
                     <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Ano *</label>
                     <input type="number" min="2000" max="2100" value={autogForm.ano} onChange={(e) => setAutogForm(prev => ({ ...prev, ano: e.target.value }))} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20" />
+                  </div>
+
+                  <div className="bg-background/50 border border-outline-variant/20 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-primary">schedule</span>
+                        <span className="text-[13px] font-semibold text-on-surface">Horas extras por colaborador</span>
+                      </div>
+                      <span className="text-[11px] text-on-surface-variant/60">opcional</span>
+                    </div>
+                    <p className="text-[11px] text-on-surface-variant/60 -mt-1">Indica o valor (AOA) das horas extras só para os colaboradores que fizeram. Os restantes ficam a 0.</p>
+                    {extrasList.map((item, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_auto] gap-2 items-start">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <select value={item.colaborador_id} onChange={(e) => atualizarExtra(idx, "colaborador_id", e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                            <option value="">Selecionar colaborador</option>
+                            {colaboradores.map(c => (
+                              <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador})</option>
+                            ))}
+                          </select>
+                          <input type="number" step="0.01" min="0" placeholder="Valor (AOA)" value={item.valor} onChange={(e) => atualizarExtra(idx, "valor", e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
+                        </div>
+                        <button type="button" onClick={() => removerExtra(idx)} className="p-2 mt-1 rounded-lg text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors" title="Remover">
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={adicionarExtra} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-primary/20 text-primary text-[12px] font-semibold hover:bg-primary/5 transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">add</span>
+                      Adicionar colaborador
+                    </button>
                   </div>
                   <label className="flex items-center gap-3 px-3 py-3 bg-success/5 border border-success/20 rounded-lg cursor-pointer select-none">
                     <input type="checkbox" checked={!!autogForm.marcar_pago} onChange={(e) => setAutogForm(prev => ({ ...prev, marcar_pago: e.target.checked }))} className="w-4 h-4 rounded accent-success" />

@@ -308,7 +308,9 @@ export default function PortalPage() {
       api.get("/api/comunicados?page=1&limit=5").then(function (res) {
         if (res && res.dados) setComunicados(res.dados);
       }).catch(function () {});
-      if (auth && auth.hasPermission && auth.hasPermission("tarefas", "read")) {
+      // Tarefas sao para todos: o backend devolve apenas as atribuicoes do
+      // proprio colaborador quando o perfil nao e de gestao.
+      if (auth && auth.isAuthenticated) {
         api.get("/api/tarefas/estatisticas").then(function (res) {
           if (res && res.dados) setTarefasStats(res.dados);
         }).catch(function () {});
@@ -331,7 +333,7 @@ export default function PortalPage() {
   }, []);
 
   var carregarTarefasActivas = function () {
-    if (!(auth && auth.hasPermission && auth.hasPermission("tarefas", "read"))) return;
+    if (!(auth && auth.isAuthenticated)) return;
     api.get("/api/tarefas?page=1&limit=6").then(function (res) {
       var lista = (res && res.dados) || [];
       var meuColabId = utilizador && utilizador.colaborador ? utilizador.colaborador.id : null;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { MODULOS_ABERTOS_TODOS } from "@/lib/constants";
 import TopNavBar from "@/components/layout/TopNavBar";
 import PageTransition from "@/components/ui/PageTransition";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -59,7 +60,7 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     if (auth && !auth.loading && auth.isAuthenticated && auth.utilizador) {
       const modulo = moduloDaRota(pathname);
-      if (modulo !== null && !auth.hasPermission(modulo, "read")) {
+      if (modulo !== null && MODULOS_ABERTOS_TODOS.indexOf(modulo) === -1 && !auth.hasPermission(modulo, "read")) {
         const destino = auth.hasPermission("portal", "read") ? "/dashboard/portal" : "/dashboard";
         router.replace(destino);
       }
@@ -85,6 +86,7 @@ export default function DashboardLayout({ children }) {
     if (!auth || !auth.utilizador) return false;
     const modulo = moduloDaRota(pathname);
     if (modulo === null) return false;
+    if (MODULOS_ABERTOS_TODOS.indexOf(modulo) !== -1) return false;
     return !auth.hasPermission(modulo, "read");
   })();
 

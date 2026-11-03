@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
-import { NAV_ITEMS } from "@/lib/constants";
+import { NAV_ITEMS, MODULOS_ABERTOS_TODOS } from "@/lib/constants";
 import { getT, getNavLabel, getGroupLabel } from "@/lib/translations";
 
 export default function TopNavBar() {
@@ -26,7 +26,7 @@ export default function TopNavBar() {
   var T = getT();
 
   const allItems = NAV_ITEMS.flatMap((g) => g.items);
-  const itensPermitidos = allItems.filter((i) => !i.modulo || auth.hasPermission(i.modulo, "read"));
+  const itensPermitidos = allItems.filter((i) => !i.modulo || MODULOS_ABERTOS_TODOS.includes(i.modulo) || auth.hasPermission(i.modulo, "read"));
   const mainItems = itensPermitidos.filter((i) =>
     ["/dashboard", "/dashboard/portal", "/dashboard/colaboradores", "/dashboard/contratos", "/dashboard/departamentos"].includes(i.href)
   );
@@ -48,7 +48,7 @@ export default function TopNavBar() {
     ? (function () {
         var grupos = [];
         NAV_ITEMS.forEach(function (g) {
-          var items = g.items.filter(function (i) { return !i.modulo || auth.hasPermission(i.modulo, "read"); });
+          var items = g.items.filter(function (i) { return !i.modulo || MODULOS_ABERTOS_TODOS.includes(i.modulo) || auth.hasPermission(i.modulo, "read"); });
           if (items.length > 0) grupos.push({ titulo: g.titulo, items: items });
         });
         return grupos;
