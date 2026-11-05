@@ -429,17 +429,35 @@ export default function FolhaSalarialPage() {
 
   const renderColabCell = (item) => (
     <td className="px-6 py-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-full overflow-hidden border border-outline-variant/30 shadow-sm bg-primary/10 flex items-center justify-center flex-shrink-0">
           <span className="text-[12px] font-bold text-primary">{helpers.getInitials(nomeColab(item))}</span>
         </div>
-        <div className="flex flex-col">
-          <span className="font-bold text-on-surface">{nomeColab(item)}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="font-bold text-on-surface break-words">{nomeColab(item)}</span>
           <span className="text-[12px] text-on-surface-variant/70">{numColab(item)}</span>
         </div>
       </div>
     </td>
   );
+
+  const renderIbanCell = (item) => {
+    var c = item.colaborador || colaboradores.find(x => String(x.id) === String(item.colaborador_id));
+    var iban = c ? (c.iban || "") : "";
+    var banco = c ? (c.banco || "") : "";
+    return (
+      <td className="px-4 py-4">
+        {iban ? (
+          <div className="flex flex-col min-w-0">
+            <span className="text-[12px] font-medium text-on-surface break-words">{iban}</span>
+            {banco && <span className="text-[11px] text-on-surface-variant/60">{banco}</span>}
+          </div>
+        ) : (
+          <span className="text-[12px] text-outline">—</span>
+        )}
+      </td>
+    );
+  };
 
   const renderBadgeEstado = (estado) => {
     var cls = "";
@@ -641,7 +659,7 @@ export default function FolhaSalarialPage() {
               <select value={filtroColaborador} onChange={(e) => setFiltroColaborador(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                 <option value="">Todos</option>
                 {colaboradores.map(c => (
-                  <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador})</option>
+                  <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador}){c.estado && c.estado !== "Activo" ? " — inativo" : ""}</option>
                 ))}
               </select>
             </div>
@@ -674,6 +692,7 @@ export default function FolhaSalarialPage() {
               <thead>
                 <tr className="bg-background/50 border-b border-outline-variant/20">
                   <th className="px-6 py-4 font-medium text-on-surface-variant/70 w-[280px]">Colaborador</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">IBAN</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Salário Base</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Subsídios</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Total Bruto</th>
@@ -686,10 +705,10 @@ export default function FolhaSalarialPage() {
               <tbody className="divide-y divide-outline-variant/10">
                 {loading ? (
                   [1,2,3,4].map(i => (
-                    <tr key={i}><td colSpan={8} className="px-6 py-4"><Skeleton className="h-10 w-full" /></td></tr>
+                    <tr key={i}><td colSpan={9} className="px-6 py-4"><Skeleton className="h-10 w-full" /></td></tr>
                   ))
                 ) : dados.length === 0 ? (
-                  <tr><td colSpan={8} className="px-6 py-2">
+                  <tr><td colSpan={9} className="px-6 py-2">
                     <EmptyState
                       icon="payments"
                       title="Nenhum vencimento encontrado"
@@ -700,6 +719,7 @@ export default function FolhaSalarialPage() {
                   dados.map((item) => (
                     <tr key={item.id} className="hover:bg-primary/[0.02] transition-colors group">
                       {renderColabCell(item)}
+                      {renderIbanCell(item)}
                       <td className="px-4 py-4">
                         <span className="text-on-surface font-medium">{helpers.formatCurrency(item.salario_base)}</span>
                       </td>
@@ -717,7 +737,7 @@ export default function FolhaSalarialPage() {
                       <td className="px-4 py-4">
                         <div className="flex flex-col text-[12px] text-on-surface-variant">
                           <span>IRT: {helpers.formatCurrency(item.desconto_irt)}</span>
-                          <span>SS: {helpers.formatCurrency(item.desconto_seguranca_social)}</span>
+                          <span>INSS: {helpers.formatCurrency(item.desconto_seguranca_social)}</span>
                           {(parseFloat(item.outros_descontos) || 0) > 0 && <span>Outros: {helpers.formatCurrency(item.outros_descontos)}</span>}
                         </div>
                       </td>
@@ -757,10 +777,11 @@ export default function FolhaSalarialPage() {
               <thead>
                 <tr className="bg-background/50 border-b border-outline-variant/20">
                   <th className="px-6 py-4 font-medium text-on-surface-variant/70 w-[280px]">Colaborador</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">IBAN</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Mês/Ano</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Salário Base</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Subsídios+Extras</th>
-                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">IRT + SS + Faltas</th>
+                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">IRT + INSS + Faltas</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Total Líquido</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Estado</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Data Pagamento</th>
@@ -770,10 +791,10 @@ export default function FolhaSalarialPage() {
               <tbody className="divide-y divide-outline-variant/10">
                 {loading ? (
                   [1,2,3,4].map(i => (
-                    <tr key={i}><td colSpan={9} className="px-6 py-4"><Skeleton className="h-10 w-full" /></td></tr>
+                    <tr key={i}><td colSpan={10} className="px-6 py-4"><Skeleton className="h-10 w-full" /></td></tr>
                   ))
                 ) : dados.length === 0 ? (
-                  <tr><td colSpan={9} className="px-6 py-2">
+                  <tr><td colSpan={10} className="px-6 py-2">
                     <EmptyState
                       icon="receipt_long"
                       title="Nenhum pagamento encontrado"
@@ -784,6 +805,7 @@ export default function FolhaSalarialPage() {
                   dados.map((item) => (
                     <tr key={item.id} className="hover:bg-primary/[0.02] transition-colors group">
                       {renderColabCell(item)}
+                      {renderIbanCell(item)}
                       <td className="px-4 py-4">
                         <span className="text-on-surface font-medium">{MESES[parseInt(item.mes) - 1] || item.mes}/{item.ano}</span>
                       </td>
@@ -799,7 +821,7 @@ export default function FolhaSalarialPage() {
                       <td className="px-4 py-4">
                         <div className="flex flex-col text-[12px] text-on-surface-variant">
                           <span>IRT: {helpers.formatCurrency(item.irt)}</span>
-                          <span>SS: {helpers.formatCurrency(item.seguranca_social)}</span>
+                          <span>INSS: {helpers.formatCurrency(item.seguranca_social)}</span>
                           {(parseFloat(item.desconto_faltas) || 0) > 0 && <span className="text-red-600 font-semibold">Faltas: -{helpers.formatCurrency(item.desconto_faltas)}</span>}
                           {(parseFloat(item.descontos) || 0) > 0 && <span className="text-red-600 font-semibold">Descontos: -{helpers.formatCurrency(item.descontos)}</span>}
                         </div>
@@ -860,7 +882,7 @@ export default function FolhaSalarialPage() {
                     <select name="colaborador_id" value={form.colaborador_id || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                       <option value="">Selecionar colaborador</option>
                       {colaboradores.map(c => (
-                        <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador})</option>
+                        <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador}){c.estado && c.estado !== "Activo" ? " — inativo" : ""}</option>
                       ))}
                     </select>
                   </div>
@@ -910,7 +932,7 @@ export default function FolhaSalarialPage() {
                     <input type="number" step="0.01" name="desconto_irt" value={form.desconto_irt || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto Seg. Social</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto INSS</label>
                     <input type="number" step="0.01" name="desconto_seguranca_social" value={form.desconto_seguranca_social || ""} onChange={handleInput} placeholder="0.00" className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                   </div>
                   <div>
@@ -950,7 +972,7 @@ export default function FolhaSalarialPage() {
                     <select name="colaborador_id" value={form.colaborador_id || ""} onChange={handleColaboradorChange} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
                       <option value="">Selecionar colaborador</option>
                       {colaboradores.map(c => (
-                        <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador})</option>
+                        <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador}){c.estado && c.estado !== "Activo" ? " — inativo" : ""}</option>
                       ))}
                     </select>
                   </div>
@@ -988,7 +1010,7 @@ export default function FolhaSalarialPage() {
                     <input type="number" step="0.01" name="irt" value={form.irt || ""} onChange={handleInput} placeholder="0.00" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Segurança Social (auto)</label>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">INSS (auto)</label>
                     <input type="number" step="0.01" name="seguranca_social" value={form.seguranca_social || ""} onChange={handleInput} placeholder="0.00" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
                   <div>
@@ -1098,7 +1120,7 @@ export default function FolhaSalarialPage() {
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex items-start gap-3">
                     <span className="material-symbols-outlined text-[20px] text-primary mt-0.5">bolt</span>
                     <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e Segurança Social calculados automaticamente a partir do contrato ativo. Os <strong>créditos activos</strong> e os <strong>descontos de faltas/atrasos</strong> são calculados automaticamente neste processo. Podes indicar <strong>horas extras por colaborador</strong> abaixo (os restantes ficam a 0).
+                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e INSS (Segurança Social) calculados automaticamente a partir do contrato ativo. Os <strong>créditos activos</strong> e os <strong>descontos de faltas/atrasos</strong> são calculados automaticamente neste processo. Podes indicar <strong>horas extras por colaborador</strong> abaixo (os restantes ficam a 0).
                     </p>
                   </div>
                   <div>
@@ -1127,7 +1149,7 @@ export default function FolhaSalarialPage() {
                           <select value={item.colaborador_id} onChange={(e) => atualizarExtra(idx, "colaborador_id", e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                             <option value="">Selecionar colaborador</option>
                             {colaboradores.map(c => (
-                              <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador})</option>
+                              <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador}){c.estado && c.estado !== "Activo" ? " — inativo" : ""}</option>
                             ))}
                           </select>
                           <input type="number" step="0.01" min="0" placeholder="Valor (AOA)" value={item.valor} onChange={(e) => atualizarExtra(idx, "valor", e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
@@ -1283,7 +1305,7 @@ export default function FolhaSalarialPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {[
                         ["Desconto IRT", helpers.formatCurrency(viewItem.desconto_irt)],
-                        ["Desconto Seg. Social", helpers.formatCurrency(viewItem.desconto_seguranca_social)],
+                        ["Desconto INSS", helpers.formatCurrency(viewItem.desconto_seguranca_social)],
                         ["Outros Descontos", helpers.formatCurrency(viewItem.outros_descontos)],
                       ].map(function(pair) {
                         return (
@@ -1364,7 +1386,7 @@ export default function FolhaSalarialPage() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {[
                         ["IRT", helpers.formatCurrency(viewItem.irt)],
-                        ["Segurança Social", helpers.formatCurrency(viewItem.seguranca_social)],
+                        ["INSS", helpers.formatCurrency(viewItem.seguranca_social)],
                         ["Desconto Faltas", helpers.formatCurrency(viewItem.desconto_faltas)],
                         ["Outros Descontos", helpers.formatCurrency(viewItem.descontos)],
                       ].map(function(pair) {
