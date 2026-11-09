@@ -97,6 +97,12 @@ export const TIPOS_COLABORADOR = [
   { value: "Estagiario", label: "Estagiário" },
 ];
 
+export const UNIDADES_NEGOCIO = [
+  { value: "Artes Gráficas", label: "Artes Gráficas" },
+  { value: "Formação Profissional", label: "Formação Profissional" },
+  { value: "Soluções Digitais", label: "Soluções Digitais" },
+];
+
 export const TIPOS_LICENCA = [
   { value: "Medica", label: "Licença Médica" },
   { value: "Maternidade", label: "Licença de Maternidade" },

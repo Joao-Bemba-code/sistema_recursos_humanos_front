@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { getT } from "@/lib/translations";
+import { UNIDADES_NEGOCIO } from "@/lib/constants";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import PageHeader from "@/components/ui/PageHeader";
 import Toolbar from "@/components/ui/Toolbar";
@@ -85,7 +86,7 @@ export default function FolhaSalarialPage() {
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, nome: "" });
   const [recalculando, setRecalculando] = useState(false);
   const [gerarAuto, setGerarAuto] = useState(false);
-  const [autogForm, setAutogForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear(), marcar_pago: true });
+  const [autogForm, setAutogForm] = useState({ mes: new Date().getMonth() + 1, ano: new Date().getFullYear(), marcar_pago: true, unidade_negocio: "" });
   const [extrasList, setExtrasList] = useState([]);
   const [gerando, setGerando] = useState(false);
   const [resultadoGerar, setResultadoGerar] = useState(null);
@@ -93,6 +94,7 @@ export default function FolhaSalarialPage() {
   const [resumoMes, setResumoMes] = useState(String(new Date().getMonth() + 1));
   const [resumoAno, setResumoAno] = useState(String(new Date().getFullYear()));
   const [resumoOpen, setResumoOpen] = useState(false);
+  const [resumoUnidade, setResumoUnidade] = useState("");
 
   const [form, setForm] = useState({});
 
@@ -407,7 +409,13 @@ export default function FolhaSalarialPage() {
     setBaixandoResumo(true);
     setMsg(null);
     try {
-      await api.downloadPdf(`/api/pdf/resumo-pagamentos?mes=${resumoMes}&ano=${resumoAno}`, `resumo_pagamentos_${resumoMes}_${resumoAno}.pdf`);
+      var url = `/api/pdf/resumo-pagamentos?mes=${resumoMes}&ano=${resumoAno}`;
+      var nomeFicheiro = `resumo_pagamentos_${resumoMes}_${resumoAno}`;
+      if (resumoUnidade) {
+        url += `&unidade_negocio=${encodeURIComponent(resumoUnidade)}`;
+        nomeFicheiro += "_" + resumoUnidade.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_");
+      }
+      await api.downloadPdf(url, nomeFicheiro + ".pdf");
     } catch (e) {
       setMsg({ tipo: "erro", texto: e.message });
     } finally {
@@ -570,6 +578,13 @@ export default function FolhaSalarialPage() {
           <div className="space-y-2">
             <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Ano do resumo</label>
             <input type="number" min="2000" value={resumoAno} onChange={(e) => setResumoAno(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[11px] font-medium text-on-surface-variant/70 px-1">Unidade de negócio</label>
+            <select value={resumoUnidade} onChange={(e) => setResumoUnidade(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+              <option value="">Todas as unidades</option>
+              {UNIDADES_NEGOCIO.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+            </select>
           </div>
           <div className="flex items-end pb-0.5">
             <button onClick={baixarResumo} disabled={baixandoResumo} className="flex items-center gap-2 px-4 py-2.5 bg-success/10 text-success text-[13px] font-semibold rounded-lg border border-success/20 hover:bg-success/20 disabled:opacity-50 transition-all active:scale-95">
@@ -777,7 +792,6 @@ export default function FolhaSalarialPage() {
               <thead>
                 <tr className="bg-background/50 border-b border-outline-variant/20">
                   <th className="px-6 py-4 font-medium text-on-surface-variant/70 w-[280px]">Colaborador</th>
-                  <th className="px-4 py-4 font-medium text-on-surface-variant/70">IBAN</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Mês/Ano</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Salário Base</th>
                   <th className="px-4 py-4 font-medium text-on-surface-variant/70">Subsídios+Extras</th>
@@ -791,10 +805,10 @@ export default function FolhaSalarialPage() {
               <tbody className="divide-y divide-outline-variant/10">
                 {loading ? (
                   [1,2,3,4].map(i => (
-                    <tr key={i}><td colSpan={10} className="px-6 py-4"><Skeleton className="h-10 w-full" /></td></tr>
+                    <tr key={i}><td colSpan={9} className="px-6 py-4"><Skeleton className="h-10 w-full" /></td></tr>
                   ))
                 ) : dados.length === 0 ? (
-                  <tr><td colSpan={10} className="px-6 py-2">
+                  <tr><td colSpan={9} className="px-6 py-2">
                     <EmptyState
                       icon="receipt_long"
                       title="Nenhum pagamento encontrado"
@@ -805,7 +819,6 @@ export default function FolhaSalarialPage() {
                   dados.map((item) => (
                     <tr key={item.id} className="hover:bg-primary/[0.02] transition-colors group">
                       {renderColabCell(item)}
-                      {renderIbanCell(item)}
                       <td className="px-4 py-4">
                         <span className="text-on-surface font-medium">{MESES[parseInt(item.mes) - 1] || item.mes}/{item.ano}</span>
                       </td>
@@ -1120,7 +1133,7 @@ export default function FolhaSalarialPage() {
                   <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex items-start gap-3">
                     <span className="material-symbols-outlined text-[20px] text-primary mt-0.5">bolt</span>
                     <p className="text-[13px] text-on-surface-variant leading-relaxed">
-                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para todos os colaboradores ativos no mês/ano indicado, com salário base, subsídios, IRT e INSS (Segurança Social) calculados automaticamente a partir do contrato ativo. Os <strong>créditos activos</strong> e os <strong>descontos de faltas/atrasos</strong> são calculados automaticamente neste processo. Podes indicar <strong>horas extras por colaborador</strong> abaixo (os restantes ficam a 0).
+                      Serão gerados pagamentos <strong>{autogForm.marcar_pago ? "Pagos" : "Pendentes"}</strong> para {autogForm.unidade_negocio ? <>colaboradores ativos da unidade <strong>{autogForm.unidade_negocio}</strong></> : <>todos os colaboradores ativos</>} no mês/ano indicado, com salário base, subsídios, IRT e INSS (Segurança Social) calculados automaticamente a partir do contrato ativo. Os <strong>créditos activos</strong> e os <strong>descontos de faltas/atrasos</strong> são calculados automaticamente neste processo. Podes indicar <strong>horas extras por colaborador</strong> abaixo (os restantes ficam a 0).
                     </p>
                   </div>
                   <div>
@@ -1132,6 +1145,18 @@ export default function FolhaSalarialPage() {
                   <div>
                     <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Ano *</label>
                     <input type="number" min="2000" max="2100" value={autogForm.ano} onChange={(e) => setAutogForm(prev => ({ ...prev, ano: e.target.value }))} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Unidade de negócio</label>
+                    <select value={autogForm.unidade_negocio} onChange={(e) => setAutogForm(prev => ({ ...prev, unidade_negocio: e.target.value }))} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                      <option value="">Todas as unidades</option>
+                      {UNIDADES_NEGOCIO.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                    </select>
+                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">
+                      {autogForm.unidade_negocio
+                        ? "Só processa a folha dos colaboradores activos desta unidade."
+                        : "Processa todos os colaboradores activos, de todas as unidades."}
+                    </p>
                   </div>
 
                   <div className="bg-background/50 border border-outline-variant/20 rounded-lg p-4 space-y-3">
@@ -1148,7 +1173,7 @@ export default function FolhaSalarialPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <select value={item.colaborador_id} onChange={(e) => atualizarExtra(idx, "colaborador_id", e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                             <option value="">Selecionar colaborador</option>
-                            {colaboradores.map(c => (
+                            {(autogForm.unidade_negocio ? colaboradores.filter(c => c.unidade_negocio === autogForm.unidade_negocio) : colaboradores).map(c => (
                               <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador}){c.estado && c.estado !== "Activo" ? " — inativo" : ""}</option>
                             ))}
                           </select>
@@ -1184,7 +1209,7 @@ export default function FolhaSalarialPage() {
                   <div className="bg-success/5 border border-success/10 rounded-lg p-4 text-center">
                     <span className="material-symbols-outlined text-[40px] text-success block mb-2">check_circle</span>
                     <h4 className="text-[16px] font-bold text-on-surface">Pagamentos processados</h4>
-                    <p className="text-[13px] text-on-surface-variant mt-1">{MESES[parseInt(autogForm.mes) - 1]}/{autogForm.ano}</p>
+                    <p className="text-[13px] text-on-surface-variant mt-1">{MESES[parseInt(autogForm.mes) - 1]}/{autogForm.ano}{autogForm.unidade_negocio ? " — " + autogForm.unidade_negocio : ""}</p>
                   </div>
                   <div className={"grid gap-3 " + (resultadoGerar.marcados_pago !== undefined ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3")}>
                     <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 text-center">
