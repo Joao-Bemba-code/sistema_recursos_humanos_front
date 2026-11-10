@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
-import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, GENEROS, ESTADOS_CIVIS } from "@/lib/constants";
+import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, UNIDADES_NEGOCIO, GENEROS, ESTADOS_CIVIS } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -88,6 +88,7 @@ export default function ColaboradoresPage() {
     nome_completo: "", data_admissao: "", genero: "", estado_civil: "",
     nif: "", bi: "", bi_validade: "", id_biometrico: "", telefone: "", email_pessoal: "",
     email_institucional: "", telefone_emergencia: "", tipo_colaborador: "Interno",
+    unidade_negocio: "",
     estado: "Activo", endereco: "", cidade: "", provincia: "",
     data_nascimento: "", nome_curto: "",
     habilitacoes: "", formacao_academica: "", conta_bancaria: "", banco: "", iban: "",
@@ -564,6 +565,14 @@ export default function ColaboradoresPage() {
                     <select name="tipo_colaborador" value={form.tipo_colaborador || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       {TIPOS_COLABORADOR.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Unidade de Negócio</label>
+                    <select name="unidade_negocio" value={form.unidade_negocio || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                      <option value="">Sem unidade</option>
+                      {UNIDADES_NEGOCIO.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                    </select>
+                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">Usada para processar a folha salarial só desta unidade.</p>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado</label>
