@@ -213,11 +213,12 @@ export default function TopNavBar() {
             <div ref={notifRef} className="relative">
               <button
                 onClick={() => { setNotifOpen(!notifOpen); setMenuOpen(false); }}
-                className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-colors"
+                aria-label={notifCount > 0 ? "Notificações (" + notifCount + " por ler)" : "Notificações"}
+                className={"relative flex items-center justify-center w-10 h-10 rounded-full transition-colors " + (notifCount > 0 ? "bg-error-container text-error hover:bg-error-container/70" : "hover:bg-surface-container-high text-on-surface-variant")}
               >
-                <span className="material-symbols-outlined text-[22px]">notifications</span>
+                <span className="material-symbols-outlined text-[24px]">notifications</span>
                 {notifCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+                  <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] flex items-center justify-center bg-error text-white text-[11px] font-bold rounded-full px-1 ring-2 ring-surface">
                     {notifCount > 99 ? "99+" : notifCount}
                   </span>
                 )}
@@ -225,10 +226,15 @@ export default function TopNavBar() {
 
               {notifOpen && (
                 <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-80 bg-surface-card rounded-2xl shadow-2xl border border-outline-variant py-2 z-50">
-                  <div className="px-4 py-2 border-b border-outline-variant/30 flex items-center justify-between">
-                    <span className="text-[13px] font-bold text-on-surface">Notificações</span>
+                  <div className="px-4 py-2.5 border-b border-outline-variant/30 flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-[14px] font-bold text-on-surface">
+                      Notificações
+                      {notifCount > 0 && (
+                        <span className="min-w-[20px] h-[20px] flex items-center justify-center bg-error text-white text-[11px] font-bold rounded-full px-1.5">{notifCount > 99 ? "99+" : notifCount}</span>
+                      )}
+                    </span>
                     {notifCount > 0 && (
-                      <button onClick={handleMarkAllRead} className="text-[11px] font-bold text-primary hover:underline">
+                      <button onClick={handleMarkAllRead} className="text-[11px] font-bold text-primary hover:underline whitespace-nowrap">
                         Marcar todas como lidas
                       </button>
                     )}
@@ -266,19 +272,19 @@ export default function TopNavBar() {
                               <button
                                 key={notif.id}
                                 onClick={function () { handleNotifClick(notif); }}
-                                className={"w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-surface-container transition-colors " + (!isLida ? "bg-primary/5" : "")}
+                                className={"w-full flex items-start gap-3 px-4 py-3 text-left border-b border-outline-variant/20 transition-colors " + (!isLida ? "bg-primary-light border-l-[3px] border-l-primary hover:bg-primary-light/70" : "hover:bg-surface-container")}
                               >
-                                <div className={"p-1.5 rounded-lg flex-shrink-0 mt-0.5 " + (!isLida ? "bg-primary/10" : "bg-surface-container-high")}>
-                                  <span className={"material-symbols-outlined text-[16px] " + (!isLida ? "text-primary" : "text-outline")}>{nIcon}</span>
+                                <div className={"p-2 rounded-lg flex-shrink-0 mt-0.5 " + (!isLida ? "bg-primary/15" : "bg-surface-container-high")}>
+                                  <span className={"material-symbols-outlined text-[20px] " + (!isLida ? "text-primary" : "text-outline")}>{nIcon}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className={"text-[12px] truncate " + (!isLida ? "font-bold text-on-surface" : "text-on-surface-variant")}>{notif.titulo || "Notificação"}</p>
-                                  <p className="text-[11px] text-on-surface-variant/60 truncate">{notif.mensagem || ""}</p>
+                                  <p className={"text-[13px] truncate " + (!isLida ? "font-bold text-on-surface" : "font-medium text-on-surface-variant")}>{notif.titulo || "Notificação"}</p>
+                                  <p className={"text-[12px] truncate " + (!isLida ? "text-on-surface-variant" : "text-on-surface-variant/70")}>{notif.mensagem || ""}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                  <span className="text-[10px] text-on-surface-variant/40">{timeAgo(notif.createdAt)}</span>
-                                  <span className="text-[9px] font-bold uppercase tracking-wide text-primary/70">{labelDeModulo(notif.modulo)}</span>
-                                  {!isLida && <span className="w-2 h-2 bg-primary rounded-full" />}
+                                  <span className="text-[10px] text-on-surface-variant/60 whitespace-nowrap">{timeAgo(notif.createdAt)}</span>
+                                  <span className={"text-[9px] font-bold uppercase tracking-wide " + (!isLida ? "text-primary" : "text-primary/60")}>{labelDeModulo(notif.modulo)}</span>
+                                  {!isLida && <span className="w-2.5 h-2.5 bg-error rounded-full" />}
                                 </div>
                               </button>
                             );
