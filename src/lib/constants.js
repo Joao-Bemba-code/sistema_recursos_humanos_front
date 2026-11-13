@@ -21,6 +21,7 @@ export const NAV_ITEMS = [
       { label: "Contratos", href: "/dashboard/contratos", icon: "description", modulo: "contratos" },
       { label: "Departamentos", href: "/dashboard/departamentos", icon: "apartment", modulo: "departamentos" },
       { label: "Advertências", href: "/dashboard/advertencias", icon: "warning", modulo: "advertencias" },
+      { label: "Processos Disciplinares", href: "/dashboard/disciplinar", icon: "gavel", modulo: "processos_disciplinares" },
     ],
   },
   {

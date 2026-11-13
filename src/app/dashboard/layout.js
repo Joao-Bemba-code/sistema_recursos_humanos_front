@@ -26,6 +26,7 @@ var ROTAS_MODULOS = {
   "/dashboard/pedidos": "pedidos",
   "/dashboard/utilizadores": "utilizadores",
   "/dashboard/advertencias": "advertencias",
+  "/dashboard/disciplinar": "processos_disciplinares",
   "/dashboard/relatorios": "relatorios",
   "/dashboard/configuracoes": "configuracoes",
 };
