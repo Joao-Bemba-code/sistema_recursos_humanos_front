@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, UNIDADES_NEGOCIO, GENEROS, ESTADOS_CIVIS } from "@/lib/constants";
@@ -10,8 +10,9 @@ import Badge from "@/components/ui/Badge";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import FileUpload from "@/components/ui/FileUpload";
+import DocumentosTab from "@/components/colaboradores/DocumentosTab";
 import { useToast } from "@/components/ui/Toast";
+import { useAuth } from "@/context/AuthContext";
 
 var imageUrl = function (path) {
   if (!path) return "";
@@ -37,6 +38,9 @@ var formatarDescanso = function (texto) {
 
 export default function ColaboradoresPage() {
   const toast = useToast();
+  const { hasPermission } = useAuth();
+  const podeVerDocumentos = hasPermission("documentos_colaborador", "read");
+  const podeEditarDocumentos = hasPermission("documentos_colaborador", "update") || hasPermission("documentos_colaborador", "create");
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -53,6 +57,9 @@ export default function ColaboradoresPage() {
   const [colaboradorView, setColaboradorView] = useState(null);
   const [statusDropdown, setStatusDropdown] = useState({ open: false, id: null });
   const [avaliacoesColab, setAvaliacoesColab] = useState([]);
+  const [documentosView, setDocumentosView] = useState([]);
+  const [documentosViewLoading, setDocumentosViewLoading] = useState(false);
+  const editandoRef = useRef(null);
 
   const carregar = async (page = 1) => {
     setLoading(true);
@@ -93,54 +100,129 @@ export default function ColaboradoresPage() {
     data_nascimento: "", nome_curto: "",
     habilitacoes: "", formacao_academica: "", conta_bancaria: "", banco: "", iban: "",
     numero_seguranca_social: "", fotografia: "", curriculo: "", observacoes: "",
-    dias_descanso: "0,6",
+    dias_descanso: "0,6", documentos: [],
   };
 
   const abrirNovo = () => {
     setEditando(null);
-    setForm({ ...defaultForm });
+    editandoRef.current = null;
+    setForm({ ...defaultForm, documentos: [] });
     setAba("pessoal");
     setShowModal(true);
   };
 
+  // Documentos gravados do colaborador. Sao carregados a parte para o
+  // separador nao atrasar a abertura da ficha.
+  const carregarDocumentosDoFormulario = async (c) => {
+    if (!podeVerDocumentos) return;
+    try {
+      const res = await api.get(`/api/colaboradores/${c.id}/documentos`);
+      var docs = (res && res.dados) ? res.dados : [];
+      setForm(function (actual) {
+        // Se entretanto o utilizador mudou de colaborador, ignora.
+        if (!actual || (editandoRef.current && editandoRef.current.id !== c.id)) return actual;
+        return Object.assign({}, actual, { documentos: docs });
+      });
+    } catch (e) {
+      toast.addToast("error", e.message);
+    }
+  };
+
   const abrirEditar = (c) => {
     setEditando(c);
+    editandoRef.current = c;
     var f = {};
     var keys = Object.keys(defaultForm);
     for (var i = 0; i < keys.length; i++) {
       f[keys[i]] = c[keys[i]] || defaultForm[keys[i]];
     }
+    // Um rascunho fica "Inactivo" so por ainda nao ter sido concluido. Ao
+    // abrir para concluir, mostramos o estado normal para nao ficar inactivo
+    // por engano.
+    if (c.rascunho) f.estado = "Activo";
     setForm(f);
     setAba("pessoal");
     setShowModal(true);
+    carregarDocumentosDoFormulario(c);
   };
 
-  const guardar = async (e) => {
+  // Confere os documentos antes de gravar: "A corrigir" exige motivo e
+  // "Outro" exige tipo.
+  const validarDocumentosDoFormulario = () => {
+    var docs = Array.isArray(form.documentos) ? form.documentos : [];
+    for (var i = 0; i < docs.length; i++) {
+      var d = docs[i];
+      if (!d.ficheiro_url) continue;
+      if (d.estado === "A corrigir" && !String(d.motivo_correcao || "").trim()) {
+        toast.addToast("error", "Indique o motivo da correção do documento");
+        setAba("documentos");
+        return false;
+      }
+      if (d.categoria === "outro" && !String(d.tipo_documento || "").trim()) {
+        toast.addToast("error", "Indique o tipo de cada documento adicional");
+        setAba("documentos");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const guardar = async (e, modo) => {
     e.preventDefault();
 
-    if (!editando) {
+    var eNovo = !editando;
+    var eRascunho = modo === "rascunho";
+    var eConcluir = modo === "concluir" || (!eNovo && editando.rascunho && modo !== "rascunho");
+
+    if (eConcluir) {
       if (!form.data_admissao) {
         setAba("profissional");
         toast.addToast("error", "Preencha a Data de Admissão (separador Profissional)");
         return;
       }
+      if (!String(form.nome_completo || "").trim()) {
+        setAba("pessoal");
+        toast.addToast("error", "Preencha o Nome Completo (separador Dados Pessoais)");
+        return;
+      }
     }
+
+    if (!validarDocumentosDoFormulario()) return;
+
+    var payload = Object.assign({}, form, { documentos: form.documentos || [] });
+    if (eRascunho) payload.rascunho = true;
+    else if (eConcluir) payload.rascunho = false;
+    else delete payload.rascunho;
 
     setSaving(true);
     try {
       if (editando) {
-        await api.put(`/api/colaboradores/${editando.id}`, form);
-        toast.addToast("success", "Colaborador atualizado com sucesso");
+        await api.put(`/api/colaboradores/${editando.id}`, payload);
+        toast.addToast("success", eConcluir ? "Registo concluído com sucesso" : "Colaborador atualizado com sucesso");
       } else {
-        await api.post("/api/colaboradores", form);
-        toast.addToast("success", "Colaborador criado com sucesso");
+        await api.post("/api/colaboradores", payload);
+        toast.addToast("success", eRascunho ? "Rascunho guardado com sucesso" : "Colaborador criado com sucesso");
       }
       setShowModal(false);
+      editandoRef.current = null;
       carregar(paginacao.pagina);
     } catch (e) {
       toast.addToast("error", e.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Remocao imediata de documentos "Outro" ja gravados.
+  const removerDocumentoGravado = async (doc) => {
+    if (!editando || !doc.id) return false;
+    try {
+      await api.delete(`/api/colaboradores/${editando.id}/documentos/${doc.id}`);
+      toast.addToast("success", "Documento removido");
+      return true;
+    } catch (e) {
+      toast.addToast("error", e.message);
+      return false;
     }
   };
 
@@ -201,9 +283,17 @@ export default function ColaboradoresPage() {
     setColaboradorView(c);
     setShowViewModal(true);
     setAvaliacoesColab([]);
+    setDocumentosView([]);
     api.get(`/api/avaliacao/avaliacoes?colaborador_id=${c.id}&limit=100`).then(res => {
       if (res && res.dados) setAvaliacoesColab(res.dados);
     }).catch(() => {});
+    if (podeVerDocumentos) {
+      setDocumentosViewLoading(true);
+      api.get(`/api/colaboradores/${c.id}/documentos`)
+        .then(res => { if (res && res.dados) setDocumentosView(res.dados); })
+        .catch(() => {})
+        .finally(() => setDocumentosViewLoading(false));
+    }
   };
 
   const gerarPDF = async () => {
@@ -216,6 +306,78 @@ export default function ColaboradoresPage() {
     }
   };
 
+  var DOCS_FICHA = [
+    { chave: "curriculo", nome: "Currículo (CV)", icone: "description" },
+    { chave: "bi", nome: "Bilhete de Identidade ou equivalente", icone: "badge" },
+    { chave: "certificado", nome: "Certificado de habilitações ou formação", icone: "workspace_premium" },
+    { chave: "contrato", nome: "Contrato de trabalho assinado", icone: "history_edu" },
+  ];
+  var VARIANTE_DOC_FICHA = { "Validado": "success", "Por conferir": "warning", "A corrigir": "destructive", "Em falta": "secondary" };
+
+  const docDaFicha = (categoria) => {
+    for (var i = 0; i < documentosView.length; i++) {
+      if (documentosView[i].categoria === categoria) return documentosView[i];
+    }
+    return null;
+  };
+
+  const abrirDocumentoFicha = async (doc) => {
+    if (!doc) return;
+    try {
+      if (doc.id) {
+        var blob = await api.getBlob(`/api/colaboradores/${colaboradorView.id}/documentos/${doc.id}/ficheiro`, "Não foi possível abrir o documento");
+        var url = window.URL.createObjectURL(blob);
+        window.open(url, "_blank");
+        setTimeout(function () { window.URL.revokeObjectURL(url); }, 60000);
+      } else if (doc.ficheiro_url) {
+        window.open(imageUrl(doc.ficheiro_url), "_blank");
+      }
+    } catch (e) {
+      toast.addToast("error", e.message || "Não foi possível abrir o documento");
+    }
+  };
+
+  const renderDocumentoFicha = (def) => {
+    var doc = docDaFicha(def.chave);
+    var estado = (doc && doc.estado) || "Em falta";
+    var temFicheiro = !!(doc && doc.ficheiro_url);
+    return (
+      <div key={def.chave} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide flex items-center gap-1">
+            <span className="material-symbols-outlined text-[13px]">{def.icone}</span>
+            {def.nome}
+          </p>
+          <Badge variant={VARIANTE_DOC_FICHA[estado] || "secondary"}>{estado}</Badge>
+        </div>
+        {temFicheiro ? (
+          <div className="space-y-1">
+            <p className="text-[11px] text-on-surface-variant/70 truncate">{doc.ficheiro_nome || "Ficheiro carregado"}</p>
+            {doc.carregado_em && (
+              <p className="text-[10px] text-on-surface-variant/60">
+                Carregado em {helpers.formatDate(doc.carregado_em)}{doc.carregado_por_nome ? " por " + doc.carregado_por_nome : ""}
+              </p>
+            )}
+            {doc.validado_em && (
+              <p className="text-[10px] text-success">
+                Validado em {helpers.formatDate(doc.validado_em)}{doc.validado_por_nome ? " por " + doc.validado_por_nome : ""}
+              </p>
+            )}
+            {estado === "A corrigir" && doc.motivo_correcao && (
+              <p className="text-[10px] text-error font-medium">Motivo: {doc.motivo_correcao}</p>
+            )}
+            <button onClick={() => abrirDocumentoFicha(doc)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
+              <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+              Ver documento
+            </button>
+          </div>
+        ) : (
+          <p className="text-[11px] text-outline">Sem ficheiro</p>
+        )}
+      </div>
+    );
+  };
+
   const activeFilters = [];
   if (filtroEstado) activeFilters.push({ label: `Status: ${filtroEstado}`, onClear: () => setFiltroEstado("") });
   if (filtroTipo) activeFilters.push({ label: `Tipo: ${filtroTipo}`, onClear: () => setFiltroTipo("") });
@@ -226,7 +388,7 @@ export default function ColaboradoresPage() {
     { key: "profissional", label: "Profissional", icon: "work" },
     { key: "financeiro", label: "Financeiro", icon: "account_balance" },
     { key: "documentos", label: "Documentos", icon: "folder_open" },
-  ];
+  ].filter(function (a) { return a.key !== "documentos" || podeVerDocumentos; });
 
   return (
     <div className="space-y-6">
@@ -348,7 +510,12 @@ export default function ColaboradoresPage() {
                           )}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-bold text-on-surface">{c.nome_completo}</span>
+                          <span className="font-bold text-on-surface flex items-center gap-1.5">
+                            {c.nome_completo || "Sem nome"}
+                            {c.rascunho && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-warning/15 text-warning text-[9px] font-bold uppercase tracking-wide">Rascunho</span>
+                            )}
+                          </span>
                           <span className="text-[12px] text-on-surface-variant/70">{c.numero_colaborador}</span>
                         </div>
                       </div>
@@ -465,7 +632,10 @@ export default function ColaboradoresPage() {
               ))}
             </div>
 
-            <form onSubmit={guardar} className="p-6">
+            <form
+              onSubmit={(e) => guardar(e, editando ? (editando.rascunho ? "concluir" : undefined) : "concluir")}
+              className="p-6"
+            >
               {aba === "pessoal" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
@@ -632,37 +802,42 @@ export default function ColaboradoresPage() {
                 </div>
               )}
 
-              {aba === "documentos" && (
-                <div className="space-y-5">
-                  <div className="sm:col-span-2">
-                    <FileUpload
-                      label="Fotografia"
-                      value={form.fotografia || ""}
-                      onChange={(url) => setForm({ ...form, fotografia: url })}
-                      pasta="fotografias"
-                      accept="image/*"
-                      icone="photo_camera"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <FileUpload
-                      label="Currículo (CV)"
-                      value={form.curriculo || ""}
-                      onChange={(url) => setForm({ ...form, curriculo: url })}
-                      pasta="curriculos"
-                      accept=".pdf,.doc,.docx"
-                      iconde="description"
-                      icone="description"
-                    />
-                  </div>
-                </div>
+              {aba === "documentos" && podeVerDocumentos && (
+                <DocumentosTab
+                  documentos={form.documentos || []}
+                  podeEditar={podeEditarDocumentos}
+                  colaboradorId={editando ? editando.id : null}
+                  onRemoverDoc={removerDocumentoGravado}
+                  onErro={(msg) => toast.addToast("error", msg)}
+                  onChange={(docs) => {
+                    var foto = null;
+                    var cv = null;
+                    for (var di = 0; di < docs.length; di++) {
+                      if (docs[di].categoria === "fotografia") foto = docs[di];
+                      if (docs[di].categoria === "curriculo") cv = docs[di];
+                    }
+                    setForm(function (actual) {
+                      return Object.assign({}, actual, {
+                        documentos: docs,
+                        fotografia: foto && foto.ficheiro_url ? foto.ficheiro_url : actual.fotografia,
+                        curriculo: cv && cv.ficheiro_url ? cv.ficheiro_url : actual.curriculo,
+                      });
+                    });
+                  }}
+                />
               )}
 
-              <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-outline-variant/20">
+              <div className="flex flex-wrap items-center justify-end gap-3 pt-5 mt-5 border-t border-outline-variant/20">
                 <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancelar</Button>
+                {(!editando || editando.rascunho) && (
+                  <Button type="button" variant="outline" disabled={saving} onClick={(e) => guardar(e, "rascunho")}>
+                    <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                    Guardar rascunho
+                  </Button>
+                )}
                 <Button type="submit" disabled={saving} variant="default">
                   <span className="material-symbols-outlined text-[18px]">{saving ? "hourglass_empty" : "save"}</span>
-                  {saving ? "A guardar..." : editando ? "Atualizar" : "Criar Colaborador"}
+                  {saving ? "A guardar..." : editando && !editando.rascunho ? "Atualizar" : "Concluir registo"}
                 </Button>
               </div>
             </form>
@@ -823,36 +998,88 @@ export default function ColaboradoresPage() {
                 </div>
               </div>
 
-              <div>
-                <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px] text-primary">folder_open</span>
-                  Documentos
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Fotografia</p>
-                    {colaboradorView.fotografia ? (
-                      <a href={imageUrl(colaboradorView.fotografia)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
-                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                        Ver Ficheiro
-                      </a>
-                    ) : (
-                      <p className="text-[12px] text-outline">Nenhuma</p>
-                    )}
-                  </div>
-                  <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
-                    <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Currículo</p>
-                    {colaboradorView.curriculo ? (
-                      <a href={colaboradorView.curriculo} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-semibold text-primary hover:underline">
-                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                        Ver Ficheiro
-                      </a>
-                    ) : (
-                      <p className="text-[12px] text-outline">Nenhum</p>
-                    )}
-                  </div>
+              {podeVerDocumentos && (
+                <div>
+                  <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-primary">folder_open</span>
+                    Documentos
+                  </h4>
+
+                  {documentosViewLoading ? (
+                    <p className="text-[12px] text-on-surface-variant/50 bg-background/50 rounded-lg p-4 border border-outline-variant/20">A carregar documentos...</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {(() => {
+                        var fotoDoc = docDaFicha("fotografia");
+                        var fotoUrl = (fotoDoc && fotoDoc.ficheiro_url) || colaboradorView.fotografia;
+                        var estadoFoto = (fotoDoc && fotoDoc.estado) || (fotoUrl ? "Validado" : "Em falta");
+                        return (
+                          <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 flex items-center gap-4">
+                            <div className="w-16 h-20 rounded-lg overflow-hidden border border-outline-variant/30 bg-primary/10 flex items-center justify-center shrink-0">
+                              {fotoUrl ? (
+                                <img src={imageUrl(fotoUrl)} alt="Fotografia" className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="material-symbols-outlined text-outline">photo_camera</span>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-[11px] font-bold text-on-surface">Fotografia</p>
+                                <Badge variant={VARIANTE_DOC_FICHA[estadoFoto] || "secondary"}>{estadoFoto}</Badge>
+                              </div>
+                              {fotoDoc && fotoDoc.carregado_em && (
+                                <p className="text-[10px] text-on-surface-variant/60 mt-1">
+                                  Carregada em {helpers.formatDate(fotoDoc.carregado_em)}{fotoDoc.carregado_por_nome ? " por " + fotoDoc.carregado_por_nome : ""}
+                                </p>
+                              )}
+                              {!fotoDoc && fotoUrl && <p className="text-[10px] text-on-surface-variant/60 mt-1">Fotografia registada antes do controlo de documentos</p>}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {DOCS_FICHA.map(renderDocumentoFicha)}
+                      </div>
+
+                      {documentosView.filter(function (d) { return d.categoria === "outro"; }).length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide">Outros documentos</p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {documentosView.filter(function (d) { return d.categoria === "outro"; }).map(function (doc) {
+                              var estado = doc.estado || "Em falta";
+                              return (
+                                <div key={doc.id} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <div className="min-w-0">
+                                      <p className="text-[11px] font-bold text-on-surface truncate">{doc.tipo_documento || "Outro documento"}</p>
+                                      {doc.descricao && <p className="text-[10px] text-on-surface-variant/70">{doc.descricao}</p>}
+                                    </div>
+                                    <Badge variant={VARIANTE_DOC_FICHA[estado] || "secondary"}>{estado}</Badge>
+                                  </div>
+                                  <p className="text-[10px] text-on-surface-variant/60 truncate">{doc.ficheiro_nome}</p>
+                                  {doc.carregado_em && (
+                                    <p className="text-[10px] text-on-surface-variant/60">
+                                      Carregado em {helpers.formatDate(doc.carregado_em)}{doc.carregado_por_nome ? " por " + doc.carregado_por_nome : ""}
+                                    </p>
+                                  )}
+                                  {estado === "A corrigir" && doc.motivo_correcao && (
+                                    <p className="text-[10px] text-error font-medium">Motivo: {doc.motivo_correcao}</p>
+                                  )}
+                                  <button onClick={() => abrirDocumentoFicha(doc)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline mt-1">
+                                    <span className="material-symbols-outlined text-[13px]">open_in_new</span>
+                                    Ver documento
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               <div>
                 <h4 className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wider mb-3 flex items-center gap-2">
