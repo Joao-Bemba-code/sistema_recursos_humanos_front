@@ -381,6 +381,7 @@ export default function TarefasPage() {
 
   var [avaliar, setAvaliar] = useState(null);
   var [reabrir, setReabrir] = useState(null);
+  var [corrigir, setCorrigir] = useState(null);
   var [decidir, setDecidir] = useState(null);
   var [justificar, setJustificar] = useState(null);
   var [janelaEdicao, setJanelaEdicao] = useState(null);
@@ -447,14 +448,14 @@ export default function TarefasPage() {
 
   useEffect(function () {
     var intervalo = setInterval(function () {
-      if (formTarefa || detalhe || avaliar || reabrir || decidir || justificar || adicionar) return;
+      if (formTarefa || detalhe || avaliar || reabrir || corrigir || decidir || justificar || adicionar) return;
       if (typeof document !== "undefined" && document.hidden) return;
       carregar(pagina, true);
       carregarStats();
     }, 10000);
     return function () { clearInterval(intervalo); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtros, pagina, formTarefa, detalhe, avaliar, reabrir, decidir, justificar, adicionar]);
+  }, [filtros, pagina, formTarefa, detalhe, avaliar, reabrir, corrigir, decidir, justificar, adicionar]);
 
   var alterarFiltro = function (campo, valor) {
     setFiltros(function (actual) { return Object.assign({}, actual, { [campo]: valor }); });
@@ -758,6 +759,47 @@ export default function TarefasPage() {
       });
       toast.addToast("success", r.mensagem || "Tarefa reaberta");
       setReabrir(null);
+      await actualizarDetalhe(detalhe.id);
+      await carregar(pagina, true);
+      await carregarStats();
+    } catch (e) {
+      toast.addToast("error", e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  var abrirCorrigir = function (alocacoes, tarefa) {
+    var prazo = new Date(new Date().getTime() + 24 * 60 * 60 * 1000);
+    setCorrigir({
+      tarefa_id: tarefa && tarefa.id ? tarefa.id : (detalhe ? detalhe.id : null),
+      titulo: tarefa ? tarefa.titulo : "",
+      alocacao_ids: alocacoes.map(function (a) { return a.id; }),
+      nomes: alocacoes.map(function (a) { return a.colaborador ? a.colaborador.nome_completo : "Colaborador"; }),
+      motivo: "",
+      prazo: janelaInput(prazo),
+    });
+  };
+
+  var enviarCorrecao = async function () {
+    var motivo = (corrigir.motivo || "").trim();
+    if (!motivo) {
+      toast.addToast("error", "Escreva o que deve ser corrigido");
+      return;
+    }
+    if (corrigir.prazo && new Date(corrigir.prazo).getTime() <= Date.now()) {
+      toast.addToast("error", "O prazo para corrigir tem de ser no futuro");
+      return;
+    }
+    setSaving(true);
+    try {
+      var r = await api.put("/api/tarefas/" + (corrigir.tarefa_id || detalhe.id) + "/correcao", {
+        alocacao_ids: corrigir.alocacao_ids,
+        motivo: motivo,
+        prazo: corrigir.prazo || null,
+      });
+      toast.addToast("success", r.mensagem || "Correcao solicitada");
+      setCorrigir(null);
       await actualizarDetalhe(detalhe.id);
       await carregar(pagina, true);
       await carregarStats();
@@ -1738,6 +1780,7 @@ export default function TarefasPage() {
                           onRemover={function () { removerParticipacao(a); }}
                           onAvaliar={function () { abrirAvaliar([a]); }}
                           onReabrir={function () { abrirReabrir([a]); }}
+                          onCorrigir={function () { abrirCorrigir([a]); }}
                           onDecidir={function (tipo) {
                             // Para reagendar, propor desde ja uma janela nova com a
                             // mesma duracao da original (o gestor pode alterar).
@@ -1777,6 +1820,12 @@ export default function TarefasPage() {
                     Validar ({avaliarPendentes.length})
                   </Button>
                 )}
+                {avaliarPendentes.length > 0 && (
+                  <Button variant="outline" size="sm" onClick={function () { abrirCorrigir(avaliarPendentes, detalhe); }}>
+                    <span className="material-symbols-outlined text-[16px]">edit_note</span>
+                    Solicitar correção ({avaliarPendentes.length})
+                  </Button>
+                )}
                 {detalhe.estado !== "Cancelada" && (
                   <Button variant="outline" size="sm" onClick={cancelarTarefa} disabled={saving}>
                     <span className="material-symbols-outlined text-[16px]">block</span>
@@ -1799,6 +1848,13 @@ export default function TarefasPage() {
                   <p className="text-[12px] text-on-surface-variant">{textoJanela(minhaNoDetalhe)}</p>
                   <ContagemRegressiva aloc={minhaNoDetalhe} agora={agora} />
                 </div>
+                {minhaNoDetalhe.motivo_correcao && (minhaNoDetalhe.estado === "Em_curso" || minhaNoDetalhe.estado === "Reaberta") && (
+                  <div className="text-[12px] leading-snug rounded border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2">
+                    <span className="font-bold uppercase tracking-wide">Correção pedida pelo gestor</span>
+                    {minhaNoDetalhe.prazo_correcao ? " · até " + formatDateTime(minhaNoDetalhe.prazo_correcao) : ""}
+                    <span className="block mt-0.5">{minhaNoDetalhe.motivo_correcao}</span>
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {minhaNoDetalhe.estado === "Pendente" && (
                     <Button size="sm" onClick={function () { iniciarAlocacao(minhaNoDetalhe); }} disabled={saving}>
@@ -1827,7 +1883,7 @@ export default function TarefasPage() {
                 )}
                 <p className="text-[11px] text-outline">
                   {minhaNoDetalhe.estado === "Pendente" && "Por iniciar. Inicie dentro da janela para o progresso ser contado."}
-                  {minhaNoDetalhe.estado === "Em_curso" && "Em curso - o progresso cresce automaticamente e o tempo restante diminui em tempo real."}
+                  {minhaNoDetalhe.estado === "Em_curso" && (minhaNoDetalhe.motivo_correcao ? "O gestor pediu correcoes - veja o motivo acima e reenvie quando terminar." : "Em curso - o progresso cresce automaticamente e o tempo restante diminui em tempo real.")}
                   {minhaNoDetalhe.estado === "Reaberta" && "Reaberta pelo gestor - nova janela em curso."}
                   {minhaNoDetalhe.estado === "Justificativa" && "Justificativa apresentada - aguarda a decisao do gestor."}
                   {minhaNoDetalhe.estado === "Atrasada" && "A janela terminou sem concluir. Pode justificar ou aguardar a decisao do gestor (reabrir, eliminar ou validar)."}
@@ -1913,8 +1969,7 @@ export default function TarefasPage() {
           onClose={function () { setReabrir(null); }}
           title="Reabrir tarefa"
           size="md"
-          footer={
-            <>
+          footer={            <>
               <Button variant="outline" onClick={function () { setReabrir(null); }}>Cancelar</Button>
               <Button onClick={enviarReabertura} disabled={saving}>
                 {saving ? "A guardar..." : "Reabrir"}
@@ -1948,6 +2003,81 @@ export default function TarefasPage() {
                   onChange={function (e) { setReabrir(Object.assign({}, reabrir, { janela_fim: e.target.value })); }}
                   className={CAMPO}
                 />
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {corrigir && (
+        <Modal
+          isOpen={true}
+          onClose={function () { setCorrigir(null); }}
+          title="Solicitar correção"
+          size="md"
+          footer={
+            <>
+              <Button variant="outline" onClick={function () { setCorrigir(null); }}>Cancelar</Button>
+              <Button onClick={enviarCorrecao} disabled={saving}>
+                {saving ? "A enviar..." : "Pedir correção"}
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            {corrigir.titulo && (
+              <p className="text-[12px] font-semibold text-primary truncate">Tarefa: {corrigir.titulo}</p>
+            )}
+            <p className="text-[12px] text-on-surface-variant">
+              {corrigir.nomes.join(", ")} volta a <strong>Em Curso</strong> para corrigir o trabalho. O motivo fica
+              visível até reenviar.
+            </p>
+            <div>
+              <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">O que deve ser corrigido *</label>
+              <textarea
+                rows={4}
+                value={corrigir.motivo}
+                onChange={function (e) { setCorrigir(Object.assign({}, corrigir, { motivo: e.target.value })); }}
+                placeholder="Ex.: falta o comprovativo anexo; rever os valores do relatório..."
+                className={CAMPO + " resize-y"}
+                maxLength={2000}
+              />
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {["Falta de prova", "Qualidade insuficiente", "Quantidade incompleta", "Entregue fora do prazo"].map(function (s) {
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={function () { setCorrigir(Object.assign({}, corrigir, { motivo: (corrigir.motivo ? corrigir.motivo + " " : "") + s + "." })); }}
+                      className="text-[11px] px-2 py-1 rounded-full border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors"
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Prazo para corrigir (vazio = 24h)</label>
+              <input
+                type="datetime-local"
+                value={corrigir.prazo || ""}
+                onChange={function (e) { setCorrigir(Object.assign({}, corrigir, { prazo: e.target.value })); }}
+                className={CAMPO}
+              />
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {[2, 4, 24, 48].map(function (h) {
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      onClick={function () { setCorrigir(Object.assign({}, corrigir, { prazo: janelaInput(new Date(Date.now() + h * 3600000)) })); }}
+                      className="text-[11px] px-2 py-1 rounded-full border border-outline-variant/60 text-on-surface-variant hover:border-primary hover:text-primary transition-colors"
+                    >
+                      {h}h
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -2347,9 +2477,22 @@ function AlocacaoLinha(props) {
           )}
           {props.atrasada && <span className="block text-[10px] font-semibold text-red-500">Janela terminada</span>}
         </td>
-        <td className="px-3 py-2 align-top"><EstadoBadge estado={a.estado} /></td>
         <td className="px-3 py-2 align-top">
-          <BarraProgresso valor={progresso} />
+          <EstadoBadge estado={a.estado} />
+          {a.motivo_correcao && (a.estado === "Em_curso" || a.estado === "Reaberta") && (
+            <div className="mt-1.5 max-w-[280px] text-[10px] leading-snug rounded border border-amber-300 bg-amber-50 text-amber-800 px-2 py-1">
+              <span className="font-bold uppercase tracking-wide">Correção pedida</span>
+              {a.prazo_correcao ? " · até " + formatDateTime(a.prazo_correcao) : ""}
+              <span className="block mt-0.5">{a.motivo_correcao}</span>
+            </div>
+          )}
+        </td>
+        <td className="px-3 py-2 align-top">
+          {a.estado === "Atrasada" ? (
+            <span className="text-[11px] font-semibold text-red-500">Fora do prazo</span>
+          ) : (
+            <BarraProgresso valor={progresso} />
+          )}
           <div className="mt-1"><ContagemRegressiva aloc={a} agora={props.agora} /></div>
         </td>
         <td className="px-3 py-2 text-center align-top">
@@ -2377,18 +2520,21 @@ function AlocacaoLinha(props) {
             {props.ehAdmin && POR_VALIDAR.indexOf(a.estado) !== -1 && (
               <>
                 <BotaoAcao onClick={props.onAvaliar} disabled={props.saving}>Validar</BotaoAcao>
+                <BotaoAcao onClick={props.onCorrigir} disabled={props.saving}>Solicitar correção</BotaoAcao>
                 <BotaoAcao onClick={props.onReabrir} disabled={props.saving}>Reabrir</BotaoAcao>
               </>
             )}
             {props.ehAdmin && a.estado === "Atrasada" && (
               <>
                 <BotaoAcao onClick={props.onAvaliar} disabled={props.saving}>Validar</BotaoAcao>
+                <BotaoAcao onClick={props.onCorrigir} disabled={props.saving}>Solicitar correção</BotaoAcao>
                 <BotaoAcao onClick={props.onReabrir} disabled={props.saving}>Reabrir</BotaoAcao>
                 <BotaoAcao onClick={props.onRemover} disabled={props.saving} perigo>Eliminar</BotaoAcao>
               </>
             )}
             {props.ehGestor && !props.ehAdmin && (POR_VALIDAR.indexOf(a.estado) !== -1 || a.estado === "Atrasada") && (
               <>
+                <BotaoAcao onClick={props.onCorrigir} disabled={props.saving}>Solicitar correção</BotaoAcao>
                 <BotaoAcao onClick={props.onReabrir} disabled={props.saving}>Reabrir</BotaoAcao>
                 {a.estado === "Atrasada" && (
                   <BotaoAcao onClick={props.onRemover} disabled={props.saving} perigo>Eliminar</BotaoAcao>
@@ -2396,7 +2542,10 @@ function AlocacaoLinha(props) {
               </>
             )}
             {props.ehGestor && a.estado === "Validada" && (
-              <BotaoAcao onClick={props.onReabrir} disabled={props.saving}>Reabrir</BotaoAcao>
+              <>
+                <BotaoAcao onClick={props.onCorrigir} disabled={props.saving}>Solicitar correção</BotaoAcao>
+                <BotaoAcao onClick={props.onReabrir} disabled={props.saving}>Reabrir</BotaoAcao>
+              </>
             )}
             {props.ehGestor && props.editavel && !props.emEdicaoJanela && !props.emReatribuicao && a.estado !== "Justificativa" && (
               <>
