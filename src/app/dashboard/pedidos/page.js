@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { formatDate } from "@/lib/helpers";
+import { formatDate, extensaoDoDocumento } from "@/lib/helpers";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 var TIPO_LABELS = {
@@ -50,6 +50,11 @@ export default function PedidosPage() {
   var [decidindo, setDecidindo] = useState(false);
   var [comentario, setComentario] = useState("");
   var [msg, setMsg] = useState(null);
+  var [baixandoDoc, setBaixandoDoc] = useState(false);
+  var [docUrl, setDocUrl] = useState("");
+  var [docLoading, setDocLoading] = useState(false);
+  var [docErro, setDocErro] = useState("");
+  var docUrlRef = useRef("");
   var [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, titulo: "" });
 
   var carregar = function (page) {
@@ -88,12 +93,70 @@ export default function PedidosPage() {
     carregar(1);
   };
 
+  // O ficheiro e servido pelo backend (com o token), porque o endereco guardado
+  // pode ser um caminho antigo (/uploads/...) que o browser nao consegue abrir
+  // sozinho. Guardamos o blob num object URL para a previa, o download e o
+  // "abrir em nova aba" usarem todos a mesma copia.
+  var carregarPrevia = function (pedido) {
+    if (docUrlRef.current) {
+      window.URL.revokeObjectURL(docUrlRef.current);
+      docUrlRef.current = "";
+    }
+    setDocUrl("");
+    setDocErro("");
+    if (!pedido || !pedido.documento) return;
+
+    var eImagem = /\.(jpg|jpeg|png|gif|webp)$/i.test(pedido.documento);
+    var ePdf = /\.pdf$/i.test(pedido.documento);
+    if (!eImagem && !ePdf) return;
+
+    setDocLoading(true);
+    api.getBlob("/api/pedidos/" + pedido.id + "/documento", "Não foi possível carregar o documento")
+      .then(function (blob) {
+        var u = window.URL.createObjectURL(blob);
+        docUrlRef.current = u;
+        setDocUrl(u);
+      })
+      .catch(function (e) {
+        setDocErro(e.message || "Não foi possível carregar o documento");
+      })
+      .finally(function () { setDocLoading(false); });
+  };
+
+  var abrirDocumentoNovaAba = function (pedido) {
+    if (!pedido || !pedido.documento) return;
+    // Abrir a janela antes do pedido ao servidor, para o browser nao bloquear
+    // o popup enquanto esperamos pela resposta.
+    var janela = window.open("", "_blank");
+    var abrir = function (u) {
+      if (janela) janela.location.href = u;
+      else window.open(u, "_blank");
+    };
+    if (docUrlRef.current) {
+      abrir(docUrlRef.current);
+      return;
+    }
+    api.getBlob("/api/pedidos/" + pedido.id + "/documento", "Não foi possível abrir o documento")
+      .then(function (blob) {
+        var u = window.URL.createObjectURL(blob);
+        docUrlRef.current = u;
+        setDocUrl(u);
+        abrir(u);
+      })
+      .catch(function (e) {
+        if (janela) janela.close();
+        setMsg({ tipo: "erro", texto: e.message || "Não foi possível abrir o documento" });
+        setTimeout(function () { setMsg(null); }, 4000);
+      });
+  };
+
   var handleVerDetalhe = function (pedido) {
     api.get("/api/pedidos/" + pedido.id).then(function (data) {
       if (data && data.dados) {
         setPedidoDetalhe(data.dados);
         setShowDetalhe(true);
         setComentario("");
+        carregarPrevia(data.dados);
       }
     }).catch(function () {});
   };
@@ -130,7 +193,27 @@ export default function PedidosPage() {
     });
   };
 
+  // Baixar o comprovativo anexado ao pedido (o ficheiro vem pelo backend com
+  // Content-Disposition: attachment, por isso fica guardado no computador).
+  var baixarDocumento = function (pedido) {
+    if (!pedido || !pedido.documento) return;
+    setBaixandoDoc(true);
+    setMsg(null);
+    api.downloadFile("/api/pedidos/" + pedido.id + "/documento", "comprovativo-" + (pedido.tipo || "documento") + extensaoDoDocumento(pedido.documento))
+      .then(function () {
+        setMsg({ tipo: "sucesso", texto: "Documento descarregado" });
+        setTimeout(function () { setMsg(null); }, 3000);
+      })
+      .catch(function (err) {
+        setMsg({ tipo: "erro", texto: err.message || "Erro ao descarregar o documento" });
+      })
+      .finally(function () { setBaixandoDoc(false); });
+  };
+
   var dadosDetalhe = pedidoDetalhe ? (pedidoDetalhe.dados || {}) : {};
+  var documento = pedidoDetalhe ? (pedidoDetalhe.documento || "") : "";
+  var docEhImagem = /\.(jpg|jpeg|png|gif|webp)$/i.test(documento);
+  var docEhPdf = /\.pdf$/i.test(documento);
 
   return (
     <div className="space-y-6">
@@ -408,18 +491,49 @@ export default function PedidosPage() {
                 </div>
               )}
 
-              {pedidoDetalhe.documento && (
+              {documento && (
                 <div>
                   <p className="text-[11px] text-outline uppercase tracking-wide mb-1">Documento Anexo</p>
-                  {pedidoDetalhe.documento.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <img src={pedidoDetalhe.documento} alt="Documento" className="max-w-full max-h-64 rounded-lg border border-outline-variant object-contain" />
-                  ) : pedidoDetalhe.documento.match(/\.pdf$/i) ? (
-                    <iframe src={pedidoDetalhe.documento} className="w-full h-64 rounded-lg border border-outline-variant" title="Documento" />
+                  {docLoading ? (
+                    <div className="flex items-center justify-center h-40 rounded-lg border border-outline-variant bg-surface-container-low">
+                      <div className="w-7 h-7 border-4 border-outline-variant border-t-primary rounded-full animate-spin" />
+                    </div>
+                  ) : docErro ? (
+                    <div className="flex items-center gap-2 p-3 rounded-lg badge-danger border border-error/10">
+                      <span className="material-symbols-outlined text-[18px]">error</span>
+                      <span className="text-[12px] font-medium">{docErro}</span>
+                    </div>
+                  ) : docUrl && docEhImagem ? (
+                    <img src={docUrl} alt="Documento" className="max-w-full max-h-64 rounded-lg border border-outline-variant object-contain" />
+                  ) : docUrl && docEhPdf ? (
+                    <iframe src={docUrl} className="w-full h-64 rounded-lg border border-outline-variant" title="Documento" />
                   ) : (
-                    <a href={pedidoDetalhe.documento} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[13px] text-primary hover:underline">
+                    <button
+                      type="button"
+                      onClick={function () { abrirDocumentoNovaAba(pedidoDetalhe); }}
+                      className="inline-flex items-center gap-1 text-[13px] text-primary hover:underline"
+                    >
                       <span className="material-symbols-outlined text-[16px]">description</span> Abrir documento
-                    </a>
+                    </button>
                   )}
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={function () { baixarDocumento(pedidoDetalhe); }}
+                      disabled={baixandoDoc}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">{baixandoDoc ? "hourglass_empty" : "download"}</span>
+                      {baixandoDoc ? "A baixar..." : "Baixar documento"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={function () { abrirDocumentoNovaAba(pedidoDetalhe); }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-outline-variant/50 text-[12px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">open_in_new</span> Abrir em nova aba
+                    </button>
+                  </div>
                 </div>
               )}
 

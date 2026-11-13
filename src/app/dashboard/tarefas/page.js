@@ -14,8 +14,9 @@ import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 
-var ESTADOS_TAREFA = ["Pendente", "Em_curso", "Atrasada", "Concluida", "Validada", "Cancelada"];
-var ESTADOS_ALOC = ["Pendente", "Em_curso", "Reaberta", "Justificativa", "Atrasada", "Concluida", "Validada", "Cancelada"];
+var ESTADOS_TAREFA = ["Pendente", "Em_curso", "Atrasada", "Aguarda_Validacao", "Concluida", "Validada", "Cancelada"];
+var ESTADOS_ALOC = ["Pendente", "Em_curso", "Reaberta", "Justificativa", "Atrasada", "Aguarda_Validacao", "Concluida", "Validada", "Cancelada"];
+var POR_VALIDAR = ["Aguarda_Validacao", "Concluida"];
 var EM_JANELA = ["Pendente", "Em_curso", "Reaberta"];
 var PRIORIDADES = ["Baixa", "Media", "Alta", "Urgente"];
 
@@ -25,7 +26,8 @@ var LABEL_ESTADO = {
   Reaberta: "Reaberta",
   Justificativa: "Justificativa",
   Atrasada: "Atrasada",
-  Concluida: "Concluída",
+  Aguarda_Validacao: "Por Validar",
+  Concluida: "Por Validar (legado)",
   Validada: "Validada",
   Cancelada: "Cancelada",
 };
@@ -36,7 +38,8 @@ var COR_ESTADO = {
   Reaberta: "bg-violet-50 text-violet-700 border-violet-200",
   Justificativa: "bg-orange-50 text-orange-700 border-orange-200",
   Atrasada: "bg-red-50 text-red-700 border-red-200",
-  Concluida: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Aguarda_Validacao: "bg-amber-50 text-amber-700 border-amber-200",
+  Concluida: "bg-amber-50 text-amber-700 border-amber-200",
   Validada: "bg-green-50 text-green-700 border-green-200",
   Cancelada: "bg-slate-100 text-slate-500 border-slate-200",
 };
@@ -54,7 +57,7 @@ var COLUNAS_KANBAN = [
   { chave: "Pendente", rotulo: "Pendente", icone: "pending_actions", dot: "bg-amber-500" },
   { chave: "EmCurso", rotulo: "Em Curso", icone: "play_circle", dot: "bg-sky-500" },
   { chave: "Atrasada", rotulo: "Atrasada", icone: "alarm", dot: "bg-red-500" },
-  { chave: "Concluida", rotulo: "Concluída", icone: "task_alt", dot: "bg-emerald-500" },
+  { chave: "Aguarda_Validacao", rotulo: "Por Validar", icone: "fact_check", dot: "bg-amber-500" },
   { chave: "Validada", rotulo: "Validada", icone: "verified", dot: "bg-green-600" },
   { chave: "Cancelada", rotulo: "Cancelada", icone: "block", dot: "bg-slate-400" },
 ];
@@ -63,7 +66,8 @@ var LABEL_COLUNA_KANBAN = {
   Pendente: "Pendente",
   EmCurso: "Em Curso",
   Atrasada: "Atrasada",
-  Concluida: "Concluída",
+  Aguarda_Validacao: "Por Validar",
+  Concluida: "Por Validar (legado)",
   Validada: "Validada",
   Cancelada: "Cancelada",
 };
@@ -71,23 +75,27 @@ var LABEL_COLUNA_KANBAN = {
 function colunaDeAlocacao(a) {
   if (!a) return "Cancelada";
   if (a.estado === "Em_curso" || a.estado === "Reaberta" || a.estado === "Justificativa") return "EmCurso";
+  if (POR_VALIDAR.indexOf(a.estado) !== -1) return "Aguarda_Validacao";
   if (COLUNAS_KANBAN.some(function (c) { return c.chave === a.estado; })) return a.estado;
   return "EmCurso";
 }
 
 // Transicoes validas por coluna de origem. "EmCurso" do colaborador permite
-// terminar (arrastar para Concluida); o gestor reabre/avalia/cancela.
-function transicoesPermitidas(origem, ehGestor) {
+// terminar (arrastar para "Por Validar"); o gestor reabre/cancela e o
+// administrador valida.
+function transicoesPermitidas(origem, ehGestor, ehAdmin) {
   if (ehGestor) {
+    var validar = ehAdmin ? ["Validada"] : [];
     if (origem === "Pendente") return ["EmCurso", "Cancelada"];
     if (origem === "EmCurso") return ["Cancelada"];
-    if (origem === "Atrasada") return ["EmCurso", "Validada", "Cancelada"];
-    if (origem === "Concluida") return ["EmCurso", "Validada", "Cancelada"];
+    if (origem === "Atrasada") return ["EmCurso"].concat(validar, ["Cancelada"]);
+    if (origem === "Aguarda_Validacao") return ["EmCurso"].concat(validar, ["Cancelada"]);
+    if (origem === "Concluida") return ["EmCurso"].concat(validar, ["Cancelada"]);
     if (origem === "Validada") return ["EmCurso"];
     return [];
   }
   if (origem === "Pendente") return ["EmCurso"];
-  if (origem === "EmCurso") return ["Concluida"];
+  if (origem === "EmCurso") return ["Aguarda_Validacao"];
   return [];
 }
 
@@ -96,8 +104,8 @@ function rotuloTransicao(origem, destino, ehGestor) {
   if (destino === "Cancelada") return "Cancelar participação";
   if (destino === "EmCurso" && origem === "Pendente") return "Iniciar";
   if (destino === "EmCurso") return "Reabrir";
-  if (destino === "Validada") return "Avaliar";
-  if (destino === "Concluida" && !ehGestor) return "Terminar";
+  if (destino === "Validada") return "Validar";
+  if (destino === "Aguarda_Validacao" && !ehGestor) return "Terminar";
   return "Mover";
 }
 
@@ -131,7 +139,7 @@ function janelaInput(valor) {
 function progressoAoVivo(aloc, agora) {
   if (!aloc) return 0;
   if (aloc.estado === "Cancelada") return Math.max(0, Math.min(100, aloc.progresso || 0));
-  if (aloc.estado === "Concluida" || aloc.estado === "Validada" || aloc.estado === "Atrasada") return 100;
+  if (aloc.estado === "Concluida" || aloc.estado === "Aguarda_Validacao" || aloc.estado === "Validada" || aloc.estado === "Atrasada") return 100;
   if (aloc.estado === "Pendente") return 0;
   var inicio = new Date(aloc.janela_inicio).getTime();
   var fim = new Date(aloc.janela_fim).getTime();
@@ -342,6 +350,13 @@ export default function TarefasPage() {
   var ehGestor = !!(auth && auth.hasPermission("tarefas", "create")) ||
     perfis.some(function (p) {
       return p && ((p.nivel || 0) >= 2 || NOMES_GESTOR.indexOf(String(p.nome).toLowerCase()) !== -1);
+    });
+  // So o administrador confirma a conclusao do trabalho (validar).
+  var ehAdmin = !!(auth && auth.isAdmin && auth.isAdmin()) ||
+    perfis.some(function (p) {
+      if (!p) return false;
+      var nome = String(p.nome || "").toLowerCase().trim();
+      return (p.nivel || 0) >= 4 || nome === "administrador geral" || nome === "administrador";
     });
 
   var [filtros, setFiltros] = useState(FILTROS_VAZIOS);
@@ -585,14 +600,13 @@ export default function TarefasPage() {
 
   var terminarAlocacao = function (aloc, tarefa) {
     var tarefaId = tarefa && tarefa.id ? tarefa.id : detalhe.id;
-    var nome = aloc.colaborador ? aloc.colaborador.nome_completo : "";
     setConfirmar({
-      titulo: "Terminar tarefa",
+      titulo: "Marcar como terminado",
       mensagem:
-        "Marcar o trabalho como terminado? A avaliacao e automatica, com base na rapidez: " +
-        "1a metade da janela = 20, 2a metade = 16, ultimos 10% = 12, fora do prazo = 5. " +
-        "O gestor pode reavaliar depois.",
-      textoConfirmar: "Sim, terminar",
+        "Marcar o trabalho como terminado? A nota é automática, com base no tempo de cumprimento " +
+        "(1.ª metade = 20, 2.ª metade = 16, últimos 10% = 12, fora do prazo = 5). " +
+        "O administrador apenas confirma se o trabalho está realmente concluído.",
+      textoConfirmar: "Sim, terminei",
       executar: function () {
         return acao("put", "/api/tarefas/" + tarefaId + "/alocacoes/" + aloc.id + "/terminar", {});
       },
@@ -633,11 +647,27 @@ export default function TarefasPage() {
   };
 
   var decidirJustificativa = async function () {
+    if (!decidir) return;
+    if (decidir.tipo === "reagendar") {
+      if (!decidir.janela_inicio || !decidir.janela_fim) {
+        toast.addToast("error", "Preencha a nova janela");
+        return;
+      }
+      if (new Date(decidir.janela_inicio).getTime() >= new Date(decidir.janela_fim).getTime()) {
+        toast.addToast("error", "O fim da janela tem de ser posterior ao inicio");
+        return;
+      }
+    }
     setSaving(true);
     try {
+      var corpoDecisao = { decisao: decidir.tipo, observacoes: (decidir.observacoes || "").trim() || undefined };
+      if (decidir.tipo === "reagendar") {
+        corpoDecisao.janela_inicio = decidir.janela_inicio;
+        corpoDecisao.janela_fim = decidir.janela_fim;
+      }
       var r = await api.put(
         "/api/tarefas/" + detalhe.id + "/alocacoes/" + decidir.alocacao_id + "/decisao",
-        { decisao: decidir.tipo, observacoes: (decidir.observacoes || "").trim() || undefined }
+        corpoDecisao
       );
       toast.addToast("success", r.mensagem || "Decisao registada");
       setDecidir(null);
@@ -656,78 +686,29 @@ export default function TarefasPage() {
       tarefa_id: tarefa && tarefa.id ? tarefa.id : (detalhe ? detalhe.id : null),
       titulo: tarefa ? tarefa.titulo : "",
       linhas: alocacoes.map(function (a) {
+        var nota = a.nota !== null && a.nota !== undefined && a.nota !== ""
+          ? parseFloat(a.nota) : null;
         return {
           alocacao_id: a.id,
           nome: a.colaborador ? a.colaborador.nome_completo : "Colaborador",
-          desempenho: a.desempenho !== null && a.desempenho !== undefined ? a.desempenho : "",
-          produtividade: a.produtividade !== null && a.produtividade !== undefined ? a.produtividade : "",
-          cumprimento_prazo: a.cumprimento_prazo !== null && a.cumprimento_prazo !== undefined ? a.cumprimento_prazo : "",
-          observacoes: a.observacoes || "",
+          estado: a.estado,
+          nota: isNaN(nota) ? null : nota,
+          classificacao: a.classificacao || null,
         };
       }),
     });
   };
 
-  var mudarAvaliacao = function (indice, campo, valor) {
-    setAvaliar(function (actual) {
-      var novo = actual.linhas.slice();
-      novo[indice] = Object.assign({}, novo[indice], { [campo]: valor });
-      return { linhas: novo };
-    });
-  };
-
-  // Nota final de uma linha: media dos tres indicadores (0-20).
-  var notaDaLinha = function (l) {
-    var d = String(l.desempenho || "").trim().replace(",", ".");
-    var p = String(l.produtividade || "").trim().replace(",", ".");
-    var c = String(l.cumprimento_prazo || "").trim().replace(",", ".");
-    if (d === "" || p === "" || c === "") return null;
-    var vd = parseFloat(d);
-    var vp = parseFloat(p);
-    var vc = parseFloat(c);
-    if (isNaN(vd) || isNaN(vp) || isNaN(vc)) return null;
-    return Math.round(((vd + vp + vc) / 3) * 100) / 100;
-  };
-
-  var classificarNotaLocal = function (nota) {
-    if (nota >= 18) return "Excelente";
-    if (nota >= 15) return "Bom";
-    if (nota >= 10) return "Suficiente";
-    if (nota >= 5) return "Insuficiente";
-    return "Mau";
-  };
-
   var enviarAvaliacao = async function () {
-    var avaliacoes = [];
-    for (var i = 0; i < avaliar.linhas.length; i++) {
-      var l = avaliar.linhas[i];
-      var indicadores = [
-        { campo: "desempenho", valor: String(l.desempenho || "").trim().replace(",", ".") },
-        { campo: "produtividade", valor: String(l.produtividade || "").trim().replace(",", ".") },
-        { campo: "cumprimento_prazo", valor: String(l.cumprimento_prazo || "").trim().replace(",", ".") },
-      ];
-      var entrada = { alocacao_id: l.alocacao_id };
-      for (var j = 0; j < indicadores.length; j++) {
-        var texto = indicadores[j].valor;
-        var valor = texto === "" ? NaN : parseFloat(texto);
-        if (isNaN(valor) || valor < 0 || valor > 20) {
-          toast.addToast("error", "Indicador " + indicadores[j].campo.replace("_", " ") +
-            " invalido para " + l.nome + " (de 0 a 20)");
-          return;
-        }
-        entrada[indicadores[j].campo] = Math.round(valor * 100) / 100;
-      }
-      entrada.observacoes = (l.observacoes || "").trim() || undefined;
-      avaliacoes.push(entrada);
-    }
-    if (avaliacoes.length === 0) {
-      toast.addToast("error", "Indique os indicadores de cada colaborador a avaliar");
+    var ids = avaliar.linhas.map(function (l) { return l.alocacao_id; });
+    if (ids.length === 0) {
+      toast.addToast("error", "Nao ha colaboradores por validar");
       return;
     }
     setSaving(true);
     try {
-      var r = await api.put("/api/tarefas/" + (avaliar.tarefa_id || detalhe.id) + "/validar", { avaliacoes: avaliacoes });
-      toast.addToast("success", r.mensagem || "Avaliacao registada");
+      var r = await api.put("/api/tarefas/" + (avaliar.tarefa_id || detalhe.id) + "/validar", { alocacao_ids: ids });
+      toast.addToast("success", r.mensagem || "Conclusao validada");
       setAvaliar(null);
       await actualizarDetalhe(detalhe.id);
       await carregar(pagina, true);
@@ -845,7 +826,7 @@ export default function TarefasPage() {
   // se a accao foi lancada (API/modal) e false se o movimento nao e valido.
   var executarMovimento = function (t, aloc, de, para) {
     if (!t || !aloc || de === para) return true;
-    var permitidas = transicoesPermitidas(de, ehGestor);
+    var permitidas = transicoesPermitidas(de, ehGestor, ehAdmin);
     if (permitidas.indexOf(para) === -1) {
       toast.addToast("error", "Não é possível mover de '" + (LABEL_COLUNA_KANBAN[de] || de) + "' para '" + (LABEL_COLUNA_KANBAN[para] || para) + "'");
       return false;
@@ -860,7 +841,7 @@ export default function TarefasPage() {
       return true;
     }
     if (para === "EmCurso") {
-      // Atrasada/Concluida/Validada -> reabrir (abre o modal da nova janela).
+      // Atrasada/Por Validar/Validada -> reabrir (abre o modal da nova janela).
       abrirReabrir([aloc], t);
       return true;
     }
@@ -868,7 +849,7 @@ export default function TarefasPage() {
       abrirAvaliar([aloc], t);
       return true;
     }
-    if (para === "Concluida" && !ehGestor && de === "EmCurso") {
+    if (para === "Aguarda_Validacao" && !ehGestor && de === "EmCurso") {
       if (["Em_curso", "Reaberta"].indexOf(aloc.estado) === -1) {
         toast.addToast("error", "Só pode terminar participações em curso");
         return false;
@@ -930,16 +911,16 @@ export default function TarefasPage() {
   }
   var minhaNoDetalhe = detalhe && !ehGestor && meuColaboradorId ? minhaAlocacao(detalhe, meuColaboradorId) : null;
   var avaliarPendentes = alocacoesVisiveis.filter(function (a) {
-    return a.estado === "Concluida" || a.estado === "Atrasada";
+    return POR_VALIDAR.indexOf(a.estado) !== -1 || a.estado === "Atrasada";
   });
 
   var statsExibicao = [
     { titulo: "Total", valor: stats ? stats.total : "…", cor: "text-on-surface" },
     { titulo: "Pendentes", valor: stats ? (stats.por_estado.Pendente || 0) : "…", cor: "text-amber-600" },
     { titulo: "Em Curso", valor: stats ? (stats.por_estado.Em_curso || 0) : "…", cor: "text-sky-600" },
-    { titulo: "Concluídas", valor: stats ? ((stats.por_estado.Concluida || 0) + (stats.por_estado.Validada || 0)) : "…", cor: "text-emerald-600" },
+    { titulo: "Por Validar", valor: stats ? ((stats.por_estado.Aguarda_Validacao || 0) + (stats.por_estado.Concluida || 0)) : "…", cor: "text-amber-600" },
+    { titulo: "Validadas", valor: stats ? (stats.por_estado.Validada || 0) : "…", cor: "text-emerald-600" },
     { titulo: "Atrasadas", valor: stats ? stats.atrasadas : "…", cor: "text-red-600" },
-    { titulo: "Nota Média", valor: stats && stats.nota_media !== null && stats.nota_media !== undefined ? Number(stats.nota_media).toFixed(1) : "—", cor: "text-primary" },
   ];
 
   var temFiltros = filtros.search || filtros.estado || filtros.prioridade || filtros.colaborador_id || filtros.atrasadas;
@@ -996,7 +977,7 @@ export default function TarefasPage() {
         titulo="Gestão de Tarefas"
         subtitulo={ehGestor
           ? "Atribua tarefas a varios colaboradores, cada um com a sua janela, acompanhe o progresso automatico e avalie no fim."
-          : "Acompanhe as suas tarefas, inicie quando estiver disponivel e consulte a avaliacao do gestor."}
+          : "Acompanhe as suas tarefas, inicie quando estiver disponivel e consulte a validacao do administrador."}
         breadcrumb={[{ label: "Desenvolvimento" }, { label: "Gestão de Tarefas" }]}
         acoes={
           <>
@@ -1245,7 +1226,7 @@ export default function TarefasPage() {
                               >
                                 Detalhes
                               </button>
-                              {a.nota !== null && a.nota !== undefined && (
+                              {a.estado === "Validada" && a.nota !== null && a.nota !== undefined && (
                                 <span className="text-[11px] font-bold text-on-surface">
                                   {Number(a.nota).toFixed(1)}/20
                                 </span>
@@ -1654,9 +1635,9 @@ export default function TarefasPage() {
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-on-surface-variant uppercase">Avaliação do Gestor</p>
+                    <p className="text-[11px] font-semibold text-on-surface-variant uppercase">Avaliação Automática</p>
                     <p className="text-[11px] text-outline mt-0.5">
-                      {detalhe.avaliacao_detalhes || "Media das notas atribuidas por colaborador"}
+                      {detalhe.avaliacao_detalhes || "Media das notas automaticas validadas"}
                     </p>
                     {detalhe.validacao_observacoes && (
                       <p className="text-[12px] text-on-surface-variant mt-1">{detalhe.validacao_observacoes}</p>
@@ -1713,7 +1694,7 @@ export default function TarefasPage() {
                     )}
                     {alocacoesVisiveis.map(function (a) {
                       var atrasada = alocAtrasada(a, agora);
-                      var editavel = ["Concluida", "Validada", "Cancelada", "Atrasada"].indexOf(a.estado) === -1;
+                      var editavel = POR_VALIDAR.indexOf(a.estado) === -1 && ["Validada", "Cancelada", "Atrasada"].indexOf(a.estado) === -1;
                       var emEdicaoJanela = janelaEdicao && janelaEdicao.alocacao_id === a.id;
                       var emReatribuicao = reatribuir && reatribuir.alocacao_id === a.id;
                       return (
@@ -1723,6 +1704,7 @@ export default function TarefasPage() {
                           agora={agora}
                           atrasada={atrasada}
                           ehGestor={ehGestor}
+                          ehAdmin={ehAdmin}
                           editavel={editavel}
                           emEdicaoJanela={emEdicaoJanela}
                           emReatribuicao={emReatribuicao}
@@ -1756,7 +1738,22 @@ export default function TarefasPage() {
                           onRemover={function () { removerParticipacao(a); }}
                           onAvaliar={function () { abrirAvaliar([a]); }}
                           onReabrir={function () { abrirReabrir([a]); }}
-                          onDecidir={function (tipo) { setDecidir({ alocacao_id: a.id, nome: a.colaborador ? a.colaborador.nome_completo : "", motivo: a.justificativa, tipo: tipo, observacoes: "" }); }}
+                          onDecidir={function (tipo) {
+                            // Para reagendar, propor desde ja uma janela nova com a
+                            // mesma duracao da original (o gestor pode alterar).
+                            var agora = new Date();
+                            var duracao = new Date(a.janela_fim).getTime() - new Date(a.janela_inicio).getTime();
+                            if (!(duracao > 0)) duracao = 24 * 60 * 60 * 1000;
+                            setDecidir({
+                              alocacao_id: a.id,
+                              nome: a.colaborador ? a.colaborador.nome_completo : "",
+                              motivo: a.justificativa,
+                              tipo: tipo,
+                              observacoes: "",
+                              janela_inicio: janelaInput(agora),
+                              janela_fim: janelaInput(new Date(agora.getTime() + duracao)),
+                            });
+                          }}
                           onIniciar={function () { iniciarAlocacao(a); }}
                           onTerminar={function () { terminarAlocacao(a); }}
                           onJustificar={function () { abrirJustificar(a); }}
@@ -1774,10 +1771,10 @@ export default function TarefasPage() {
                   <span className="material-symbols-outlined text-[16px]">edit</span>
                   Editar dados
                 </Button>
-                {avaliarPendentes.length > 0 && (
+                {ehAdmin && avaliarPendentes.length > 0 && (
                   <Button size="sm" onClick={function () { abrirAvaliar(avaliarPendentes); }}>
-                    <span className="material-symbols-outlined text-[16px]">grade</span>
-                    Avaliar ({avaliarPendentes.length})
+                    <span className="material-symbols-outlined text-[16px]">fact_check</span>
+                    Validar ({avaliarPendentes.length})
                   </Button>
                 )}
                 {detalhe.estado !== "Cancelada" && (
@@ -1822,15 +1819,10 @@ export default function TarefasPage() {
                     </Button>
                   )}
                 </div>
-                {minhaNoDetalhe.nota !== null && minhaNoDetalhe.nota !== undefined && (
+                {minhaNoDetalhe.estado === "Validada" && minhaNoDetalhe.nota !== null && minhaNoDetalhe.nota !== undefined && (
                   <p className="text-[12px] text-on-surface-variant">
                     <span className="font-semibold">Avaliação:</span> {parseFloat(minhaNoDetalhe.nota).toFixed(1)}/20
                     {minhaNoDetalhe.classificacao ? " · " + minhaNoDetalhe.classificacao : ""}
-                    {minhaNoDetalhe.avaliado_por === null && (
-                      <span className="ml-2 text-[10px] font-bold uppercase tracking-wide text-primary border border-primary/30 rounded px-1.5 py-0.5">
-                        Automática
-                      </span>
-                    )}
                   </p>
                 )}
                 <p className="text-[11px] text-outline">
@@ -1838,9 +1830,9 @@ export default function TarefasPage() {
                   {minhaNoDetalhe.estado === "Em_curso" && "Em curso - o progresso cresce automaticamente e o tempo restante diminui em tempo real."}
                   {minhaNoDetalhe.estado === "Reaberta" && "Reaberta pelo gestor - nova janela em curso."}
                   {minhaNoDetalhe.estado === "Justificativa" && "Justificativa apresentada - aguarda a decisao do gestor."}
-                  {minhaNoDetalhe.estado === "Atrasada" && "A janela terminou sem concluir. Pode justificar ou aguardar a decisao do gestor (reabrir, eliminar ou avaliar)."}
-                  {minhaNoDetalhe.estado === "Concluida" && "Concluida - avaliacao automatica registada pela rapidez. O gestor pode reavaliar."}
-                  {minhaNoDetalhe.estado === "Validada" && "Avaliada pelo gestor."}
+                  {minhaNoDetalhe.estado === "Atrasada" && "A janela terminou sem concluir. Pode justificar ou aguardar a decisao do gestor (reabrir, eliminar ou validar)."}
+                  {(minhaNoDetalhe.estado === "Aguarda_Validacao" || minhaNoDetalhe.estado === "Concluida") && "Trabalho terminado - aguarda a validacao do administrador. A nota automatica so e publicada depois de confirmada."}
+                  {minhaNoDetalhe.estado === "Validada" && "Conclusao validada pelo administrador."}
                   {minhaNoDetalhe.estado === "Cancelada" && "Participacao cancelada."}
                 </p>
               </div>
@@ -1874,13 +1866,13 @@ export default function TarefasPage() {
         <Modal
           isOpen={true}
           onClose={function () { setAvaliar(null); }}
-          title="Avaliar colaboradores"
+          title="Validar conclusão"
           size="md"
           footer={
             <>
               <Button variant="outline" onClick={function () { setAvaliar(null); }}>Cancelar</Button>
               <Button onClick={enviarAvaliacao} disabled={saving}>
-                {saving ? "A guardar..." : "Registar avaliação"}
+                {saving ? "A guardar..." : "Confirmar conclusão"}
               </Button>
             </>
           }
@@ -1890,70 +1882,24 @@ export default function TarefasPage() {
               <p className="text-[12px] font-semibold text-primary truncate">Tarefa: {avaliar.titulo}</p>
             )}
             <p className="text-[12px] text-on-surface-variant">
-              O gestor avalia cada colaborador com tres indicadores (0 a 20). A <strong>nota final e a media</strong>{" "}
-              dos tres, calculada automaticamente. As observacoes sao opcionais.
+              Confirme que o trabalho foi realmente concluído. A nota é <strong>automática</strong>, calculada
+              pelo tempo de cumprimento da tarefa: 1.ª metade = 20, 2.ª metade = 16, últimos 10% = 12,
+              fora do prazo = 5.
             </p>
-            {avaliar.linhas.map(function (l, i) {
-              var notaCalculada = notaDaLinha(l);
+            {avaliar.linhas.map(function (l) {
               return (
-                <div key={l.alocacao_id} className="border border-outline-variant/60 rounded-lg p-3 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[13px] font-semibold text-on-surface">{l.nome}</p>
-                    {notaCalculada !== null && (
-                      <p className="text-[12px] font-bold text-primary whitespace-nowrap">
-                        Nota final: {String(notaCalculada).replace(".", ",")} / 20 ({classificarNotaLocal(notaCalculada)})
-                      </p>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-[10px] font-semibold text-outline uppercase block mb-1">Desempenho (0-20) *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        step="0.5"
-                        value={l.desempenho}
-                        onChange={function (e) { mudarAvaliacao(i, "desempenho", e.target.value); }}
-                        className={CAMPO}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-outline uppercase block mb-1">Produtividade (0-20) *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        step="0.5"
-                        value={l.produtividade}
-                        onChange={function (e) { mudarAvaliacao(i, "produtividade", e.target.value); }}
-                        className={CAMPO}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-outline uppercase block mb-1">Cumprimento do prazo (0-20) *</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="20"
-                        step="0.5"
-                        value={l.cumprimento_prazo}
-                        onChange={function (e) { mudarAvaliacao(i, "cumprimento_prazo", e.target.value); }}
-                        className={CAMPO}
-                      />
-                    </div>
-                  </div>
+                <div key={l.alocacao_id} className="border border-outline-variant/60 rounded-lg p-3 flex items-center justify-between gap-3">
                   <div>
-                    <label className="text-[10px] font-semibold text-outline uppercase block mb-1">Observações</label>
-                    <input
-                      type="text"
-                      value={l.observacoes}
-                      onChange={function (e) { mudarAvaliacao(i, "observacoes", e.target.value); }}
-                      placeholder="Comentarios sobre o trabalho"
-                      maxLength={4000}
-                      className={CAMPO}
-                    />
+                    <p className="text-[13px] font-semibold text-on-surface">{l.nome}</p>
+                    <p className="text-[11px] text-outline">
+                      {l.estado === "Atrasada" ? "Fora do prazo - submetido para validação" : "Trabalho terminado"}
+                    </p>
                   </div>
+                  <p className="text-[12px] font-bold text-primary whitespace-nowrap">
+                    {l.nota !== null
+                      ? "Nota automática: " + l.nota.toFixed(1) + "/20" + (l.classificacao ? " (" + l.classificacao + ")" : "")
+                      : "Nota calculada na validação"}
+                  </p>
                 </div>
               );
             })}
@@ -2012,7 +1958,11 @@ export default function TarefasPage() {
         <Modal
           isOpen={true}
           onClose={function () { setDecidir(null); }}
-          title={decidir.tipo === "aceitar" ? "Aceitar justificativa" : "Rejeitar justificativa"}
+          title={
+            decidir.tipo === "aceitar"
+              ? "Aceitar justificativa"
+              : (decidir.tipo === "reagendar" ? "Reagendar tarefa" : "Rejeitar justificativa")
+          }
           size="md"
           footer={
             <>
@@ -2022,7 +1972,11 @@ export default function TarefasPage() {
                 onClick={decidirJustificativa}
                 disabled={saving}
               >
-                {saving ? "A guardar..." : (decidir.tipo === "aceitar" ? "Aceitar (cancelar participação)" : "Rejeitar (continuar tarefa)")}
+                {saving
+                  ? "A guardar..."
+                  : (decidir.tipo === "aceitar"
+                      ? "Aceitar (cancelar participação)"
+                      : (decidir.tipo === "reagendar" ? "Reagendar tarefa" : "Rejeitar (continuar tarefa)"))}
               </Button>
             </>
           }
@@ -2039,8 +1993,32 @@ export default function TarefasPage() {
             <p className="text-[12px] text-on-surface-variant">
               {decidir.tipo === "aceitar"
                 ? "A participacao sera cancelada sem penalizacao. Pode depois atribuir a tarefa a outro colaborador."
-                : "A tarefa volta ao estado anterior e o prazo continua a contar."}
+                : (decidir.tipo === "reagendar"
+                    ? "A justificativa fica aceite mas a tarefa continua: escolhe uma janela nova. O progresso recomeca do zero e o colaborador e avisado."
+                    : "A tarefa volta ao estado anterior e o prazo continua a contar.")}
             </p>
+            {decidir.tipo === "reagendar" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Nova janela - início *</label>
+                  <input
+                    type="datetime-local"
+                    value={decidir.janela_inicio}
+                    onChange={function (e) { setDecidir(Object.assign({}, decidir, { janela_inicio: e.target.value })); }}
+                    className={CAMPO}
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">Nova janela - fim *</label>
+                  <input
+                    type="datetime-local"
+                    value={decidir.janela_fim}
+                    onChange={function (e) { setDecidir(Object.assign({}, decidir, { janela_fim: e.target.value })); }}
+                    className={CAMPO}
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-[11px] font-semibold text-on-surface-variant uppercase block mb-1">
                 Observações (opcional)
@@ -2135,7 +2113,7 @@ export default function TarefasPage() {
             <p className="text-[11px] font-semibold text-on-surface-variant uppercase">Mover para</p>
             <div className="space-y-1.5 max-h-64 overflow-y-auto">
               {COLUNAS_KANBAN.filter(function (col) {
-                return transicoesPermitidas(menuMover.de, ehGestor).indexOf(col.chave) !== -1;
+                return transicoesPermitidas(menuMover.de, ehGestor, ehAdmin).indexOf(col.chave) !== -1;
               }).map(function (col) {
                 return (
                   <button
@@ -2158,7 +2136,7 @@ export default function TarefasPage() {
                   </button>
                 );
               })}
-              {transicoesPermitidas(menuMover.de, ehGestor).length === 0 && (
+              {transicoesPermitidas(menuMover.de, ehGestor, ehAdmin).length === 0 && (
                 <p className="text-[12px] text-outline">Este cartão não pode ser movido.</p>
               )}
             </div>
@@ -2375,20 +2353,15 @@ function AlocacaoLinha(props) {
           <div className="mt-1"><ContagemRegressiva aloc={a} agora={props.agora} /></div>
         </td>
         <td className="px-3 py-2 text-center align-top">
-          {a.nota !== null && a.nota !== undefined ? (
+          {a.estado === "Validada" && a.nota !== null && a.nota !== undefined ? (
             <span className="text-[13px] font-bold text-on-surface">{parseFloat(a.nota).toFixed(1)}</span>
           ) : (
             <span className="text-[12px] text-outline/60">—</span>
           )}
-          {a.classificacao && <span className="block text-[10px] text-outline">{a.classificacao}</span>}
-          {a.avaliado_por === null && a.nota !== null && a.nota !== undefined && (
+          {a.estado === "Validada" && a.classificacao && <span className="block text-[10px] text-outline">{a.classificacao}</span>}
+          {a.estado === "Validada" && (
             <span className="inline-block mt-0.5 text-[9px] font-bold uppercase tracking-wide text-primary border border-primary/30 rounded px-1 py-0.5">
               Automática
-            </span>
-          )}
-          {a.desempenho !== null && a.desempenho !== undefined && (
-            <span className="block text-[9px] text-outline/80 mt-0.5" title="Indicadores: desempenho, produtividade, cumprimento do prazo">
-              D {parseFloat(a.desempenho).toFixed(1)} · P {parseFloat(a.produtividade).toFixed(1)} · Prazo {parseFloat(a.cumprimento_prazo).toFixed(1)}
             </span>
           )}
         </td>
@@ -2397,20 +2370,29 @@ function AlocacaoLinha(props) {
             {props.ehGestor && a.estado === "Justificativa" && (
               <>
                 <BotaoAcao onClick={function () { props.onDecidir("aceitar"); }} disabled={props.saving}>Aceitar</BotaoAcao>
+                <BotaoAcao onClick={function () { props.onDecidir("reagendar"); }} disabled={props.saving}>Reagendar</BotaoAcao>
                 <BotaoAcao onClick={function () { props.onDecidir("rejeitar"); }} disabled={props.saving}>Rejeitar</BotaoAcao>
               </>
             )}
-            {props.ehGestor && a.estado === "Concluida" && (
+            {props.ehAdmin && POR_VALIDAR.indexOf(a.estado) !== -1 && (
               <>
-                <BotaoAcao onClick={props.onAvaliar} disabled={props.saving}>Avaliar</BotaoAcao>
+                <BotaoAcao onClick={props.onAvaliar} disabled={props.saving}>Validar</BotaoAcao>
                 <BotaoAcao onClick={props.onReabrir} disabled={props.saving}>Reabrir</BotaoAcao>
               </>
             )}
-            {props.ehGestor && a.estado === "Atrasada" && (
+            {props.ehAdmin && a.estado === "Atrasada" && (
               <>
-                <BotaoAcao onClick={props.onAvaliar} disabled={props.saving}>Avaliar</BotaoAcao>
+                <BotaoAcao onClick={props.onAvaliar} disabled={props.saving}>Validar</BotaoAcao>
                 <BotaoAcao onClick={props.onReabrir} disabled={props.saving}>Reabrir</BotaoAcao>
                 <BotaoAcao onClick={props.onRemover} disabled={props.saving} perigo>Eliminar</BotaoAcao>
+              </>
+            )}
+            {props.ehGestor && !props.ehAdmin && (POR_VALIDAR.indexOf(a.estado) !== -1 || a.estado === "Atrasada") && (
+              <>
+                <BotaoAcao onClick={props.onReabrir} disabled={props.saving}>Reabrir</BotaoAcao>
+                {a.estado === "Atrasada" && (
+                  <BotaoAcao onClick={props.onRemover} disabled={props.saving} perigo>Eliminar</BotaoAcao>
+                )}
               </>
             )}
             {props.ehGestor && a.estado === "Validada" && (

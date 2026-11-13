@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { getT } from "@/lib/translations";
@@ -80,7 +80,7 @@ export default function AvaliacaoPage() {
   var [showAvalModal, setShowAvalModal] = useState(false);
   var [avalEditando, setAvalEditando] = useState(null);
   var [avalForm, setAvalForm] = useState({
-    colaborador_id: "", ciclo_id: "", nota_tecnica: "", nota_comportamental: "",
+    colaborador_id: "", ciclo_id: "",
     pontos_fortes: "", pontos_melhoria: "", plano_melhoria: "",
     feedback_avaliador: "", feedback_avaliado: "", estado: "Rascunho"
   });
@@ -92,14 +92,9 @@ export default function AvaliacaoPage() {
 
   var [colaboradores, setColaboradores] = useState([]);
   var [ciclosParaSelect, setCiclosParaSelect] = useState([]);
-
-  var autoNotaFinal = useMemo(function () {
-    return getNotaFinal(avalForm.nota_tecnica, avalForm.nota_comportamental);
-  }, [avalForm.nota_tecnica, avalForm.nota_comportamental]);
-
-  var autoClassificacao = useMemo(function () {
-    return getClassificacao(autoNotaFinal);
-  }, [autoNotaFinal]);
+  var [autoCalc, setAutoCalc] = useState(null);
+  var [autoCalcLoading, setAutoCalcLoading] = useState(false);
+  var autoCalcSeq = useRef(0);
 
   var carregarCiclos = async function (page) {
     page = page || 1;
@@ -153,6 +148,31 @@ export default function AvaliacaoPage() {
     } catch (e) {
       setCiclosParaSelect([]);
     }
+  };
+
+  // Painel automatico: pede as notas calculadas a partir das tarefas
+  // validadas no periodo do ciclo. A sequencia evita respostas trocadas
+  // quando o admin muda rapido de colaborador/ciclo.
+  var carregarAutoCalc = function (colaboradorId, cicloId) {
+    autoCalcSeq.current += 1;
+    var seq = autoCalcSeq.current;
+    if (!colaboradorId || !cicloId) {
+      setAutoCalc(null);
+      setAutoCalcLoading(false);
+      return;
+    }
+    setAutoCalcLoading(true);
+    setAutoCalc(null);
+    api.get("/api/avaliacao/auto-calculo?colaborador_id=" + colaboradorId + "&ciclo_id=" + cicloId)
+      .then(function (data) {
+        if (autoCalcSeq.current === seq) setAutoCalc(data.dados || null);
+      })
+      .catch(function () {
+        if (autoCalcSeq.current === seq) setAutoCalc(null);
+      })
+      .finally(function () {
+        if (autoCalcSeq.current === seq) setAutoCalcLoading(false);
+      });
   };
 
   useEffect(function () {
@@ -243,10 +263,11 @@ export default function AvaliacaoPage() {
   var abrirNovaAvaliacao = function () {
     setAvalEditando(null);
     setAvalForm({
-      colaborador_id: "", ciclo_id: "", nota_tecnica: "", nota_comportamental: "",
+      colaborador_id: "", ciclo_id: "",
       pontos_fortes: "", pontos_melhoria: "", plano_melhoria: "",
       feedback_avaliador: "", feedback_avaliado: "", estado: "Rascunho"
     });
+    setAutoCalc(null);
     setMsgAval(null);
     setShowAvalModal(true);
   };
@@ -256,8 +277,6 @@ export default function AvaliacaoPage() {
     setAvalForm({
       colaborador_id: a.colaborador ? (a.colaborador.id || "") : "",
       ciclo_id: a.ciclo ? (a.ciclo.id || "") : "",
-      nota_tecnica: a.nota_tecnica != null ? a.nota_tecnica : "",
-      nota_comportamental: a.nota_comportamental != null ? a.nota_comportamental : "",
       pontos_fortes: a.pontos_fortes || "",
       pontos_melhoria: a.pontos_melhoria || "",
       plano_melhoria: a.plano_melhoria || "",
@@ -265,8 +284,10 @@ export default function AvaliacaoPage() {
       feedback_avaliado: a.feedback_avaliado || "",
       estado: a.estado || "Rascunho",
     });
+    setAutoCalc(null);
     setMsgAval(null);
     setShowAvalModal(true);
+    carregarAutoCalc(a.colaborador ? (a.colaborador.id || "") : "", a.ciclo ? (a.ciclo.id || "") : "");
   };
 
   var abrirVerAvaliacao = function (a) {
@@ -284,8 +305,6 @@ export default function AvaliacaoPage() {
       var body = {
         colaborador_id: avalForm.colaborador_id,
         ciclo_id: avalForm.ciclo_id,
-        nota_tecnica: avalForm.nota_tecnica !== "" ? parseFloat(avalForm.nota_tecnica) : null,
-        nota_comportamental: avalForm.nota_comportamental !== "" ? parseFloat(avalForm.nota_comportamental) : null,
         pontos_fortes: avalForm.pontos_fortes,
         pontos_melhoria: avalForm.pontos_melhoria,
         plano_melhoria: avalForm.plano_melhoria,
@@ -321,7 +340,11 @@ export default function AvaliacaoPage() {
   };
 
   var handleAvalInput = function (e) {
-    setAvalForm(function (prev) { return Object.assign({}, prev, { [e.target.name]: e.target.value }); });
+    var nome = e.target.name;
+    var valor = e.target.value;
+    setAvalForm(function (prev) { return Object.assign({}, prev, { [nome]: valor }); });
+    if (nome === "colaborador_id") carregarAutoCalc(valor, avalForm.ciclo_id);
+    if (nome === "ciclo_id") carregarAutoCalc(avalForm.colaborador_id, valor);
   };
 
   var inputClass = "w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
@@ -605,8 +628,8 @@ export default function AvaliacaoPage() {
                     </td></tr>
                   ) : (
                     avaliacoes.map(function (a) {
-                      var nf = a.nota_final != null ? parseFloat(a.nota_final).toFixed(1) : getNotaFinal(a.nota_tecnica, a.nota_comportamental);
-                      var cls = a.classificacao || getClassificacao(nf);
+                      var nf = a.nota_final != null ? parseFloat(a.nota_final).toFixed(1) : (a.nota_tecnica != null || a.nota_comportamental != null ? getNotaFinal(a.nota_tecnica, a.nota_comportamental) : "—");
+                      var cls = a.classificacao || (nf !== "—" ? getClassificacao(nf) : "—");
                       return (
                         <tr key={a.id} className="hover:bg-primary/[0.02] transition-colors group">
                           <td className="px-6 py-4">
@@ -802,37 +825,73 @@ export default function AvaliacaoPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Colaborador *</label>
-                  <select name="colaborador_id" value={avalForm.colaborador_id} onChange={handleAvalInput} required className={inputClass}>
+                  <select name="colaborador_id" value={avalForm.colaborador_id} onChange={handleAvalInput} required disabled={!!avalEditando} className={inputClass}>
                     <option value="">Selecionar...</option>
                     {colaboradores.map(function (c) { return <option key={c.id} value={c.id}>{c.nome_completo}</option>; })}
                   </select>
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Ciclo *</label>
-                  <select name="ciclo_id" value={avalForm.ciclo_id} onChange={handleAvalInput} required className={inputClass}>
+                  <select name="ciclo_id" value={avalForm.ciclo_id} onChange={handleAvalInput} required disabled={!!avalEditando} className={inputClass}>
                     <option value="">Selecionar...</option>
                     {ciclosParaSelect.map(function (c) { return <option key={c.id} value={c.id}>{c.nome}</option>; })}
                   </select>
                 </div>
-                <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nota Técnica (0-20) *</label>
-                  <input name="nota_tecnica" type="number" min="0" max="20" step="0.1" value={avalForm.nota_tecnica} onChange={handleAvalInput} required className={inputClass} placeholder="0.0" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nota Comportamental (0-20) *</label>
-                  <input name="nota_comportamental" type="number" min="0" max="20" step="0.1" value={avalForm.nota_comportamental} onChange={handleAvalInput} required className={inputClass} placeholder="0.0" />
-                </div>
                 <div className="sm:col-span-2">
-                  <div className="bg-primary/5 border border-primary/10 rounded-lg p-3 flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px] text-primary">calculate</span>
-                      <span className="text-[12px] font-bold text-on-surface-variant uppercase tracking-wide">Nota Final:</span>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Notas (automáticas)</label>
+                  {!avalForm.colaborador_id || !avalForm.ciclo_id ? (
+                    <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-4 flex items-center gap-3">
+                      <span className="material-symbols-outlined text-[20px] text-on-surface-variant/60">calculate</span>
+                      <p className="text-[12px] text-on-surface-variant/70">Selecione o colaborador e o ciclo para ver as notas automáticas.</p>
                     </div>
-                    <span className="text-lg font-bold text-primary">{autoNotaFinal}</span>
-                    <span className={"inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider " + classificacaoBadge(autoClassificacao)}>
-                      {autoClassificacao}
-                    </span>
-                  </div>
+                  ) : autoCalcLoading ? (
+                    <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 flex items-center gap-3">
+                      <div className="w-5 h-5 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                      <span className="text-[12px] text-on-surface-variant">A calcular notas a partir das tarefas...</span>
+                    </div>
+                  ) : !autoCalc || autoCalc.total_tarefas === 0 ? (
+                    <div className="bg-surface-container-low border border-outline-variant/30 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="material-symbols-outlined text-[18px] text-on-surface-variant/60">info</span>
+                        <span className="text-[13px] font-semibold text-on-surface">Sem tarefas no período</span>
+                      </div>
+                      <p className="text-[12px] text-on-surface-variant/70">Não há tarefas validadas deste colaborador dentro do ciclo. As notas ficam em branco até existirem tarefas concluídas e validadas.</p>
+                    </div>
+                  ) : (
+                    <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-primary">auto_awesome</span>
+                        <span className="text-[12px] font-bold text-on-surface uppercase tracking-wide">Notas calculadas pelo sistema</span>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-background/70 rounded-lg p-3 border border-outline-variant/20 text-center">
+                          <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide">Tarefas validadas</p>
+                          <p className="text-lg font-bold text-on-surface">{autoCalc.total_tarefas}</p>
+                        </div>
+                        <div className="bg-background/70 rounded-lg p-3 border border-outline-variant/20 text-center">
+                          <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide">Dentro do prazo</p>
+                          <p className="text-lg font-bold text-on-surface">{autoCalc.dentro_prazo}</p>
+                        </div>
+                        <div className="bg-background/70 rounded-lg p-3 border border-outline-variant/20 text-center">
+                          <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide">Nota técnica</p>
+                          <p className="text-lg font-bold text-primary">{autoCalc.nota_tecnica != null ? parseFloat(autoCalc.nota_tecnica).toFixed(1) : "—"}</p>
+                        </div>
+                        <div className="bg-background/70 rounded-lg p-3 border border-outline-variant/20 text-center">
+                          <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide">Nota comportamental</p>
+                          <p className="text-lg font-bold text-primary">{autoCalc.nota_comportamental != null ? parseFloat(autoCalc.nota_comportamental).toFixed(1) : "—"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center gap-3 bg-background/70 rounded-lg p-3 border border-outline-variant/20">
+                        <span className="text-[12px] font-bold text-on-surface-variant uppercase tracking-wide">Nota final:</span>
+                        <span className="text-lg font-bold text-primary">{autoCalc.nota_final != null ? parseFloat(autoCalc.nota_final).toFixed(1) : "—"}</span>
+                        {autoCalc.classificacao && (
+                          <span className={"inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider " + classificacaoBadge(autoCalc.classificacao)}>
+                            {autoCalc.classificacao}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado</label>
@@ -921,12 +980,12 @@ export default function AvaliacaoPage() {
                   </div>
                   <div className="bg-primary/5 rounded-lg p-3 border border-primary/10">
                     <p className="text-[10px] font-bold text-primary/70 uppercase tracking-wide mb-0.5">Nota Final</p>
-                    <p className="text-[18px] font-bold text-primary">{avalView.nota_final != null ? parseFloat(avalView.nota_final).toFixed(1) : getNotaFinal(avalView.nota_tecnica, avalView.nota_comportamental)}<span className="text-[11px] text-primary/60 ml-0.5">/20</span></p>
+                    <p className="text-[18px] font-bold text-primary">{avalView.nota_final != null ? parseFloat(avalView.nota_final).toFixed(1) : (avalView.nota_tecnica != null || avalView.nota_comportamental != null ? getNotaFinal(avalView.nota_tecnica, avalView.nota_comportamental) : "—")}<span className="text-[11px] text-primary/60 ml-0.5">/20</span></p>
                   </div>
                   <div className="bg-background/50 rounded-lg p-3 border border-outline-variant/20 flex flex-col items-center justify-center">
                     <p className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wide mb-1">Classificação</p>
-                    <span className={"inline-flex items-center px-2.5 py-1 rounded text-[12px] font-bold uppercase tracking-wider " + classificacaoBadge(avalView.classificacao || getClassificacao(avalView.nota_final != null ? avalView.nota_final : getNotaFinal(avalView.nota_tecnica, avalView.nota_comportamental)))}>
-                      {avalView.classificacao || getClassificacao(avalView.nota_final != null ? avalView.nota_final : getNotaFinal(avalView.nota_tecnica, avalView.nota_comportamental))}
+                    <span className={"inline-flex items-center px-2.5 py-1 rounded text-[12px] font-bold uppercase tracking-wider " + classificacaoBadge(avalView.classificacao)}>
+                      {avalView.classificacao || "—"}
                     </span>
                   </div>
                 </div>

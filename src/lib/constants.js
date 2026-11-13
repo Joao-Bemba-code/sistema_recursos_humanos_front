@@ -2,7 +2,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api-nexushr.o
 
 // Modulos visiveis a qualquer utilizador autenticado, sem depender da matriz
 // de permissoes (o backend restringe os dados ao proprio utilizador).
-export const MODULOS_ABERTOS_TODOS = ["tarefas"];
+export const MODULOS_ABERTOS_TODOS = ["tarefas", "mensagens"];
 
 export const NAV_ITEMS = [
   {
@@ -11,6 +11,7 @@ export const NAV_ITEMS = [
       { label: "Painel", href: "/dashboard", icon: "dashboard", modulo: null },
       { label: "Portal", href: "/dashboard/portal", icon: "person", modulo: "portal" },
       { label: "Comunicados", href: "/dashboard/comunicados", icon: "campaign", modulo: null },
+      { label: "Mensagens", href: "/dashboard/mensagens", icon: "forum", modulo: "mensagens" },
     ],
   },
   {

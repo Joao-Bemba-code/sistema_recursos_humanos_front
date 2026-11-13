@@ -152,6 +152,18 @@ var debounce = function (fn, delay) {
   };
 };
 
+// Extensao (.pdf, .jpg, ...) de uma referencia a ficheiro guardada no sistema
+// (URL do Cloudinary, /uploads/... legado ou /api/ficheiros/<id>). Usada para
+// dar o nome certo aos documentos descarregados.
+var extensaoDoDocumento = function (referencia) {
+  if (!referencia) return ".pdf";
+  var limpo = String(referencia).split("?")[0];
+  var ultimo = (limpo.split("/").pop() || "");
+  var ponto = ultimo.lastIndexOf(".");
+  if (ponto === -1 || ultimo.length - ponto > 6) return ".pdf";
+  return ultimo.substring(ponto).toLowerCase();
+};
+
 export {
   formatCurrency,
   formatDate,
@@ -161,6 +173,7 @@ export {
   getEstadoBadgeClass,
   truncate,
   debounce,
+  extensaoDoDocumento,
 };
 
 var helpers = {
@@ -172,6 +185,7 @@ var helpers = {
   getEstadoBadgeClass,
   truncate,
   debounce,
+  extensaoDoDocumento,
 };
 
 export default helpers;

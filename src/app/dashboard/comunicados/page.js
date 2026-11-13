@@ -35,6 +35,8 @@ export default function ComunicadosPage() {
   const [avisoView, setAvisoView] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, titulo: "" });
   const [departamentos, setDepartamentos] = useState([]);
+  const [cargos, setCargos] = useState([]);
+  const [colaboradores, setColaboradores] = useState([]);
   const [anexosExistentes, setAnexosExistentes] = useState([]);
   const [anexosNovos, setAnexosNovos] = useState([]);
   const [anexosRemover, setAnexosRemover] = useState([]);
@@ -74,8 +76,10 @@ export default function ComunicadosPage() {
   }, [search, filtroTipo]);
 
   useEffect(() => {
-    api.get("/api/departamentos?limit=100").then(function (data) {
-      setDepartamentos(data.dados || []);
+    api.get("/api/comunicados/destinatarios").then(function (data) {
+      setDepartamentos(data.departamentos || []);
+      setCargos(data.cargos || []);
+      setColaboradores(data.colaboradores || []);
     }).catch(function () {});
   }, []);
 
@@ -87,6 +91,8 @@ export default function ComunicadosPage() {
       tipo: "Geral",
       visivel_para: "Todos",
       departamento_id: "",
+      cargo_id: "",
+      colaborador_id: "",
       data_inicio: new Date().toISOString().slice(0, 16),
       data_fim: "",
       publicado: true,
@@ -106,6 +112,8 @@ export default function ComunicadosPage() {
       tipo: d.tipo || "Geral",
       visivel_para: d.visivel_para || "Todos",
       departamento_id: d.departamento_id || "",
+      cargo_id: d.cargo_id || "",
+      colaborador_id: d.colaborador_id || "",
       data_inicio: d.data_inicio ? new Date(d.data_inicio).toISOString().slice(0, 16) : "",
       data_fim: d.data_fim ? new Date(d.data_fim).toISOString().slice(0, 16) : "",
       publicado: d.publicado !== false,
@@ -123,7 +131,9 @@ export default function ComunicadosPage() {
     setMsg(null);
     try {
       var payload = { ...form };
-      if (!payload.departamento_id) delete payload.departamento_id;
+      if (payload.visivel_para !== "Departamento") delete payload.departamento_id;
+      if (payload.visivel_para !== "Cargo") delete payload.cargo_id;
+      if (payload.visivel_para !== "Perfil") delete payload.colaborador_id;
       if (!payload.data_fim) delete payload.data_fim;
       if (anexosNovos.length > 0) payload.anexos = anexosNovos;
       if (editando && anexosRemover.length > 0) payload.anexos_remover = anexosRemover;
@@ -440,7 +450,7 @@ export default function ComunicadosPage() {
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Visível Para</label>
-                  <select name="visivel_para" value={form.visivel_para || "Todos"} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                  <select name="visivel_para" value={form.visivel_para || "Todos"} onChange={function (e) { setForm({ ...form, visivel_para: e.target.value, departamento_id: "", cargo_id: "", colaborador_id: "" }); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                     <option value="Todos">Todos</option>
                     <option value="Departamento">Departamento</option>
                     <option value="Cargo">Cargo</option>
@@ -454,6 +464,26 @@ export default function ComunicadosPage() {
                       <option value="">Selecionar departamento...</option>
                       {departamentos.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
                     </select>
+                  </div>
+                )}
+                {form.visivel_para === "Cargo" && (
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Cargo *</label>
+                    <select name="cargo_id" value={form.cargo_id || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                      <option value="">Selecionar cargo...</option>
+                      {cargos.map(c => <option key={c.id} value={c.id}>{c.nome}{(c.departamentos && c.departamentos.length > 0) ? " — " + c.departamentos.join(", ") : ""}</option>)}
+                    </select>
+                    <p className="text-[11px] text-on-surface-variant/60 mt-1">Cargos existentes nos colaboradores, com o departamento de cada um.</p>
+                  </div>
+                )}
+                {form.visivel_para === "Perfil" && (
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Colaborador *</label>
+                    <select name="colaborador_id" value={form.colaborador_id || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                      <option value="">Selecionar colaborador...</option>
+                      {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? " — " + c.cargo : ""}{c.departamento ? " (" + c.departamento + ")" : ""}</option>)}
+                    </select>
+                    <p className="text-[11px] text-on-surface-variant/60 mt-1">Só o colaborador escolhido vê este comunicado.</p>
                   </div>
                 )}
                 <div className="sm:col-span-2">
@@ -585,6 +615,20 @@ export default function ComunicadosPage() {
                 <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary text-[18px]">apartment</span>
                   <span className="text-[13px] font-semibold text-on-surface">Destinado ao departamento: {avisoView.departamento.nome}</span>
+                </div>
+              )}
+
+              {avisoView.cargo && (
+                <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-[18px]">work</span>
+                  <span className="text-[13px] font-semibold text-on-surface">Destinado ao cargo: {avisoView.cargo.nome}</span>
+                </div>
+              )}
+
+              {avisoView.colaborador_destino && (
+                <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-[18px]">person</span>
+                  <span className="text-[13px] font-semibold text-on-surface">Destinado a: {avisoView.colaborador_destino.nome_completo || avisoView.colaborador_destino.nome_curto}</span>
                 </div>
               )}
 

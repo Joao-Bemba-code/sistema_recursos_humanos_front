@@ -101,7 +101,7 @@ var api = {
     }
   },
 
-  downloadPdf: async function (endpoint, filename) {
+  downloadFile: async function (endpoint, filename, erroPadrao) {
     var url = this.baseURL + endpoint;
     var token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     var headers = {};
@@ -111,7 +111,7 @@ var api = {
 
     var response = await fetch(url, { headers: headers });
     if (!response.ok) {
-      var errMsg = "Erro ao gerar PDF";
+      var errMsg = erroPadrao || "Erro ao gerar ficheiro";
       try {
         var erroJson = await response.json();
         if (erroJson && erroJson.error) errMsg = erroJson.error;
@@ -123,11 +123,43 @@ var api = {
     var blobUrl = window.URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = blobUrl;
-    a.download = filename || "documento.pdf";
+    a.download = filename || "documento";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(blobUrl);
+  },
+
+  // Vai buscar o conteudo de um ficheiro (com o token, porque o servidor exige
+  // autenticacao) e devolve-o como blob. Serve para previas e para abrir numa
+  // nova aba sem precisar de meter o token no endereco.
+  getBlob: async function (endpoint, erroPadrao) {
+    var url = this.baseURL + endpoint;
+    var token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    var headers = {};
+    if (token) {
+      headers["Authorization"] = "Bearer " + token;
+    }
+
+    var response = await fetch(url, { headers: headers });
+    if (!response.ok) {
+      var errMsg = erroPadrao || "Erro ao obter o documento";
+      try {
+        var erroJson = await response.json();
+        if (erroJson && erroJson.error) errMsg = erroJson.error;
+      } catch (e) { /* resposta nao JSON */ }
+      throw new Error(errMsg);
+    }
+
+    return await response.blob();
+  },
+
+  downloadPdf: async function (endpoint, filename) {
+    return this.downloadFile(endpoint, filename || "documento.pdf", "Erro ao gerar PDF");
+  },
+
+  downloadExcel: async function (endpoint, filename) {
+    return this.downloadFile(endpoint, filename || "documento.xlsx", "Erro ao gerar Excel");
   },
 };
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import api from "@/lib/api";
-import { formatDate } from "@/lib/helpers";
+import { formatDate, extensaoDoDocumento } from "@/lib/helpers";
 
 export default function FaltasPage() {
   const [resumo, setResumo] = useState(null);
@@ -22,6 +22,7 @@ export default function FaltasPage() {
   const [form, setForm] = useState({ colaborador_id: "", data: "", estado: "Ausente", hora_entrada: "", hora_saida: "", observacoes: "" });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [baixandoDoc, setBaixandoDoc] = useState("");
   const [confirmModal, setConfirmModal] = useState({ open: false, titulo: "", mensagem: "", onConfirm: null });
 
   const carregarResumo = async () => {
@@ -141,6 +142,29 @@ export default function FaltasPage() {
         }
       },
     });
+  };
+
+  // Baixa o comprovativo de uma justificacao (o ficheiro fica no backend/Cloudinary,
+  // por isso passamos pela rota de download que trata da autenticacao).
+  const baixarDocumento = (registo, nomeColaborador) => {
+    if (!registo || !registo.documento_justificacao) return;
+    var nome = (registo.id || "documento").toString();
+    setBaixandoDoc(nome);
+    setMsg(null);
+    var ficheiro = "justificacao-" +
+      ((nomeColaborador || registo.colaborador_nome || "colaborador").trim().replace(/\s+/g, "-").toLowerCase()) +
+      "-" + formatDate(registo.data).replace(/\//g, "-") +
+      extensaoDoDocumento(registo.documento_justificacao);
+    api.downloadFile("/api/faltas/documento/" + registo.id, ficheiro)
+      .then(function () {
+        setMsg({ tipo: "sucesso", texto: "Documento descarregado" });
+        setTimeout(() => setMsg(null), 3000);
+      })
+      .catch(function (e) {
+        setMsg({ tipo: "erro", texto: e.message || "Erro ao descarregar o documento" });
+        setTimeout(() => setMsg(null), 4000);
+      })
+      .finally(function () { setBaixandoDoc(""); });
   };
 
   const formatCurrency = (v) => {
@@ -338,9 +362,19 @@ export default function FaltasPage() {
                       <td className="px-4 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-1">
                           {r.justificado && r.documento_justificacao && (
-                            <a href={r.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-emerald-600 hover:underline px-1.5 py-0.5 rounded hover:bg-emerald-50">
-                              Ver Doc
-                            </a>
+                            <div className="flex items-center gap-1">
+                              <a href={r.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] font-medium text-emerald-600 hover:underline px-1.5 py-0.5 rounded hover:bg-emerald-50">
+                                Ver Doc
+                              </a>
+                              <button
+                                onClick={() => baixarDocumento(r, r.colaborador && r.colaborador.nome_completo)}
+                                disabled={baixandoDoc === String(r.id)}
+                                className="text-[11px] font-medium text-primary hover:underline px-1.5 py-0.5 rounded hover:bg-primary/5 disabled:opacity-50"
+                                title="Descarregar o comprovativo"
+                              >
+                                {baixandoDoc === String(r.id) ? "A baixar..." : "Baixar"}
+                              </button>
+                            </div>
                           )}
                           {r.justificado && (
                             <button onClick={() => handleRemoverJustificacao(r.id)} className="text-[11px] font-medium text-amber-600 hover:underline px-1.5 py-0.5 rounded hover:bg-amber-50">
@@ -418,7 +452,17 @@ export default function FaltasPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-outline">{f.observacoes || ""}</span>
                         {f.justificado && f.documento_justificacao && (
-                          <a href={f.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
+                          <div className="flex items-center gap-2">
+                            <a href={f.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
+                            <button
+                              onClick={() => baixarDocumento(f, detalhe.nome_completo)}
+                              disabled={baixandoDoc === String(f.id)}
+                              className="text-[11px] text-primary hover:underline disabled:opacity-50"
+                              title="Descarregar o comprovativo"
+                            >
+                              {baixandoDoc === String(f.id) ? "A baixar..." : "Baixar"}
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -442,7 +486,17 @@ export default function FaltasPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-amber-600 font-medium">+{a.minutos} min</span>
                         {a.justificado && a.documento_justificacao && (
-                          <a href={a.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
+                          <div className="flex items-center gap-2">
+                            <a href={a.documento_justificacao} target="_blank" rel="noopener noreferrer" className="text-[11px] text-emerald-600 hover:underline">Ver Doc</a>
+                            <button
+                              onClick={() => baixarDocumento(a, detalhe.nome_completo)}
+                              disabled={baixandoDoc === String(a.id)}
+                              className="text-[11px] text-primary hover:underline disabled:opacity-50"
+                              title="Descarregar o comprovativo"
+                            >
+                              {baixandoDoc === String(a.id) ? "A baixar..." : "Baixar"}
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

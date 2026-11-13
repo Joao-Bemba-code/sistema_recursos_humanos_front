@@ -91,6 +91,7 @@ export default function FolhaSalarialPage() {
   const [gerando, setGerando] = useState(false);
   const [resultadoGerar, setResultadoGerar] = useState(null);
   const [baixandoResumo, setBaixandoResumo] = useState(false);
+  const [baixandoResumoExcel, setBaixandoResumoExcel] = useState(false);
   const [resumoMes, setResumoMes] = useState(String(new Date().getMonth() + 1));
   const [resumoAno, setResumoAno] = useState(String(new Date().getFullYear()));
   const [resumoOpen, setResumoOpen] = useState(false);
@@ -400,26 +401,56 @@ export default function FolhaSalarialPage() {
     carregar(paginacao.pagina);
   };
 
-  const baixarResumo = async (e) => {
-    if (e) e.preventDefault();
+  const baixarResumo = async (e, formato) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (!resumoMes || !resumoAno) {
-      setMsg({ tipo: "erro", texto: "Seleciona o mês e o ano do resumo antes de gerar o PDF." });
+      setMsg({ tipo: "erro", texto: "Seleciona o mês e o ano do resumo antes de gerar o ficheiro." });
       return;
     }
-    setBaixandoResumo(true);
+    var excel = formato === "excel";
+    if (excel) setBaixandoResumoExcel(true);
+    else setBaixandoResumo(true);
     setMsg(null);
     try {
-      var url = `/api/pdf/resumo-pagamentos?mes=${resumoMes}&ano=${resumoAno}`;
+      var url = (excel ? "/api/excel/resumo-pagamentos" : "/api/pdf/resumo-pagamentos") + `?mes=${resumoMes}&ano=${resumoAno}`;
       var nomeFicheiro = `resumo_pagamentos_${resumoMes}_${resumoAno}`;
       if (resumoUnidade) {
         url += `&unidade_negocio=${encodeURIComponent(resumoUnidade)}`;
         nomeFicheiro += "_" + resumoUnidade.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_");
       }
-      await api.downloadPdf(url, nomeFicheiro + ".pdf");
+      if (excel) await api.downloadExcel(url, nomeFicheiro + ".xlsx");
+      else await api.downloadPdf(url, nomeFicheiro + ".pdf");
     } catch (e) {
       setMsg({ tipo: "erro", texto: e.message });
     } finally {
-      setBaixandoResumo(false);
+      if (excel) setBaixandoResumoExcel(false);
+      else setBaixandoResumo(false);
+    }
+  };
+
+  const baixarResumoGerado = async (formato) => {
+    var excel = formato === "excel";
+    if (!autogForm.mes || !autogForm.ano) {
+      setMsg({ tipo: "erro", texto: "Período inválido para exportar." });
+      return;
+    }
+    if (excel) setBaixandoResumoExcel(true);
+    else setBaixandoResumo(true);
+    setMsg(null);
+    try {
+      var url = (excel ? "/api/excel/resumo-pagamentos" : "/api/pdf/resumo-pagamentos") + `?mes=${autogForm.mes}&ano=${autogForm.ano}`;
+      var nomeFicheiro = `resumo_pagamentos_${autogForm.mes}_${autogForm.ano}`;
+      if (autogForm.unidade_negocio) {
+        url += `&unidade_negocio=${encodeURIComponent(autogForm.unidade_negocio)}`;
+        nomeFicheiro += "_" + autogForm.unidade_negocio.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_");
+      }
+      if (excel) await api.downloadExcel(url, nomeFicheiro + ".xlsx");
+      else await api.downloadPdf(url, nomeFicheiro + ".pdf");
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message });
+    } finally {
+      if (excel) setBaixandoResumoExcel(false);
+      else setBaixandoResumo(false);
     }
   };
 
@@ -550,8 +581,8 @@ export default function FolhaSalarialPage() {
             {tab === "pagamentos" && (
               <>
                 <button onClick={() => { setResumoOpen(!resumoOpen); setResultadoGerar(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-success/10 text-success text-[13px] font-semibold rounded-lg border border-success/20 hover:bg-success/20 transition-all active:scale-95">
-                  <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
-                  Resumo PDF
+                  <span className="material-symbols-outlined text-[18px]">summarize</span>
+                  Resumo (PDF / Excel)
                 </button>
                 <button onClick={() => { setGerarAuto(true); setResultadoGerar(null); }} className="flex items-center gap-2 px-4 py-2.5 bg-secondary/10 text-secondary text-[13px] font-semibold rounded-lg border border-secondary/20 hover:bg-secondary/20 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">bolt</span>
@@ -586,13 +617,16 @@ export default function FolhaSalarialPage() {
               {UNIDADES_NEGOCIO.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
             </select>
           </div>
-          <div className="flex items-end pb-0.5">
-            <button onClick={baixarResumo} disabled={baixandoResumo} className="flex items-center gap-2 px-4 py-2.5 bg-success/10 text-success text-[13px] font-semibold rounded-lg border border-success/20 hover:bg-success/20 disabled:opacity-50 transition-all active:scale-95">
-              <span className="material-symbols-outlined text-[18px]">download</span>
-              {baixandoResumo ? "A gerar..." : "Baixar Resumo"}
+          <div className="flex items-end gap-2 pb-0.5 md:ml-auto">
+            <button onClick={(e) => baixarResumo(e, "pdf")} disabled={baixandoResumo || baixandoResumoExcel} className="flex items-center gap-2 px-4 py-2.5 bg-success/10 text-success text-[13px] font-semibold rounded-lg border border-success/20 hover:bg-success/20 disabled:opacity-50 transition-all active:scale-95">
+              <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+              {baixandoResumo ? "A gerar..." : "Baixar PDF"}
+            </button>
+            <button onClick={(e) => baixarResumo(e, "excel")} disabled={baixandoResumo || baixandoResumoExcel} className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary text-[13px] font-semibold rounded-lg border border-primary/20 hover:bg-primary/20 disabled:opacity-50 transition-all active:scale-95">
+              <span className="material-symbols-outlined text-[18px]">table_view</span>
+              {baixandoResumoExcel ? "A gerar..." : "Baixar Excel"}
             </button>
           </div>
-          <p className="text-[11px] text-on-surface-variant/60 md:flex-1 md:pb-2">O resumo é gerado para o mês e ano escolhidos. Se ainda não processaste a folha desse período, verás a razão.</p>
         </section>
       )}
 
@@ -852,6 +886,9 @@ export default function FolhaSalarialPage() {
                         <div className="flex items-center justify-end">
                           <button onClick={() => api.downloadPdf("/api/pdf/folha-salarial/" + item.id, "recibo_" + numColab(item) + ".pdf")} className="p-[3px] text-on-surface-variant hover:text-success hover:bg-success/10 rounded transition-all" title="Baixar PDF">
                             <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
+                          </button>
+                          <button onClick={() => api.downloadExcel("/api/excel/folha-salarial/" + item.id, "recibo_" + numColab(item) + ".xlsx")} className="p-[3px] text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-all" title="Baixar Excel">
+                            <span className="material-symbols-outlined text-[15px]">table_view</span>
                           </button>
                           <button onClick={() => abrirVer(item)} className="p-[3px] text-on-surface-variant hover:text-success hover:bg-success/10 rounded transition-all" title="Ver">
                             <span className="material-symbols-outlined text-[15px]">visibility</span>
@@ -1244,8 +1281,18 @@ export default function FolhaSalarialPage() {
                       </ul>
                     </div>
                   )}
-                  <div className="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-outline-variant/20">
-                    <button onClick={fecharGerar} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 mt-2 border-t border-outline-variant/20">
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => baixarResumoGerado("pdf")} disabled={baixandoResumo || baixandoResumoExcel} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-success/10 text-success text-[12px] font-semibold hover:bg-success/20 disabled:opacity-50 transition-all border border-success/20">
+                        <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                        {baixandoResumo ? "A gerar..." : "Folha PDF"}
+                      </button>
+                      <button type="button" onClick={() => baixarResumoGerado("excel")} disabled={baixandoResumo || baixandoResumoExcel} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 disabled:opacity-50 transition-all border border-primary/20">
+                        <span className="material-symbols-outlined text-[16px]">table_view</span>
+                        {baixandoResumoExcel ? "A gerar..." : "Folha Excel"}
+                      </button>
+                    </div>
+                    <button onClick={fecharGerar} className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
                       <span className="material-symbols-outlined text-[18px]">done</span>
                       Concluir
                     </button>
@@ -1267,10 +1314,16 @@ export default function FolhaSalarialPage() {
               </h3>
               <div className="flex items-center gap-2">
                 {tab === "pagamentos" && (
-                  <button onClick={() => api.downloadPdf("/api/pdf/folha-salarial/" + viewItem.id, "recibo_" + numColab(viewItem) + ".pdf")} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-success/10 text-success text-[12px] font-semibold hover:bg-success/20 transition-all border border-success/10">
-                    <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-                    PDF
-                  </button>
+                  <>
+                    <button onClick={() => api.downloadPdf("/api/pdf/folha-salarial/" + viewItem.id, "recibo_" + numColab(viewItem) + ".pdf")} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-success/10 text-success text-[12px] font-semibold hover:bg-success/20 transition-all border border-success/10">
+                      <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                      PDF
+                    </button>
+                    <button onClick={() => api.downloadExcel("/api/excel/folha-salarial/" + viewItem.id, "recibo_" + numColab(viewItem) + ".xlsx")} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-all border border-primary/10">
+                      <span className="material-symbols-outlined text-[16px]">table_view</span>
+                      Excel
+                    </button>
+                  </>
                 )}
                 <button onClick={() => { setShowViewModal(false); abrirEditar(viewItem); }} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-all border border-primary/10">
                   <span className="material-symbols-outlined text-[16px]">edit</span>

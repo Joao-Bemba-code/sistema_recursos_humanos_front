@@ -141,7 +141,7 @@ function pad2Portal(n) {
 
 function progressoAlocPortal(a, agora) {
   if (!a) return 0;
-  if (a.estado === "Concluida" || a.estado === "Validada" || a.estado === "Atrasada") return 100;
+  if (a.estado === "Concluida" || a.estado === "Aguarda_Validacao" || a.estado === "Validada" || a.estado === "Atrasada") return 100;
   if (a.estado === "Pendente") return 0;
   var inicio = new Date(a.janela_inicio).getTime();
   var fim = new Date(a.janela_fim).getTime();
@@ -172,11 +172,13 @@ var COLUNAS_PORTAL_KANBAN = [
   { chave: "Pendente", rotulo: "Por iniciar", icone: "pending_actions", dot: "bg-amber-500" },
   { chave: "EmCurso", rotulo: "Em curso", icone: "play_circle", dot: "bg-sky-500" },
   { chave: "Atrasada", rotulo: "Atrasada", icone: "alarm", dot: "bg-red-500" },
+  { chave: "PorValidar", rotulo: "Por validar", icone: "fact_check", dot: "bg-amber-500" },
 ];
 
 function colunaPortalDeAlocacao(a) {
   if (!a) return "Atrasada";
   if (a.estado === "Em_curso" || a.estado === "Reaberta" || a.estado === "Justificativa") return "EmCurso";
+  if (a.estado === "Aguarda_Validacao" || a.estado === "Concluida") return "PorValidar";
   return a.estado === "Pendente" ? "Pendente" : "Atrasada";
 }
 
@@ -347,10 +349,12 @@ export default function PortalPage() {
         } else {
           // O backend ja devolve so as alocacoes deste colaborador.
           minha = (t.alocacoes || []).find(function (a) {
-            return ["Pendente", "Em_curso", "Reaberta", "Justificativa", "Atrasada"].indexOf(a.estado) !== -1;
+            return ["Pendente", "Em_curso", "Reaberta", "Justificativa", "Atrasada", "Aguarda_Validacao", "Concluida"].indexOf(a.estado) !== -1;
           }) || null;
         }
-        if (minha) activas.push({ tarefa: t, aloc: minha });
+        if (minha && ["Pendente", "Em_curso", "Reaberta", "Justificativa", "Atrasada", "Aguarda_Validacao", "Concluida"].indexOf(minha.estado) !== -1) {
+          activas.push({ tarefa: t, aloc: minha });
+        }
       });
       setTarefasActivas(activas.slice(0, 4));
     }).catch(function () { setTarefasActivas([]); });
@@ -390,11 +394,26 @@ export default function PortalPage() {
     e.preventDefault();
     setUploadDrag(false);
     var files = e.dataTransfer ? e.dataTransfer.files : e.target.files;
-    if (files && files.length > 0) setSolicitacaoForm(Object.assign({}, solicitacaoForm, { ficheiro: files[0] }));
+    if (files && files.length > 0) {
+      var ficheiro = files[0];
+      // O mesmo handler serve os dois modais: escolhe o formulário certo.
+      if (justificacaoForm.falta) {
+        setJustificacaoForm(Object.assign({}, justificacaoForm, { ficheiro: ficheiro }));
+      } else {
+        setSolicitacaoForm(Object.assign({}, solicitacaoForm, { ficheiro: ficheiro }));
+      }
+    }
   };
 
   var handleFileSelect = function (e) {
-    if (e.target.files && e.target.files.length > 0) setSolicitacaoForm(Object.assign({}, solicitacaoForm, { ficheiro: e.target.files[0] }));
+    if (e.target.files && e.target.files.length > 0) {
+      var ficheiro = e.target.files[0];
+      if (justificacaoForm.falta) {
+        setJustificacaoForm(Object.assign({}, justificacaoForm, { ficheiro: ficheiro }));
+      } else {
+        setSolicitacaoForm(Object.assign({}, solicitacaoForm, { ficheiro: ficheiro }));
+      }
+    }
   };
 
   var handleSubmitSolicitacao = function (e) {
@@ -499,10 +518,10 @@ export default function PortalPage() {
               <p className="text-[10px] text-outline mt-0.5">Em Curso</p>
             </div>
             <div className="bg-surface-card p-3 text-center">
-              <p className="text-[18px] font-bold text-emerald-600">
-                {tarefasStats.por_estado ? ((tarefasStats.por_estado.Concluida || 0) + (tarefasStats.por_estado.Validada || 0)) : 0}
+              <p className="text-[18px] font-bold text-amber-600">
+                {tarefasStats.por_estado ? ((tarefasStats.por_estado.Aguarda_Validacao || 0) + (tarefasStats.por_estado.Concluida || 0)) : 0}
               </p>
-              <p className="text-[10px] text-outline mt-0.5">Concluídas</p>
+              <p className="text-[10px] text-outline mt-0.5">Por validar</p>
             </div>
             <div className="bg-surface-card p-3 text-center">
               <p className={"text-[18px] font-bold " + (tarefasStats.atrasadas > 0 ? "text-red-600" : "text-on-surface")}>{tarefasStats.atrasadas || 0}</p>
@@ -561,13 +580,15 @@ export default function PortalPage() {
                           var esgotado = resto !== null && resto.charAt(0) === "-";
                           var fim = new Date(a.janela_fim).getTime();
                           var urgente = !esgotado && fim - tarefasAgora < 3600000;
-                          var LABEL = { Pendente: "Pendente", Em_curso: "Em Curso", Reaberta: "Reaberta", Justificativa: "Justificativa", Atrasada: "Atrasada" };
+                          var LABEL = { Pendente: "Pendente", Em_curso: "Em Curso", Reaberta: "Reaberta", Justificativa: "Justificativa", Atrasada: "Atrasada", Aguarda_Validacao: "Por validar", Concluida: "Por validar" };
                           var COR = {
                             Pendente: "bg-amber-50 text-amber-700 border-amber-200",
                             Em_curso: "bg-sky-50 text-sky-700 border-sky-200",
                             Reaberta: "bg-violet-50 text-violet-700 border-violet-200",
                             Justificativa: "bg-orange-50 text-orange-700 border-orange-200",
                             Atrasada: "bg-red-50 text-red-700 border-red-200",
+                            Aguarda_Validacao: "bg-amber-50 text-amber-700 border-amber-200",
+                            Concluida: "bg-amber-50 text-amber-700 border-amber-200",
                           };
                           return (
                             <div
@@ -658,7 +679,9 @@ export default function PortalPage() {
                                 <span className="ml-auto text-[10px] text-outline self-center">
                                   {a.estado === "Atrasada"
                                     ? "o gestor decide"
-                                    : "até " + formatDate(new Date(a.janela_fim))}
+                                    : (a.estado === "Aguarda_Validacao" || a.estado === "Concluida")
+                                      ? "aguarda o administrador"
+                                      : "até " + formatDate(new Date(a.janela_fim))}
                                 </span>
                               </div>
                             </div>
@@ -699,7 +722,7 @@ export default function PortalPage() {
                 >
                   <span className="material-symbols-outlined text-[20px] text-emerald-600">task_alt</span>
                   <p className="text-[11px] font-semibold text-on-surface-variant">Terminar</p>
-                  <p className="text-[10px] text-outline">Largue aqui uma tarefa em curso</p>
+                  <p className="text-[10px] text-outline">Fica por validar pelo administrador</p>
                 </div>
               </div>
             </div>
@@ -804,10 +827,10 @@ export default function PortalPage() {
                           {t.no_prazo ? "No prazo" : "Com atraso"}
                           {t.data_conclusao ? " · " + formatDate(t.data_conclusao) : ""}
                         </p>
-                        {t.desempenho !== null && t.desempenho !== undefined && (
-                          <p className="text-[9px] text-outline/80 mt-0.5">
-                            Desempenho {String(t.desempenho).replace(".", ",")} · Produtividade {String(t.produtividade).replace(".", ",")} · Prazo {String(t.cumprimento_prazo).replace(".", ",")}
-                          </p>
+                        {t.nota !== null && t.nota !== undefined && (
+                          <span className="inline-block text-[9px] font-bold uppercase tracking-wide text-primary border border-primary/30 rounded px-1 py-0.5 mt-0.5">
+                            Nota automática
+                          </span>
                         )}
                         {t.observacoes && (
                           <p className="text-[10px] text-outline/90 mt-0.5 truncate">“{t.observacoes}”</p>

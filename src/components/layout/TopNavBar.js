@@ -21,6 +21,7 @@ export default function TopNavBar() {
   const [notifCount, setNotifCount] = useState(0);
   const [notifModal, setNotifModal] = useState(null);
   const [notifFiltro, setNotifFiltro] = useState("");
+  const [chatNaoLidas, setChatNaoLidas] = useState(0);
   const menuRef = useRef(null);
   const notifRef = useRef(null);
   var T = getT();
@@ -31,7 +32,7 @@ export default function TopNavBar() {
     ["/dashboard", "/dashboard/portal", "/dashboard/colaboradores", "/dashboard/contratos", "/dashboard/departamentos"].includes(i.href)
   );
   // Modulos que um simples colaborador pode ver (nao contam como administrativos)
-  const rotasColaborador = ["/dashboard/portal", "/dashboard/comunicados", "/dashboard/ferias", "/dashboard/pedidos"];
+  const rotasColaborador = ["/dashboard/portal", "/dashboard/comunicados", "/dashboard/mensagens", "/dashboard/ferias", "/dashboard/pedidos"];
   const temModulosAdministrativos = itensPermitidos.some((i) => i.href !== "/dashboard" && rotasColaborador.indexOf(i.href) === -1);
   const isAdmin = auth.isAdmin();
   const soColaborador = auth.hasPermission("portal", "read") && !isAdmin && !temModulosAdministrativos;
@@ -79,8 +80,19 @@ export default function TopNavBar() {
         })
         .catch(function () {});
     };
+    var fetchChatNaoLidas = function () {
+      api.get("/api/chat/nao-lidas")
+        .then(function (data) {
+          if (data && data.dados) setChatNaoLidas(data.dados.total || 0);
+        })
+        .catch(function () {});
+    };
     fetchNotificacoes();
-    var interval = setInterval(fetchNotificacoes, 15000);
+    fetchChatNaoLidas();
+    var interval = setInterval(function () {
+      fetchNotificacoes();
+      fetchChatNaoLidas();
+    }, 15000);
     return function () { clearInterval(interval); };
   }, []);
 
@@ -210,6 +222,18 @@ export default function TopNavBar() {
                 <span className="material-symbols-outlined text-[22px]">settings</span>
               </Link>
             )}
+            <Link
+              href="/dashboard/mensagens"
+              aria-label={chatNaoLidas > 0 ? "Mensagens (" + chatNaoLidas + " por ler)" : "Mensagens"}
+              className="relative flex items-center justify-center w-10 h-10 rounded-full transition-colors hover:bg-surface-container-high text-on-surface-variant"
+            >
+              <span className="material-symbols-outlined text-[24px]">forum</span>
+              {chatNaoLidas > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] flex items-center justify-center bg-error text-white text-[11px] font-bold rounded-full px-1 ring-2 ring-surface">
+                  {chatNaoLidas > 99 ? "99+" : chatNaoLidas}
+                </span>
+              )}
+            </Link>
             <div ref={notifRef} className="relative">
               <button
                 onClick={() => { setNotifOpen(!notifOpen); setMenuOpen(false); }}
