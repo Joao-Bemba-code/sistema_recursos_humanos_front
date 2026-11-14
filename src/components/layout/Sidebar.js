@@ -36,7 +36,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   if (logoOrganizacao && logoOrganizacao.charAt(0) === "/") logoOrganizacao = api.baseURL + logoOrganizacao;
   var nomeOrganizacao = isSuperAdmin
     ? "Plataforma"
-    : (organizacao ? (organizacao.nome_curto || organizacao.nome) : "SGHR");
+    : "Sistema de Recursos Humanos";
 
   const gruposVisiveis = isSuperAdmin
     ? [{ titulo: "Plataforma", items: [{ label: "Organizações", href: "/plataforma", icon: "apartment" }] }]

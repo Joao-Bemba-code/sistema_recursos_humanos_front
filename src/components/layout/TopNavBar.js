@@ -31,10 +31,6 @@ export default function TopNavBar() {
 
   // Conta da plataforma: nao pertence a nenhuma organizacao e nao tem modulos.
   const isSuperAdmin = !!(utilizador && utilizador.super_admin);
-  const organizacao = utilizador && utilizador.organizacao ? utilizador.organizacao : null;
-  var logoOrganizacao = organizacao && organizacao.logo_url ? organizacao.logo_url : "";
-  if (logoOrganizacao && logoOrganizacao.charAt(0) === "/") logoOrganizacao = api.baseURL + logoOrganizacao;
-  var nomeOrganizacao = organizacao ? (organizacao.nome_curto || organizacao.nome) : "";
 
   const mainItems = isSuperAdmin
     ? [{ label: "Plataforma", href: "/plataforma", icon: "corporate_fare" }]
@@ -46,14 +42,6 @@ export default function TopNavBar() {
   const temModulosAdministrativos = itensPermitidos.some((i) => i.href !== "/dashboard" && rotasColaborador.indexOf(i.href) === -1);
   const isAdmin = auth.isAdmin();
   const soColaborador = auth.hasPermission("portal", "read") && !isAdmin && !temModulosAdministrativos;
-
-  var perfisNomes = [];
-  if (utilizador && Array.isArray(utilizador.perfis) && utilizador.perfis.length > 0) {
-    perfisNomes = utilizador.perfis.map(function (p) { return p.nome; });
-  } else if (utilizador && utilizador.perfil) {
-    perfisNomes = [utilizador.perfil.nome];
-  }
-  var rotuloPerfil = perfisNomes.join(", ");
 
   const navGroups = isSuperAdmin
     ? [{ titulo: "Plataforma", items: mainItems }]
@@ -210,15 +198,9 @@ export default function TopNavBar() {
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
             <Link href={isSuperAdmin ? "/plataforma" : soColaborador ? "/dashboard/portal" : "/dashboard"} className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
-              {logoOrganizacao ? (
-                <img src={logoOrganizacao} alt={nomeOrganizacao || "Logo da organização"} className="h-7 w-auto max-w-[96px] object-contain" />
-              ) : (
-                <span className="text-xl font-bold tracking-tight text-primary">SGHR</span>
-              )}
+              <span className="text-xl font-bold tracking-tight text-primary">SGHR</span>
               {isSuperAdmin ? (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/15 rounded-full px-2 py-0.5">Plataforma</span>
-              ) : nomeOrganizacao ? (
-                <span className="hidden sm:inline text-[12px] font-semibold text-on-surface-variant max-w-[150px] truncate">{nomeOrganizacao}</span>
               ) : null}
             </Link>
             <nav className="hidden md:flex items-center gap-4 lg:gap-8 overflow-x-auto min-w-0">
@@ -352,10 +334,6 @@ export default function TopNavBar() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-3 pl-3 md:pl-4 border-l border-outline-variant/30 cursor-pointer"
               >
-                <div className="hidden lg:flex flex-col items-end">
-                  <span className="text-[12px] font-semibold">{utilizador ? utilizador.nome_completo : "Admin"}</span>
-                  <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{isSuperAdmin ? "Administrador da plataforma" : (rotuloPerfil || nomeOrganizacao || "SGHR")}</span>
-                </div>
                 <div className="h-8 w-8 rounded-full border border-outline-variant/50 overflow-hidden bg-primary/10 flex items-center justify-center">
                   <span className="text-[12px] font-bold text-primary">{initials}</span>
                 </div>
@@ -398,15 +376,9 @@ export default function TopNavBar() {
           <div className="fixed inset-y-0 left-0 w-72 bg-surface shadow-2xl flex flex-col animate-slide-in">
             <div className="px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between">
               <Link href={isSuperAdmin ? "/plataforma" : soColaborador ? "/dashboard/portal" : "/dashboard"} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 min-w-0">
-                {logoOrganizacao ? (
-                  <img src={logoOrganizacao} alt={nomeOrganizacao || "Logo da organização"} className="h-7 w-auto max-w-[90px] object-contain" />
-                ) : (
-                  <span className="text-xl font-bold tracking-tight text-primary">SGHR</span>
-                )}
+                <span className="text-xl font-bold tracking-tight text-primary">SGHR</span>
                 {isSuperAdmin ? (
                   <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/15 rounded-full px-2 py-0.5">Plataforma</span>
-                ) : nomeOrganizacao ? (
-                  <span className="text-[12px] font-semibold text-on-surface-variant truncate max-w-[140px]">{nomeOrganizacao}</span>
                 ) : null}
               </Link>
               <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant">

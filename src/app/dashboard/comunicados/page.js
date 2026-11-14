@@ -25,6 +25,7 @@ export default function ComunicadosPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
+  const [filtroUnidade, setFiltroUnidade] = useState("");
   const [paginacao, setPaginacao] = useState({ total: 0, pagina: 1, total_paginas: 1 });
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -36,6 +37,7 @@ export default function ComunicadosPage() {
   const [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, titulo: "" });
   const [departamentos, setDepartamentos] = useState([]);
   const [cargos, setCargos] = useState([]);
+  const [unidades, setUnidades] = useState([]);
   const [colaboradores, setColaboradores] = useState([]);
   const [anexosExistentes, setAnexosExistentes] = useState([]);
   const [anexosNovos, setAnexosNovos] = useState([]);
@@ -59,6 +61,7 @@ export default function ComunicadosPage() {
       let url = `/api/comunicados?page=${page}&limit=15`;
       if (search) url += `&search=${encodeURIComponent(search)}`;
       if (filtroTipo) url += `&tipo=${filtroTipo}`;
+      if (filtroUnidade) url += `&unidade_id=${filtroUnidade}`;
       const data = await api.get(url);
       setComunicados(data.dados);
       setPaginacao(data.paginacao);
@@ -73,12 +76,13 @@ export default function ComunicadosPage() {
   useEffect(() => {
     const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
     return () => clearTimeout(timer);
-  }, [search, filtroTipo]);
+  }, [search, filtroTipo, filtroUnidade]);
 
   useEffect(() => {
     api.get("/api/comunicados/destinatarios").then(function (data) {
       setDepartamentos(data.departamentos || []);
       setCargos(data.cargos || []);
+      setUnidades(data.unidades || []);
       setColaboradores(data.colaboradores || []);
     }).catch(function () {});
   }, []);
@@ -92,6 +96,7 @@ export default function ComunicadosPage() {
       visivel_para: "Todos",
       departamento_id: "",
       cargo_id: "",
+      unidade_id: "",
       colaborador_id: "",
       data_inicio: new Date().toISOString().slice(0, 16),
       data_fim: "",
@@ -113,6 +118,7 @@ export default function ComunicadosPage() {
       visivel_para: d.visivel_para || "Todos",
       departamento_id: d.departamento_id || "",
       cargo_id: d.cargo_id || "",
+      unidade_id: d.unidade_id || "",
       colaborador_id: d.colaborador_id || "",
       data_inicio: d.data_inicio ? new Date(d.data_inicio).toISOString().slice(0, 16) : "",
       data_fim: d.data_fim ? new Date(d.data_fim).toISOString().slice(0, 16) : "",
@@ -134,6 +140,7 @@ export default function ComunicadosPage() {
       if (payload.visivel_para !== "Departamento") delete payload.departamento_id;
       if (payload.visivel_para !== "Cargo") delete payload.cargo_id;
       if (payload.visivel_para !== "Perfil") delete payload.colaborador_id;
+      if (payload.visivel_para !== "Unidade") delete payload.unidade_id;
       if (!payload.data_fim) delete payload.data_fim;
       if (anexosNovos.length > 0) payload.anexos = anexosNovos;
       if (editando && anexosRemover.length > 0) payload.anexos_remover = anexosRemover;
@@ -304,7 +311,7 @@ export default function ComunicadosPage() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 w-full lg:w-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto">
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Tipo</label>
               <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
@@ -312,6 +319,15 @@ export default function ComunicadosPage() {
                 {TIPOS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
+            {canManage && (
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Unidade</label>
+                <select value={filtroUnidade} onChange={(e) => setFiltroUnidade(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                  <option value="">Todas</option>
+                  {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                </select>
+              </div>
+            )}
             <div className="flex items-end pb-0.5">
               <button onClick={() => carregar(1)} className="w-full px-4 py-2.5 border border-primary/20 text-primary hover:bg-primary/5 rounded-lg text-[13px] font-bold flex items-center justify-center gap-2 transition-colors">
                 <span className="material-symbols-outlined text-[18px]">filter_alt</span>
@@ -450,11 +466,12 @@ export default function ComunicadosPage() {
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Visível Para</label>
-                  <select name="visivel_para" value={form.visivel_para || "Todos"} onChange={function (e) { setForm({ ...form, visivel_para: e.target.value, departamento_id: "", cargo_id: "", colaborador_id: "" }); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                  <select name="visivel_para" value={form.visivel_para || "Todos"} onChange={function (e) { setForm({ ...form, visivel_para: e.target.value, departamento_id: "", cargo_id: "", unidade_id: "", colaborador_id: "" }); }} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                     <option value="Todos">Todos</option>
                     <option value="Departamento">Departamento</option>
                     <option value="Cargo">Cargo</option>
                     <option value="Perfil">Perfil</option>
+                    <option value="Unidade">Unidade</option>
                   </select>
                 </div>
                 {form.visivel_para === "Departamento" && (
@@ -484,6 +501,16 @@ export default function ComunicadosPage() {
                       {colaboradores.map(c => <option key={c.id} value={c.id}>{c.nome}{c.cargo ? " — " + c.cargo : ""}{c.departamento ? " (" + c.departamento + ")" : ""}</option>)}
                     </select>
                     <p className="text-[11px] text-on-surface-variant/60 mt-1">Só o colaborador escolhido vê este comunicado.</p>
+                  </div>
+                )}
+                {form.visivel_para === "Unidade" && (
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Unidade *</label>
+                    <select name="unidade_id" value={form.unidade_id || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                      <option value="">Selecionar unidade...</option>
+                      {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}{u.codigo && u.codigo !== u.nome ? " · " + u.codigo : ""}</option>)}
+                    </select>
+                    <p className="text-[11px] text-on-surface-variant/60 mt-1">Todos os colaboradores ligados a esta unidade vêem o comunicado.</p>
                   </div>
                 )}
                 <div className="sm:col-span-2">
@@ -622,6 +649,13 @@ export default function ComunicadosPage() {
                 <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 flex items-center gap-2">
                   <span className="material-symbols-outlined text-primary text-[18px]">work</span>
                   <span className="text-[13px] font-semibold text-on-surface">Destinado ao cargo: {avisoView.cargo.nome}</span>
+                </div>
+              )}
+
+              {avisoView.unidade && (
+                <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-[18px]">workspaces</span>
+                  <span className="text-[13px] font-semibold text-on-surface">Destinado à unidade: {avisoView.unidade.nome}</span>
                 </div>
               )}
 

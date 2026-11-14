@@ -117,7 +117,7 @@ var NOMES_GESTOR = [
   "tecnico de rh",
 ];
 
-var FILTROS_VAZIOS = { search: "", estado: "", prioridade: "", colaborador_id: "", atrasadas: false };
+var FILTROS_VAZIOS = { search: "", estado: "", prioridade: "", colaborador_id: "", unidade_id: "", atrasadas: false };
 
 var CAMPO =
   "w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30 focus:bring-primary/50 focus:border-primary/50";
@@ -366,6 +366,7 @@ export default function TarefasPage() {
   var [pagina, setPagina] = useState(1);
   var [loading, setLoading] = useState(true);
   var [colaboradores, setColaboradores] = useState([]);
+  var [unidades, setUnidades] = useState([]);
   var [agora, setAgora] = useState(function () { return Date.now(); });
   var [visualizacao, setVisualizacao] = useState("tabela");
   var [arrastando, setArrastando] = useState(null); // cartao do kanban em arrasto {t, aloc, de}
@@ -400,7 +401,9 @@ export default function TarefasPage() {
 
   var carregarStats = async function () {
     try {
-      var data = await api.get("/api/tarefas/estatisticas");
+      var urlStats = "/api/tarefas/estatisticas";
+      if (filtros.unidade_id) urlStats += "?unidade_id=" + filtros.unidade_id;
+      var data = await api.get(urlStats);
       if (data && data.dados) setStats(data.dados);
     } catch (e) { /* manter estatisticas anteriores */ }
   };
@@ -413,6 +416,7 @@ export default function TarefasPage() {
       if (filtros.estado) url += "&estado=" + filtros.estado;
       if (filtros.prioridade) url += "&prioridade=" + filtros.prioridade;
       if (filtros.colaborador_id) url += "&colaborador_id=" + filtros.colaborador_id;
+      else if (filtros.unidade_id) url += "&unidade_id=" + filtros.unidade_id;
       if (filtros.atrasadas) url += "&atrasadas=true";
       var data = await api.get(url);
       setTarefas((data && data.dados) || []);
@@ -432,9 +436,17 @@ export default function TarefasPage() {
     } catch (e) { /* lista vazia */ }
   };
 
+  var carregarUnidades = async function () {
+    try {
+      var data = await api.get("/api/unidades?page=1&limit=9999");
+      setUnidades((data && data.dados) || []);
+    } catch (e) { /* lista vazia */ }
+  };
+
   useEffect(function () {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (ehGestor) carregarColaboradores();
+    if (ehGestor) carregarUnidades();
   }, [ehGestor]);
 
   useEffect(function () {
@@ -965,7 +977,7 @@ export default function TarefasPage() {
     { titulo: "Atrasadas", valor: stats ? stats.atrasadas : "…", cor: "text-red-600" },
   ];
 
-  var temFiltros = filtros.search || filtros.estado || filtros.prioridade || filtros.colaborador_id || filtros.atrasadas;
+  var temFiltros = filtros.search || filtros.estado || filtros.prioridade || filtros.colaborador_id || filtros.unidade_id || filtros.atrasadas;
 
   // Cartoes do Kanban: uma alocacao por cartao (tarefa + colaborador).
   // Para o colaborador o backend ja devolve apenas as proprias alocacoes;
@@ -1086,6 +1098,21 @@ export default function TarefasPage() {
               {PRIORIDADES.map(function (p) { return <option key={p} value={p}>{p}</option>; })}
             </select>
           </div>
+          {ehGestor && (
+            <div>
+              <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Unidade</label>
+              <select
+                value={filtros.unidade_id}
+                onChange={function (e) { alterarFiltro("unidade_id", e.target.value); }}
+                className={CAMPO}
+              >
+                <option value="">Todas</option>
+                {unidades.map(function (u) {
+                  return <option key={u.id} value={u.id}>{u.nome}</option>;
+                })}
+              </select>
+            </div>
+          )}
           {ehGestor && (
             <div>
               <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Colaborador</label>

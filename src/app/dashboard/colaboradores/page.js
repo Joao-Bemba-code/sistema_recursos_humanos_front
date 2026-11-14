@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
-import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, UNIDADES_NEGOCIO, GENEROS, ESTADOS_CIVIS } from "@/lib/constants";
+import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, GENEROS, ESTADOS_CIVIS } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -46,6 +46,8 @@ export default function ColaboradoresPage() {
   const [search, setSearch] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
+  const [filtroUnidade, setFiltroUnidade] = useState("");
+  const [unidades, setUnidades] = useState([]);
   const [paginacao, setPaginacao] = useState({ total: 0, pagina: 1, total_paginas: 1 });
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -68,6 +70,7 @@ export default function ColaboradoresPage() {
       if (search) url += `&search=${encodeURIComponent(search)}`;
       if (filtroEstado) url += `&estado=${filtroEstado}`;
       if (filtroTipo) url += `&tipo_colaborador=${filtroTipo}`;
+      if (filtroUnidade) url += `&unidade_id=${filtroUnidade}`;
       const data = await api.get(url);
       setColaboradores(data.dados);
       setPaginacao(data.paginacao);
@@ -82,7 +85,13 @@ export default function ColaboradoresPage() {
   useEffect(() => {
     const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
     return () => clearTimeout(timer);
-  }, [search, filtroEstado, filtroTipo]);
+  }, [search, filtroEstado, filtroTipo, filtroUnidade]);
+
+  useEffect(() => {
+    api.get("/api/unidades?page=1&limit=9999").then(function (data) {
+      setUnidades((data && data.dados) || []);
+    }).catch(function () {});
+  }, []);
 
   useEffect(() => {
     if (!statusDropdown.open) return;
@@ -96,6 +105,7 @@ export default function ColaboradoresPage() {
     nif: "", bi: "", bi_validade: "", id_biometrico: "", telefone: "", email_pessoal: "",
     email_institucional: "", telefone_emergencia: "", tipo_colaborador: "Interno",
     unidade_negocio: "",
+    unidade_id: "",
     estado: "Activo", endereco: "", cidade: "", provincia: "",
     data_nascimento: "", nome_curto: "",
     habilitacoes: "", formacao_academica: "", conta_bancaria: "", banco: "", iban: "",
@@ -381,6 +391,10 @@ export default function ColaboradoresPage() {
   const activeFilters = [];
   if (filtroEstado) activeFilters.push({ label: `Status: ${filtroEstado}`, onClear: () => setFiltroEstado("") });
   if (filtroTipo) activeFilters.push({ label: `Tipo: ${filtroTipo}`, onClear: () => setFiltroTipo("") });
+  if (filtroUnidade) {
+    var unidadeActiva = unidades.find(function (u) { return u.id === filtroUnidade; });
+    activeFilters.push({ label: `Unidade: ${unidadeActiva ? unidadeActiva.nome : filtroUnidade}`, onClear: () => setFiltroUnidade("") });
+  }
 
   const abas = [
     { key: "pessoal", label: "Dados Pessoais", icon: "person" },
@@ -436,7 +450,7 @@ export default function ColaboradoresPage() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full lg:w-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full lg:w-auto">
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Estado</label>
               <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
@@ -449,6 +463,13 @@ export default function ColaboradoresPage() {
               <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                 <option value="">Todos</option>
                 {TIPOS_COLABORADOR.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Unidade</label>
+              <select value={filtroUnidade} onChange={(e) => setFiltroUnidade(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                <option value="">Todas</option>
+                {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
               </select>
             </div>
             <div className="flex items-end pb-0.5">
@@ -468,7 +489,7 @@ export default function ColaboradoresPage() {
                 <button onClick={f.onClear} className="hover:text-error"><span className="material-symbols-outlined text-[14px]">close</span></button>
               </span>
             ))}
-            <button onClick={() => { setFiltroEstado(""); setFiltroTipo(""); setSearch(""); }} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
+            <button onClick={() => { setFiltroEstado(""); setFiltroTipo(""); setFiltroUnidade(""); setSearch(""); }} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
           </div>
         )}
       </section>
@@ -495,7 +516,7 @@ export default function ColaboradoresPage() {
                 <tr><td colSpan={6} className="px-6 py-12 text-center">
                   <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">group</span>
                   <p className="text-on-surface-variant font-medium">Nenhum colaborador encontrado</p>
-                  <p className="text-[13px] text-outline mt-1">Clique em "Novo Colaborador" para adicionar</p>
+                  <p className="text-[13px] text-outline mt-1">Clique em &quot;Novo Colaborador&quot; para adicionar</p>
                 </td></tr>
               ) : (
                 colaboradores.map((c) => (
@@ -737,12 +758,12 @@ export default function ColaboradoresPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Unidade de Negócio</label>
-                    <select name="unidade_negocio" value={form.unidade_negocio || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Unidade</label>
+                    <select name="unidade_id" value={form.unidade_id || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       <option value="">Sem unidade</option>
-                      {UNIDADES_NEGOCIO.map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                      {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
                     </select>
-                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">Usada para processar a folha salarial só desta unidade.</p>
+                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">Unidade organizacional (dentro do sector/secção).</p>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado</label>
@@ -776,7 +797,7 @@ export default function ColaboradoresPage() {
                         );
                       })}
                     </div>
-                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">Marcados = dias em que NÃO trabalha. Quem trabalha ao sábado, desmarque "Sáb". Sem picagem num dia de trabalho, o biómetro marca falta.</p>
+                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">Marcados = dias em que NÃO trabalha. Quem trabalha ao sábado, desmarque &quot;Sáb&quot;. Sem picagem num dia de trabalho, o biómetro marca falta.</p>
                   </div>
                   <div className="sm:col-span-2">
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Observações</label>
@@ -960,6 +981,7 @@ export default function ColaboradoresPage() {
                     ["Nº Segurança Social", colaboradorView.numero_seguranca_social],
                     ["ID Biómetro", colaboradorView.id_biometrico],
                     ["Dias de Descanso", formatarDescanso(colaboradorView.dias_descanso || "0,6")],
+                    ["Unidade", colaboradorView.unidade ? colaboradorView.unidade.nome : null],
                   ].map(function(pair) {
                     return (
                       <div key={pair[0]} className="bg-background/50 rounded-lg p-3 border border-outline-variant/20">
