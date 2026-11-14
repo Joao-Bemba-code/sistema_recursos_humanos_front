@@ -26,6 +26,12 @@ const TIPOS_DEPT = [
   { value: "Gabinete", label: "Gabinete" },
 ];
 
+// Sector e Secção sao o mesmo nivel dentro do departamento.
+const TIPOS_ESTRUTURA = [
+  { value: "Sector", label: "Sector" },
+  { value: "Secção", label: "Secção" },
+];
+
 export default function DepartamentosPage() {
   const [departamentos, setDepartamentos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +61,22 @@ export default function DepartamentosPage() {
   const [msgSeccao, setMsgSeccao] = useState(null);
   const [confirmDeleteSeccao, setConfirmDeleteSeccao] = useState({ open: false, id: null, nome: "" });
   const [colaboradores, setColaboradores] = useState([]);
+
+  // Aba "Sectores e Secções": lista propria, com filtro por departamento e tipo.
+  const [aba, setAba] = useState("departamentos");
+  const [todosDepartamentos, setTodosDepartamentos] = useState([]);
+  const [estruturas, setEstruturas] = useState([]);
+  const [loadingEstruturas, setLoadingEstruturas] = useState(false);
+  const [searchEstrutura, setSearchEstrutura] = useState("");
+  const [filtroDeptEstrutura, setFiltroDeptEstrutura] = useState("");
+  const [filtroTipoEstrutura, setFiltroTipoEstrutura] = useState("");
+  const [paginacaoEstruturas, setPaginacaoEstruturas] = useState({ total: 0, pagina: 1, total_paginas: 1 });
+  const [showModalEstrutura, setShowModalEstrutura] = useState(false);
+  const [editandoEstrutura, setEditandoEstrutura] = useState(null);
+  const [formEstrutura, setFormEstrutura] = useState({});
+  const [savingEstrutura, setSavingEstrutura] = useState(false);
+  const [msgEstrutura, setMsgEstrutura] = useState(null);
+  const [confirmDeleteEstrutura, setConfirmDeleteEstrutura] = useState({ open: false, id: null, nome: "" });
 
   const [showMembrosModal, setShowMembrosModal] = useState(false);
   const [seccaoMembros, setSeccaoMembros] = useState(null);
@@ -98,6 +120,14 @@ export default function DepartamentosPage() {
     }).catch(function () {});
   }, []);
 
+  // Todos os departamentos, para os filtros e para o formulario do sector/secção
+  // (a lista principal e paginada).
+  useEffect(() => {
+    api.get("/api/departamentos?limit=200").then(function (data) {
+      setTodosDepartamentos(data.dados || []);
+    }).catch(function () {});
+  }, []);
+
   const abrirNovo = () => {
     setEditando(null);
     setForm({ nome: "", codigo: "", descricao: "", tipo: "Departamento", responsavel_nome: "", telefone: "", email: "", localizacao: "", activo: true });
@@ -136,6 +166,9 @@ export default function DepartamentosPage() {
       }
       setShowModal(false);
       carregar(paginacao.pagina);
+      api.get("/api/departamentos?limit=200").then(function (data) {
+        setTodosDepartamentos(data.dados || []);
+      }).catch(function () {});
     } catch (e) {
       setMsg({ tipo: "erro", texto: e.message });
     } finally {
@@ -149,6 +182,9 @@ export default function DepartamentosPage() {
       setMsg({ tipo: "sucesso", texto: "Departamento eliminado" });
       setConfirmDelete({ open: false, id: null, nome: "" });
       carregar(paginacao.pagina);
+      api.get("/api/departamentos?limit=200").then(function (data) {
+        setTodosDepartamentos(data.dados || []);
+      }).catch(function () {});
     } catch (e) {
       setMsg({ tipo: "erro", texto: e.message });
     }
@@ -204,7 +240,7 @@ export default function DepartamentosPage() {
 
   const abrirNovaSeccao = () => {
     setEditandoSeccao(null);
-    setFormSeccao({ nome: "", codigo: "", descricao: "", responsavel_id: "", responsavel_nome: "", telefone: "", email: "", localizacao: "", nivel: 1, activo: true });
+    setFormSeccao({ nome: "", tipo: "Secção", codigo: "", descricao: "", responsavel_id: "", responsavel_nome: "", telefone: "", email: "", localizacao: "", nivel: 1, activo: true });
     setShowFormSeccao(true);
     setMsgSeccao(null);
   };
@@ -214,6 +250,7 @@ export default function DepartamentosPage() {
     var colResponsavel = colaboradores.find(c => c.nome_completo === (s.responsavel_nome || ""));
     setFormSeccao({
       nome: s.nome || "",
+      tipo: s.tipo || "Secção",
       codigo: s.codigo || "",
       descricao: s.descricao || "",
       responsavel_id: colResponsavel ? colResponsavel.id : "",
@@ -321,6 +358,111 @@ export default function DepartamentosPage() {
     }
   };
 
+  // ==================== ABA SECTORES E SECÇÕES ====================
+
+  const carregarEstruturas = async (page = 1) => {
+    setLoadingEstruturas(true);
+    try {
+      let url = `/api/seccoes?page=${page}&limit=15`;
+      if (searchEstrutura) url += `&search=${encodeURIComponent(searchEstrutura)}`;
+      if (filtroDeptEstrutura) url += `&departamento_id=${filtroDeptEstrutura}`;
+      if (filtroTipoEstrutura) url += `&tipo=${encodeURIComponent(filtroTipoEstrutura)}`;
+      const data = await api.get(url);
+      setEstruturas(data.dados || []);
+      setPaginacaoEstruturas(data.paginacao || { total: 0, pagina: 1, total_paginas: 1 });
+    } catch (e) {
+      setMsgEstrutura({ tipo: "erro", texto: e.message });
+    } finally {
+      setLoadingEstruturas(false);
+    }
+  };
+
+  useEffect(() => {
+    if (aba !== "estruturas") return;
+    const timer = setTimeout(() => { carregarEstruturas(1); }, searchEstrutura ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [aba, searchEstrutura, filtroDeptEstrutura, filtroTipoEstrutura]);
+
+  const abrirNovaEstrutura = () => {
+    setEditandoEstrutura(null);
+    setFormEstrutura({
+      nome: "", tipo: "Secção", departamento_id: filtroDeptEstrutura || "", codigo: "", descricao: "",
+      responsavel_id: "", responsavel_nome: "", telefone: "", email: "", localizacao: "", nivel: 1, activo: true,
+    });
+    setShowModalEstrutura(true);
+    setMsgEstrutura(null);
+  };
+
+  const abrirEditarEstrutura = (s) => {
+    setEditandoEstrutura(s);
+    var colResponsavel = colaboradores.find(c => c.nome_completo === (s.responsavel_nome || ""));
+    setFormEstrutura({
+      nome: s.nome || "",
+      tipo: s.tipo || "Secção",
+      departamento_id: s.departamento_id || "",
+      codigo: s.codigo || "",
+      descricao: s.descricao || "",
+      responsavel_id: colResponsavel ? colResponsavel.id : "",
+      responsavel_nome: s.responsavel_nome || "",
+      telefone: s.telefone || "",
+      email: s.email || "",
+      localizacao: s.localizacao || "",
+      nivel: s.nivel || 1,
+      activo: s.activo !== false,
+    });
+    setShowModalEstrutura(true);
+    setMsgEstrutura(null);
+  };
+
+  const handleEstruturaInput = (e) => {
+    setFormEstrutura({ ...formEstrutura, [e.target.name]: e.target.value });
+  };
+
+  const handleResponsavelEstruturaChange = (e) => {
+    var id = e.target.value;
+    var col = colaboradores.find(c => c.id === id);
+    setFormEstrutura({ ...formEstrutura, responsavel_id: id, responsavel_nome: col ? col.nome_completo : "" });
+  };
+
+  const guardarEstrutura = async (e) => {
+    e.preventDefault();
+    if (!formEstrutura.departamento_id) {
+      setMsgEstrutura({ tipo: "erro", texto: "Selecione o departamento" });
+      return;
+    }
+    setSavingEstrutura(true);
+    setMsgEstrutura(null);
+    try {
+      const { responsavel_id, ...dados } = formEstrutura;
+      if (editandoEstrutura) {
+        await api.put(`/api/seccoes/${editandoEstrutura.id}`, dados);
+      } else {
+        await api.post("/api/seccoes", dados);
+      }
+      setShowModalEstrutura(false);
+      await carregarEstruturas(editandoEstrutura ? paginacaoEstruturas.pagina : 1);
+    } catch (e) {
+      setMsgEstrutura({ tipo: "erro", texto: e.message });
+    } finally {
+      setSavingEstrutura(false);
+    }
+  };
+
+  const eliminarEstrutura = async () => {
+    try {
+      await api.delete(`/api/seccoes/${confirmDeleteEstrutura.id}`);
+      setConfirmDeleteEstrutura({ open: false, id: null, nome: "" });
+      await carregarEstruturas(paginacaoEstruturas.pagina);
+    } catch (e) {
+      setMsgEstrutura({ tipo: "erro", texto: e.message });
+    }
+  };
+
+  const nomeDepartamento = (id) => {
+    var d = todosDepartamentos.find(x => x.id === id);
+    return d ? d.nome : "";
+  };
+
   const membrosDisponiveis = colaboradores.filter(c => !membros.some(m => m.colaborador_id === c.id));
 
   const tipoLabel = (v) => (TIPOS_DEPT.find(t => t.value === v) || {}).label || v || "—";
@@ -333,7 +475,7 @@ export default function DepartamentosPage() {
     var ph = doc.internal.pageSize.getHeight();
 
     var logoImg = null;
-    var logoUrl = imageUrl("/uploads/logos/logo_default.jpg");
+    var logoUrl = org && org.logo_url ? imageUrl(org.logo_url) : "";
 
     var seccoes = [];
     var membrosMap = {};
@@ -500,7 +642,7 @@ export default function DepartamentosPage() {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
-      doc.text((org && org.nome ? org.nome : "CENFFOR") + " - SGHR | Gerado: " + new Date().toLocaleDateString("pt-AO"), pw / 2, fY, { align: "center" });
+      doc.text((org && org.nome ? org.nome : "SGHR") + " - SGHR | Gerado: " + new Date().toLocaleDateString("pt-AO"), pw / 2, fY, { align: "center" });
 
       doc.save("Departamento_" + (d.nome || "ficha") + ".pdf");
     };
@@ -556,6 +698,16 @@ export default function DepartamentosPage() {
         onConfirm={eliminarSeccao}
         onCancel={() => setConfirmDeleteSeccao({ open: false, id: null, nome: "" })}
       />
+      <ConfirmDialog
+        open={confirmDeleteEstrutura.open}
+        titulo={"Eliminar " + (confirmDeleteEstrutura.tipo || "sector/secção")}
+        mensagem={`Tem certeza que deseja eliminar "${confirmDeleteEstrutura.nome}"? Esta ação não pode ser desfeita.`}
+        textoConfirmar="Sim, Eliminar"
+        textoCancelar="Cancelar"
+        variante="perigo"
+        onConfirm={eliminarEstrutura}
+        onCancel={() => setConfirmDeleteEstrutura({ open: false, id: null, nome: "" })}
+      />
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <nav className="flex items-center gap-2 text-[12px] text-on-surface-variant/60 font-medium uppercase tracking-wide">
@@ -566,12 +718,30 @@ export default function DepartamentosPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight">Estrutura Organizacional</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
-            <span className="material-symbols-outlined text-[18px]">add_circle</span>
-            Novo Departamento
+          <button
+            onClick={aba === "estruturas" ? abrirNovaEstrutura : abrirNovo}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+          >
+            <span className="material-symbols-outlined text-[18px]">{aba === "estruturas" ? "layers" : "add_circle"}</span>
+            {aba === "estruturas" ? "Novo Sector/Secção" : "Novo Departamento"}
           </button>
         </div>
       </section>
+
+      <div className="flex flex-wrap items-center gap-1 p-1 bg-surface-container/60 rounded-lg w-fit max-w-full">
+        <button
+          onClick={() => setAba("departamentos")}
+          className={`px-4 py-2 rounded-md text-[13px] font-semibold transition-colors ${aba === "departamentos" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
+        >
+          Departamentos
+        </button>
+        <button
+          onClick={() => setAba("estruturas")}
+          className={`px-4 py-2 rounded-md text-[13px] font-semibold transition-colors ${aba === "estruturas" ? "bg-surface text-primary shadow-sm" : "text-on-surface-variant hover:text-on-surface"}`}
+        >
+          Sectores e Secções
+        </button>
+      </div>
 
       {msg && (
         <div className={`p-3 rounded-lg text-[13px] font-medium flex items-center gap-2 ${msg.tipo === "sucesso" ? "badge-success border border-success/10" : "badge-danger border border-error/10"}`}>
@@ -583,6 +753,7 @@ export default function DepartamentosPage() {
         </div>
       )}
 
+      {aba === "departamentos" && (<>
       <section className="glass-panel p-5 rounded-xl border border-outline-variant/30 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-4 items-end">
           <div className="flex-grow space-y-2 w-full lg:w-auto">
@@ -658,7 +829,7 @@ export default function DepartamentosPage() {
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">apartment</span>
                     <p className="text-on-surface-variant font-medium">Nenhum departamento encontrado</p>
-                    <p className="text-[13px] text-outline mt-1">Clique em "Novo Departamento" para adicionar</p>
+                    <p className="text-[13px] text-outline mt-1">Clique em &quot;Novo Departamento&quot; para adicionar</p>
                   </td>
                 </tr>
               ) : (
@@ -728,6 +899,169 @@ export default function DepartamentosPage() {
           )}
         </div>
       </section>
+      </>)}
+
+      {aba === "estruturas" && (<>
+        <section className="glass-panel p-5 rounded-xl border border-outline-variant/30 shadow-sm">
+          <div className="flex flex-col lg:flex-row gap-4 items-end">
+            <div className="flex-grow space-y-2 w-full lg:w-auto">
+              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Buscar sector ou secção</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+                <input
+                  type="text"
+                  placeholder="Nome, código ou responsável..."
+                  value={searchEstrutura}
+                  onChange={(e) => setSearchEstrutura(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-background border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-[14px]"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full lg:w-auto">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Departamento</label>
+                <select value={filtroDeptEstrutura} onChange={(e) => setFiltroDeptEstrutura(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                  <option value="">Todos</option>
+                  {todosDepartamentos.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Tipo</label>
+                <select value={filtroTipoEstrutura} onChange={(e) => setFiltroTipoEstrutura(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                  <option value="">Todos</option>
+                  {TIPOS_ESTRUTURA.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+          {(searchEstrutura || filtroDeptEstrutura || filtroTipoEstrutura) && (
+            <div className="mt-4 pt-4 border-t border-outline-variant/20 flex flex-wrap items-center gap-2">
+              <span className="text-[12px] text-on-surface-variant/60 font-medium mr-1">Filtros ativos:</span>
+              {filtroDeptEstrutura && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
+                  Departamento: {nomeDepartamento(filtroDeptEstrutura)}
+                  <button onClick={() => setFiltroDeptEstrutura("")} className="hover:text-error">
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </span>
+              )}
+              {filtroTipoEstrutura && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-primary/5 text-primary border border-primary/10 rounded-full text-[11px] font-bold uppercase">
+                  Tipo: {filtroTipoEstrutura}
+                  <button onClick={() => setFiltroTipoEstrutura("")} className="hover:text-error">
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </span>
+              )}
+              <button onClick={() => { setSearchEstrutura(""); setFiltroDeptEstrutura(""); setFiltroTipoEstrutura(""); }} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
+            </div>
+          )}
+        </section>
+
+        {msgEstrutura && (
+          <div className={`p-3 rounded-lg text-[13px] font-medium flex items-center gap-2 ${msgEstrutura.tipo === "sucesso" ? "badge-success border border-success/10" : "badge-danger border border-error/10"}`}>
+            <span className="material-symbols-outlined text-[18px]">{msgEstrutura.tipo === "sucesso" ? "check_circle" : "error"}</span>
+            {msgEstrutura.texto}
+            <button onClick={() => setMsgEstrutura(null)} className="ml-auto hover:opacity-60">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+        )}
+
+        <section className="bg-surface rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse data-grid-tight">
+              <thead>
+                <tr className="bg-background/50 border-b border-outline-variant/20">
+                  <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Nome</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Tipo</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Departamento</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Responsável</th>
+                  <th className="px-4 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-4 font-bold text-on-surface-variant/70 uppercase tracking-wider text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {loadingEstruturas ? (
+                  [1,2,3,4,5].map(i => (
+                    <tr key={i}>
+                      <td colSpan={6} className="px-6 py-4">
+                        <div className="animate-pulse h-10 bg-surface-container rounded-lg" />
+                      </td>
+                    </tr>
+                  ))
+                ) : estruturas.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">layers</span>
+                      <p className="text-on-surface-variant font-medium">Nenhum sector ou secção encontrado</p>
+                      <p className="text-[13px] text-outline mt-1">
+                        {(searchEstrutura || filtroDeptEstrutura || filtroTipoEstrutura) ? "Altere os filtros ou limpe-os." : "Crie o primeiro com o botão \"Novo Sector/Secção\"."}
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  estruturas.map((s) => (
+                    <tr key={s.id} className="hover:bg-primary/[0.02] transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-on-surface">{s.nome}</span>
+                          <span className="text-[12px] text-on-surface-variant/70">{s.codigo || ""}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider badge-secondary">
+                          {s.tipo || "Secção"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-on-surface">{(s.departamento && s.departamento.nome) || "—"}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-on-surface">{s.responsavel_nome || "—"}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`inline-flex items-center w-fit gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${s.activo ? "badge-success" : "badge-secondary"}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${s.activo ? "bg-success" : "bg-outline"}`} />
+                          {s.activo ? "Ativo" : "Inativo"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end">
+                          <button onClick={() => abrirMembros(s)} className="p-[3px] text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-all" title="Pessoas">
+                            <span className="material-symbols-outlined text-[15px]">groups</span>
+                          </button>
+                          <button onClick={() => abrirEditarEstrutura(s)} className="p-[3px] text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded transition-all" title="Editar">
+                            <span className="material-symbols-outlined text-[15px]">edit</span>
+                          </button>
+                          <button onClick={() => setConfirmDeleteEstrutura({ open: true, id: s.id, nome: s.nome, tipo: s.tipo })} className="p-[3px] text-on-surface-variant hover:text-error hover:bg-error/10 rounded transition-all" title="Eliminar">
+                            <span className="material-symbols-outlined text-[15px]">delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="px-6 py-4 border-t border-outline-variant/10 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-[12px] font-semibold text-on-surface-variant/70 uppercase tracking-wide">
+              Exibindo {estruturas.length} de {paginacaoEstruturas.total} sectores/secções
+            </div>
+            {paginacaoEstruturas.total_paginas > 1 && (
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: Math.min(paginacaoEstruturas.total_paginas, 5) }, (_, i) => i + 1).map((p) => (
+                  <button key={p} onClick={() => carregarEstruturas(p)} className={`w-8 h-8 rounded-lg text-[13px] font-medium transition-all ${p === paginacaoEstruturas.pagina ? "bg-primary text-white font-bold" : "hover:bg-primary/5 text-on-surface-variant"}`}>
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </>)}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -930,7 +1264,7 @@ export default function DepartamentosPage() {
           <div className="relative bg-surface rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-outline-variant/30">
             <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-xl flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-on-surface tracking-tight">Secções do Departamento</h3>
+                <h3 className="text-lg font-bold text-on-surface tracking-tight">Sectores e Secções do Departamento</h3>
                 <p className="text-[13px] text-on-surface-variant/70">{deptSeccoes.nome}{deptSeccoes.codigo ? " · " + deptSeccoes.codigo : ""}</p>
               </div>
               <button onClick={() => setShowSeccoesModal(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
@@ -951,11 +1285,11 @@ export default function DepartamentosPage() {
 
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[12px] font-semibold text-on-surface-variant/70 uppercase tracking-wide">
-                  {seccoes.length} secção(ões) definida(s)
+                  {seccoes.length} sector(es)/secção(ões) definido(s)
                 </p>
                 <button onClick={abrirNovaSeccao} className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-sm hover:bg-primary/90 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                  Nova Secção
+                  Novo Sector/Secção
                 </button>
               </div>
 
@@ -983,8 +1317,8 @@ export default function DepartamentosPage() {
                       <tr>
                         <td colSpan={5} className="px-5 py-10 text-center">
                           <span className="material-symbols-outlined text-[40px] text-outline-variant/40 block mb-2">layers</span>
-                          <p className="text-on-surface-variant font-medium">Nenhuma secção definida</p>
-                          <p className="text-[13px] text-outline mt-1">Clique em &quot;Nova Secção&quot; para adicionar</p>
+                          <p className="text-on-surface-variant font-medium">Nenhum sector ou secção definido</p>
+                          <p className="text-[13px] text-outline mt-1">Clique em &quot;Novo Sector/Secção&quot; para adicionar</p>
                         </td>
                       </tr>
                     ) : (
@@ -993,7 +1327,7 @@ export default function DepartamentosPage() {
                           <td className="px-5 py-3">
                             <div className="flex flex-col">
                               <span className="font-bold text-on-surface">{s.nome}</span>
-                              <span className="text-[12px] text-on-surface-variant/70">{s.codigo || ""}</span>
+                              <span className="text-[12px] text-on-surface-variant/70">{[s.tipo || "Secção", s.codigo].filter(Boolean).join(" · ")}</span>
                             </div>
                           </td>
                           <td className="px-3 py-3">
@@ -1037,7 +1371,7 @@ export default function DepartamentosPage() {
           <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowFormSeccao(false)} />
           <div className="relative bg-surface shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant/30 rounded-t-2xl sm:rounded-xl">
             <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-2xl sm:rounded-t-xl flex items-center justify-between">
-              <h3 className="text-lg font-bold text-on-surface tracking-tight">{editandoSeccao ? "Editar Secção" : "Nova Secção"}</h3>
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">{editandoSeccao ? "Editar Sector/Secção" : "Novo Sector/Secção"}</h3>
               <button onClick={() => setShowFormSeccao(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -1047,6 +1381,12 @@ export default function DepartamentosPage() {
                 <div className="sm:col-span-2">
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nome *</label>
                   <input name="nome" value={formSeccao.nome || ""} onChange={handleSeccaoInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Tipo *</label>
+                  <select name="tipo" value={formSeccao.tipo || "Secção"} onChange={handleSeccaoInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    {TIPOS_ESTRUTURA.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Código</label>
@@ -1086,7 +1426,90 @@ export default function DepartamentosPage() {
                 <button type="button" onClick={() => setShowFormSeccao(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
                 <button type="submit" disabled={savingSeccao} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
                   <span className="material-symbols-outlined text-[18px]">{savingSeccao ? "hourglass_empty" : "save"}</span>
-                  {savingSeccao ? "A guardar..." : editandoSeccao ? "Atualizar" : "Criar Secção"}
+                  {savingSeccao ? "A guardar..." : editandoSeccao ? "Atualizar" : "Criar Sector/Secção"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showModalEstrutura && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="fixed inset-0 bg-scrim/40" onClick={() => setShowModalEstrutura(false)} />
+          <div className="relative bg-surface shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant/30 rounded-t-2xl sm:rounded-xl">
+            <div className="sticky top-0 bg-surface/80 backdrop-blur-md px-6 py-4 border-b border-outline-variant/20 rounded-t-2xl sm:rounded-t-xl flex items-center justify-between">
+              <h3 className="text-lg font-bold text-on-surface tracking-tight">{editandoEstrutura ? "Editar Sector/Secção" : "Novo Sector/Secção"}</h3>
+              <button onClick={() => setShowModalEstrutura(false)} className="p-1.5 rounded-lg text-on-surface-variant hover:bg-black/5 transition-colors">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={guardarEstrutura} className="p-6 space-y-4">
+              {msgEstrutura && (
+                <div className={`p-3 rounded-lg text-[13px] font-medium flex items-center gap-2 ${msgEstrutura.tipo === "sucesso" ? "badge-success border border-success/10" : "badge-danger border border-error/10"}`}>
+                  <span className="material-symbols-outlined text-[18px]">{msgEstrutura.tipo === "sucesso" ? "check_circle" : "error"}</span>
+                  {msgEstrutura.texto}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Tipo *</label>
+                  <select name="tipo" value={formEstrutura.tipo || "Secção"} onChange={handleEstruturaInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    {TIPOS_ESTRUTURA.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Departamento *</label>
+                  <select name="departamento_id" value={formEstrutura.departamento_id || ""} onChange={handleEstruturaInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    <option value="">Selecionar departamento</option>
+                    {todosDepartamentos.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nome *</label>
+                  <input name="nome" value={formEstrutura.nome || ""} onChange={handleEstruturaInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Código</label>
+                  <input name="codigo" value={formEstrutura.codigo || ""} onChange={handleEstruturaInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Nível</label>
+                  <input name="nivel" type="number" min="1" value={formEstrutura.nivel || ""} onChange={handleEstruturaInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Responsável</label>
+                  <select name="responsavel_id" value={formEstrutura.responsavel_id || ""} onChange={handleResponsavelEstruturaChange} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
+                    <option value="">Selecionar colaborador</option>
+                    {colaboradores.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome_completo}{c.numero_colaborador ? " (" + c.numero_colaborador + ")" : ""}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Telefone</label>
+                  <input name="telefone" value={formEstrutura.telefone || ""} onChange={handleEstruturaInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Email</label>
+                  <input name="email" type="email" value={formEstrutura.email || ""} onChange={handleEstruturaInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Localização</label>
+                  <input name="localizacao" value={formEstrutura.localizacao || ""} onChange={handleEstruturaInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Descrição</label>
+                  <textarea name="descricao" value={formEstrutura.descricao || ""} onChange={handleEstruturaInput} rows={3} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant/20">
+                <button type="button" onClick={() => setShowModalEstrutura(false)} className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-black/5 transition-colors">Cancelar</button>
+                <button type="submit" disabled={savingEstrutura} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all active:scale-95">
+                  <span className="material-symbols-outlined text-[18px]">{savingEstrutura ? "hourglass_empty" : "save"}</span>
+                  {savingEstrutura ? "A guardar..." : editandoEstrutura ? "Atualizar" : "Criar Sector/Secção"}
                 </button>
               </div>
             </form>
