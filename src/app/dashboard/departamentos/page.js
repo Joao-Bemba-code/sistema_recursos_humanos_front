@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Fragment } from "react";
 import api from "@/lib/api";
+import { agruparUnidadesPorDepartamento } from "@/lib/unidades";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -946,7 +947,13 @@ export default function DepartamentosPage() {
               <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Unidade</label>
               <select value={filtroUnidadeId} onChange={(e) => setFiltroUnidadeId(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                 <option value="">Todas</option>
-                {unidadesDoFiltro.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                {agruparUnidadesPorDepartamento(unidadesDoFiltro).map(function (g) {
+                  return (
+                    <optgroup key={g.id} label={g.nome}>
+                      {g.unidades.map(u => <option key={g.id + "_" + u.id} value={u.id}>{u.nome}</option>)}
+                    </optgroup>
+                  );
+                })}
               </select>
             </div>
           </div>

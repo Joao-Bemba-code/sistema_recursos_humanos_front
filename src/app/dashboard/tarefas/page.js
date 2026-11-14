@@ -5,6 +5,7 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { formatDate, formatDateTime } from "@/lib/helpers";
+import { unidadesDoDepartamento, agruparUnidadesPorDepartamento } from "@/lib/unidades";
 import Modal from "@/components/ui/Modal";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import Button from "@/components/ui/Button";
@@ -117,7 +118,7 @@ var NOMES_GESTOR = [
   "tecnico de rh",
 ];
 
-var FILTROS_VAZIOS = { search: "", estado: "", prioridade: "", colaborador_id: "", unidade_id: "", atrasadas: false };
+var FILTROS_VAZIOS = { search: "", estado: "", prioridade: "", colaborador_id: "", departamento_id: "", unidade_id: "", atrasadas: false };
 
 var CAMPO =
   "w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30 focus:bring-primary/50 focus:border-primary/50";
@@ -367,6 +368,7 @@ export default function TarefasPage() {
   var [loading, setLoading] = useState(true);
   var [colaboradores, setColaboradores] = useState([]);
   var [unidades, setUnidades] = useState([]);
+  var [departamentos, setDepartamentos] = useState([]);
   var [agora, setAgora] = useState(function () { return Date.now(); });
   var [visualizacao, setVisualizacao] = useState("tabela");
   var [arrastando, setArrastando] = useState(null); // cartao do kanban em arrasto {t, aloc, de}
@@ -402,7 +404,10 @@ export default function TarefasPage() {
   var carregarStats = async function () {
     try {
       var urlStats = "/api/tarefas/estatisticas";
-      if (filtros.unidade_id) urlStats += "?unidade_id=" + filtros.unidade_id;
+      var paramsStats = [];
+      if (filtros.unidade_id) paramsStats.push("unidade_id=" + filtros.unidade_id);
+      if (filtros.departamento_id) paramsStats.push("departamento_id=" + filtros.departamento_id);
+      if (paramsStats.length > 0) urlStats += "?" + paramsStats.join("&");
       var data = await api.get(urlStats);
       if (data && data.dados) setStats(data.dados);
     } catch (e) { /* manter estatisticas anteriores */ }
@@ -416,7 +421,10 @@ export default function TarefasPage() {
       if (filtros.estado) url += "&estado=" + filtros.estado;
       if (filtros.prioridade) url += "&prioridade=" + filtros.prioridade;
       if (filtros.colaborador_id) url += "&colaborador_id=" + filtros.colaborador_id;
-      else if (filtros.unidade_id) url += "&unidade_id=" + filtros.unidade_id;
+      else {
+        if (filtros.unidade_id) url += "&unidade_id=" + filtros.unidade_id;
+        if (filtros.departamento_id) url += "&departamento_id=" + filtros.departamento_id;
+      }
       if (filtros.atrasadas) url += "&atrasadas=true";
       var data = await api.get(url);
       setTarefas((data && data.dados) || []);
@@ -443,10 +451,29 @@ export default function TarefasPage() {
     } catch (e) { /* lista vazia */ }
   };
 
+  var carregarDepartamentos = async function () {
+    try {
+      var data = await api.get("/api/departamentos?limit=9999");
+      setDepartamentos((data && data.dados) || []);
+    } catch (e) { /* lista vazia */ }
+  };
+
+  var escolherDepartamento = function (id) {
+    setFiltros(function (actual) {
+      var novo = Object.assign({}, actual, { departamento_id: id });
+      if (id) {
+        var permitidas = unidadesDoDepartamento(unidades, id).map(function (u) { return u.id; });
+        if (novo.unidade_id && permitidas.indexOf(novo.unidade_id) === -1) novo.unidade_id = "";
+      }
+      return novo;
+    });
+  };
+
   useEffect(function () {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (ehGestor) carregarColaboradores();
     if (ehGestor) carregarUnidades();
+    if (ehGestor) carregarDepartamentos();
   }, [ehGestor]);
 
   useEffect(function () {
@@ -977,7 +1004,7 @@ export default function TarefasPage() {
     { titulo: "Atrasadas", valor: stats ? stats.atrasadas : "…", cor: "text-red-600" },
   ];
 
-  var temFiltros = filtros.search || filtros.estado || filtros.prioridade || filtros.colaborador_id || filtros.unidade_id || filtros.atrasadas;
+  var temFiltros = filtros.search || filtros.estado || filtros.prioridade || filtros.colaborador_id || filtros.departamento_id || filtros.unidade_id || filtros.atrasadas;
 
   // Cartoes do Kanban: uma alocacao por cartao (tarefa + colaborador).
   // Para o colaborador o backend ja devolve apenas as proprias alocacoes;
@@ -1063,7 +1090,7 @@ export default function TarefasPage() {
       </section>
 
       <Toolbar>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 w-full">
           <div className="lg:col-span-2">
             <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Pesquisar</label>
             <input
@@ -1100,6 +1127,21 @@ export default function TarefasPage() {
           </div>
           {ehGestor && (
             <div>
+              <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Departamento</label>
+              <select
+                value={filtros.departamento_id}
+                onChange={function (e) { escolherDepartamento(e.target.value); }}
+                className={CAMPO}
+              >
+                <option value="">Todos</option>
+                {departamentos.map(function (d) {
+                  return <option key={d.id} value={d.id}>{d.nome}</option>;
+                })}
+              </select>
+            </div>
+          )}
+          {ehGestor && (
+            <div>
               <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Unidade</label>
               <select
                 value={filtros.unidade_id}
@@ -1107,8 +1149,14 @@ export default function TarefasPage() {
                 className={CAMPO}
               >
                 <option value="">Todas</option>
-                {unidades.map(function (u) {
-                  return <option key={u.id} value={u.id}>{u.nome}</option>;
+                {agruparUnidadesPorDepartamento(unidadesDoDepartamento(unidades, filtros.departamento_id)).map(function (g) {
+                  return (
+                    <optgroup key={g.id} label={g.nome}>
+                      {g.unidades.map(function (u) {
+                        return <option key={g.id + "_" + u.id} value={u.id}>{u.nome}</option>;
+                      })}
+                    </optgroup>
+                  );
                 })}
               </select>
             </div>

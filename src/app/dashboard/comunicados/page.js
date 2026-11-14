@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { unidadesDoDepartamento, agruparUnidadesPorDepartamento } from "@/lib/unidades";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -26,6 +27,7 @@ export default function ComunicadosPage() {
   const [search, setSearch] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
   const [filtroUnidade, setFiltroUnidade] = useState("");
+  const [filtroDepartamento, setFiltroDepartamento] = useState("");
   const [paginacao, setPaginacao] = useState({ total: 0, pagina: 1, total_paginas: 1 });
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -61,6 +63,7 @@ export default function ComunicadosPage() {
       let url = `/api/comunicados?page=${page}&limit=15`;
       if (search) url += `&search=${encodeURIComponent(search)}`;
       if (filtroTipo) url += `&tipo=${filtroTipo}`;
+      if (filtroDepartamento) url += `&departamento_id=${filtroDepartamento}`;
       if (filtroUnidade) url += `&unidade_id=${filtroUnidade}`;
       const data = await api.get(url);
       setComunicados(data.dados);
@@ -76,7 +79,15 @@ export default function ComunicadosPage() {
   useEffect(() => {
     const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
     return () => clearTimeout(timer);
-  }, [search, filtroTipo, filtroUnidade]);
+  }, [search, filtroTipo, filtroDepartamento, filtroUnidade]);
+
+  const escolherDepartamentoFiltro = (id) => {
+    setFiltroDepartamento(id);
+    if (id) {
+      var permitidas = unidadesDoDepartamento(unidades, id).map(function (u) { return u.id; });
+      if (filtroUnidade && permitidas.indexOf(filtroUnidade) === -1) setFiltroUnidade("");
+    }
+  };
 
   useEffect(() => {
     api.get("/api/comunicados/destinatarios").then(function (data) {
@@ -311,7 +322,7 @@ export default function ComunicadosPage() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 w-full lg:w-auto">
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Tipo</label>
               <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
@@ -321,10 +332,25 @@ export default function ComunicadosPage() {
             </div>
             {canManage && (
               <div className="space-y-2">
+                <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Departamento</label>
+                <select value={filtroDepartamento} onChange={(e) => escolherDepartamentoFiltro(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                  <option value="">Todos</option>
+                  {departamentos.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                </select>
+              </div>
+            )}
+            {canManage && (
+              <div className="space-y-2">
                 <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Unidade</label>
                 <select value={filtroUnidade} onChange={(e) => setFiltroUnidade(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                   <option value="">Todas</option>
-                  {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                  {agruparUnidadesPorDepartamento(unidadesDoDepartamento(unidades, filtroDepartamento)).map(function (g) {
+                    return (
+                      <optgroup key={g.id} label={g.nome}>
+                        {g.unidades.map(u => <option key={g.id + "_" + u.id} value={u.id}>{u.nome}</option>)}
+                      </optgroup>
+                    );
+                  })}
                 </select>
               </div>
             )}
@@ -508,7 +534,13 @@ export default function ComunicadosPage() {
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Unidade *</label>
                     <select name="unidade_id" value={form.unidade_id || ""} onChange={handleInput} required className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       <option value="">Selecionar unidade...</option>
-                      {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}{u.codigo && u.codigo !== u.nome ? " · " + u.codigo : ""}</option>)}
+                      {agruparUnidadesPorDepartamento(unidades).map(function (g) {
+                        return (
+                          <optgroup key={g.id} label={g.nome}>
+                            {g.unidades.map(u => <option key={g.id + "_" + u.id} value={u.id}>{u.nome}{u.codigo && u.codigo !== u.nome ? " · " + u.codigo : ""}</option>)}
+                          </optgroup>
+                        );
+                      })}
                     </select>
                     <p className="text-[11px] text-on-surface-variant/60 mt-1">Todos os colaboradores ligados a esta unidade vêem o comunicado.</p>
                   </div>

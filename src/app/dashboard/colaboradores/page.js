@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import helpers from "@/lib/helpers";
 import { ESTADOS_COLABORADOR, TIPOS_COLABORADOR, GENEROS, ESTADOS_CIVIS } from "@/lib/constants";
+import { unidadesDoDepartamento, agruparUnidadesPorDepartamento } from "@/lib/unidades";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -47,7 +48,9 @@ export default function ColaboradoresPage() {
   const [filtroEstado, setFiltroEstado] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
   const [filtroUnidade, setFiltroUnidade] = useState("");
+  const [filtroDepartamento, setFiltroDepartamento] = useState("");
   const [unidades, setUnidades] = useState([]);
+  const [departamentos, setDepartamentos] = useState([]);
   const [paginacao, setPaginacao] = useState({ total: 0, pagina: 1, total_paginas: 1 });
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState(null);
@@ -70,6 +73,7 @@ export default function ColaboradoresPage() {
       if (search) url += `&search=${encodeURIComponent(search)}`;
       if (filtroEstado) url += `&estado=${filtroEstado}`;
       if (filtroTipo) url += `&tipo_colaborador=${filtroTipo}`;
+      if (filtroDepartamento) url += `&departamento_id=${filtroDepartamento}`;
       if (filtroUnidade) url += `&unidade_id=${filtroUnidade}`;
       const data = await api.get(url);
       setColaboradores(data.dados);
@@ -85,13 +89,24 @@ export default function ColaboradoresPage() {
   useEffect(() => {
     const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
     return () => clearTimeout(timer);
-  }, [search, filtroEstado, filtroTipo, filtroUnidade]);
+  }, [search, filtroEstado, filtroTipo, filtroDepartamento, filtroUnidade]);
 
   useEffect(() => {
     api.get("/api/unidades?page=1&limit=9999").then(function (data) {
       setUnidades((data && data.dados) || []);
     }).catch(function () {});
+    api.get("/api/departamentos?limit=9999").then(function (data) {
+      setDepartamentos((data && data.dados) || []);
+    }).catch(function () {});
   }, []);
+
+  var escolherDepartamento = function (id) {
+    setFiltroDepartamento(id);
+    if (id) {
+      var permitidas = unidadesDoDepartamento(unidades, id).map(function (u) { return u.id; });
+      if (filtroUnidade && permitidas.indexOf(filtroUnidade) === -1) setFiltroUnidade("");
+    }
+  };
 
   useEffect(() => {
     if (!statusDropdown.open) return;
@@ -391,6 +406,10 @@ export default function ColaboradoresPage() {
   const activeFilters = [];
   if (filtroEstado) activeFilters.push({ label: `Status: ${filtroEstado}`, onClear: () => setFiltroEstado("") });
   if (filtroTipo) activeFilters.push({ label: `Tipo: ${filtroTipo}`, onClear: () => setFiltroTipo("") });
+  if (filtroDepartamento) {
+    var departamentoActivo = departamentos.find(function (d) { return d.id === filtroDepartamento; });
+    activeFilters.push({ label: `Departamento: ${departamentoActivo ? departamentoActivo.nome : filtroDepartamento}`, onClear: () => escolherDepartamento("") });
+  }
   if (filtroUnidade) {
     var unidadeActiva = unidades.find(function (u) { return u.id === filtroUnidade; });
     activeFilters.push({ label: `Unidade: ${unidadeActiva ? unidadeActiva.nome : filtroUnidade}`, onClear: () => setFiltroUnidade("") });
@@ -450,7 +469,7 @@ export default function ColaboradoresPage() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full lg:w-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 w-full lg:w-auto">
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Estado</label>
               <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
@@ -466,10 +485,23 @@ export default function ColaboradoresPage() {
               </select>
             </div>
             <div className="space-y-2">
+              <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Departamento</label>
+              <select value={filtroDepartamento} onChange={(e) => escolherDepartamento(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
+                <option value="">Todos</option>
+                {departamentos.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
               <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1">Unidade</label>
               <select value={filtroUnidade} onChange={(e) => setFiltroUnidade(e.target.value)} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[13px] focus:ring-2 focus:ring-primary/20">
                 <option value="">Todas</option>
-                {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                {agruparUnidadesPorDepartamento(unidadesDoDepartamento(unidades, filtroDepartamento)).map(function (g) {
+                  return (
+                    <optgroup key={g.id} label={g.nome}>
+                      {g.unidades.map(u => <option key={g.id + "_" + u.id} value={u.id}>{u.nome}</option>)}
+                    </optgroup>
+                  );
+                })}
               </select>
             </div>
             <div className="flex items-end pb-0.5">
@@ -489,7 +521,7 @@ export default function ColaboradoresPage() {
                 <button onClick={f.onClear} className="hover:text-error"><span className="material-symbols-outlined text-[14px]">close</span></button>
               </span>
             ))}
-            <button onClick={() => { setFiltroEstado(""); setFiltroTipo(""); setFiltroUnidade(""); setSearch(""); }} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
+            <button onClick={() => { setFiltroEstado(""); setFiltroTipo(""); setFiltroDepartamento(""); setFiltroUnidade(""); setSearch(""); }} className="text-[11px] font-bold text-primary hover:underline ml-2 uppercase tracking-wide">Limpar Tudo</button>
           </div>
         )}
       </section>
@@ -761,9 +793,15 @@ export default function ColaboradoresPage() {
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Unidade</label>
                     <select name="unidade_id" value={form.unidade_id || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20">
                       <option value="">Sem unidade</option>
-                      {unidades.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                      {agruparUnidadesPorDepartamento(unidades).map(function (g) {
+                        return (
+                          <optgroup key={g.id} label={g.nome}>
+                            {g.unidades.map(u => <option key={g.id + "_" + u.id} value={u.id}>{u.nome}</option>)}
+                          </optgroup>
+                        );
+                      })}
                     </select>
-                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">Unidade organizacional (dentro do sector/secção).</p>
+                    <p className="text-[11px] text-on-surface-variant/60 px-1 mt-1.5">Unidade organizacional (dentro do sector/secção), agrupada por departamento.</p>
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Estado</label>
