@@ -4,6 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
+// Conta da plataforma vai para a area de plataforma; colaborador para o
+// portal; os restantes para o painel da sua organizacao.
+function destinoDe(u) {
+  if (u && u.super_admin) return "/plataforma";
+  const perfilNome = u && u.perfil ? u.perfil.nome : "";
+  return perfilNome === "Colaborador" ? "/dashboard/portal" : "/dashboard";
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const auth = useAuth();
@@ -16,10 +24,9 @@ export default function LoginForm() {
 
   useEffect(() => {
     if (auth && auth.isAuthenticated && auth.utilizador && !loading) {
-      const perfilNome = auth.utilizador.perfil ? auth.utilizador.perfil.nome : "";
-      router.replace(perfilNome === "Colaborador" ? "/dashboard/portal" : "/dashboard");
+      router.replace(destinoDe(auth.utilizador));
     }
-  }, [auth, router]);
+  }, [auth, router, loading]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,11 +35,7 @@ export default function LoginForm() {
     try {
       if (login) {
         const response = await login(email, password);
-        const perfilNome =
-          response.utilizador && response.utilizador.perfil
-            ? response.utilizador.perfil.nome
-            : "";
-        router.push(perfilNome === "Colaborador" ? "/dashboard/portal" : "/dashboard");
+        router.push(destinoDe(response.utilizador));
       }
     } catch (err) {
       setError(err.message || "Credenciais inválidas");
@@ -54,7 +57,7 @@ export default function LoginForm() {
           </p>
           <div className="mt-8 flex items-center justify-center gap-2">
             <div className="h-px w-12 bg-white/20" />
-            <span className="text-white/50 text-[13px] font-medium tracking-wider">CENFFOR</span>
+            <span className="text-white/50 text-[13px] font-medium tracking-wider">Multi-organização</span>
             <div className="h-px w-12 bg-white/20" />
           </div>
         </div>
@@ -68,7 +71,7 @@ export default function LoginForm() {
             </div>
             <div>
               <h1 className="text-lg font-bold text-on-surface">SGHR</h1>
-              <p className="text-[11px] text-on-surface-variant/60">CENFFOR</p>
+              <p className="text-[11px] text-on-surface-variant/60">Plataforma de RH</p>
             </div>
           </div>
 
@@ -96,7 +99,7 @@ export default function LoginForm() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="exemplo@cenffor.co.ao"
+                  placeholder="nome@empresa.co.ao"
                   className="w-full h-11 pl-10 pr-4 bg-background border border-outline-variant/50 rounded-xl text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-outline"
                 />
               </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "@/lib/constants";
 import { useAuth } from "@/context/AuthContext";
+import api from "@/lib/api";
 
 const icons = {
   person: <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>,
@@ -27,25 +28,43 @@ export default function Sidebar({ collapsed, onToggle }) {
   const pathname = usePathname();
   const auth = useAuth();
 
-  const gruposVisiveis = NAV_ITEMS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => {
-      if (!item.modulo) return true;
-      return auth.hasPermission(item.modulo, "read");
-    }),
-  })).filter((group) => group.items.length > 0);
+  const utilizador = auth && auth.utilizador ? auth.utilizador : null;
+  const isSuperAdmin = !!(utilizador && utilizador.super_admin);
+  const organizacao = utilizador && utilizador.organizacao ? utilizador.organizacao : null;
+
+  var logoOrganizacao = organizacao && organizacao.logo_url ? organizacao.logo_url : "";
+  if (logoOrganizacao && logoOrganizacao.charAt(0) === "/") logoOrganizacao = api.baseURL + logoOrganizacao;
+  var nomeOrganizacao = isSuperAdmin
+    ? "Plataforma"
+    : (organizacao ? (organizacao.nome_curto || organizacao.nome) : "SGHR");
+
+  const gruposVisiveis = isSuperAdmin
+    ? [{ titulo: "Plataforma", items: [{ label: "Organizações", href: "/plataforma", icon: "apartment" }] }]
+    : NAV_ITEMS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!item.modulo) return true;
+        return auth.hasPermission(item.modulo, "read");
+      }),
+    })).filter((group) => group.items.length > 0);
 
   return (
     <aside className={`fixed left-0 top-0 h-full z-40 bg-surface-card border-r border-outline-variant transition-all duration-300 ${collapsed ? "w-[68px]" : "w-60"}`}>
       <div className={`flex items-center h-16 border-b border-outline-variant ${collapsed ? "justify-center px-2" : "px-5"}`}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <span className="text-on-primary font-bold text-xs">SRH</span>
-          </div>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {logoOrganizacao ? (
+            <div className="h-8 w-8 rounded-lg bg-surface-container-low border border-outline-variant/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <img src={logoOrganizacao} alt={nomeOrganizacao} className="h-7 w-7 object-contain" />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+              <span className="text-on-primary font-bold text-xs">SRH</span>
+            </div>
+          )}
           {!collapsed && (
-            <div>
-              <h1 className="text-sm font-bold text-on-surface leading-none">SGHR</h1>
-              <p className="text-[10px] text-outline font-medium">CENFFOR</p>
+            <div className="min-w-0">
+              <h1 className="text-sm font-bold text-on-surface leading-tight truncate">{nomeOrganizacao}</h1>
+              <p className="text-[10px] text-outline font-medium truncate">SGHR</p>
             </div>
           )}
         </div>

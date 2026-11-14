@@ -52,6 +52,17 @@ export function AuthProvider({ children }) {
     return response;
   }, []);
 
+  // Acesso exclusivo do painel da plataforma. Usa o endpoint proprio, que so
+  // aceita contas super_admin; um administrador de organizacao nunca entra aqui.
+  const loginPlataforma = useCallback(async (email, password) => {
+    const response = await api.post("/api/plataforma/login", { email, password });
+    localStorage.setItem("token", response.token);
+    localStorage.setItem("utilizador", JSON.stringify(response.utilizador));
+    setUtilizador(response.utilizador);
+    setIsAuthenticated(true);
+    return response;
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("utilizador");
@@ -109,6 +120,7 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated,
     login,
+    loginPlataforma,
     logout,
     updateUser,
     refreshUtilizador,

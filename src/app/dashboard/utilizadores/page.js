@@ -661,7 +661,7 @@ export default function UtilizadoresPage() {
           </div>
           <div>
             <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Email *</label>
-            <input type="email" value={form.email || ""} onChange={function (e) { setForm({ ...form, email: e.target.value }); }} placeholder="exemplo@cenffor.co.ao" className={inputCls} />
+            <input type="email" value={form.email || ""} onChange={function (e) { setForm({ ...form, email: e.target.value }); }} placeholder="exemplo@empresa.co.ao" className={inputCls} />
           </div>
           <div>
             <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Username *</label>

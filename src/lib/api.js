@@ -31,10 +31,14 @@ var api = {
       var json = await response.json();
 
       if (response.status === 401) {
-        if (typeof window !== "undefined") {
+        // Nos proprios logins o 401 significa credenciais erradas: mostrar a
+        // mensagem em vez de recarregar a pagina.
+        var ehLogin = endpoint === "/auth/login" || endpoint === "/api/plataforma/login";
+        if (!ehLogin && typeof window !== "undefined") {
           localStorage.removeItem("token");
           localStorage.removeItem("utilizador");
-          window.location.href = "/login";
+          var naPlataforma = window.location.pathname.indexOf("/plataforma") === 0;
+          window.location.href = naPlataforma ? "/plataforma/login" : "/login";
         }
         throw new Error(json.error || "Sessão expirada");
       }

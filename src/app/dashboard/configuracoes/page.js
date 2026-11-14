@@ -128,11 +128,11 @@ export default function ConfiguracoesPage() {
     try {
       if (orgId) {
         await api.put("/api/organizacoes/" + orgId, { nome: orgNome, nome_curto: orgSigla, endereco: orgEndereco, telefone: orgTelefone, email: orgEmail, nif: orgNif, website: orgSite, template_contrato: orgTemplate });
+        setMsg({ tipo: "sucesso", texto: T.guardar });
       } else {
-        var resp = await api.post("/api/organizacoes", { nome: orgNome || "CENFFOR", nif: orgNif, email: orgEmail, telefone: orgTelefone, endereco: orgEndereco, website: orgSite });
-        if (resp.dados) setOrgId(resp.dados.id);
+        // Organizacoes novas so sao criadas pelo administrador da plataforma.
+        setMsg({ tipo: "erro", texto: "A sua conta nao esta associada a uma organizacao. Contacte o administrador da plataforma." });
       }
-      setMsg({ tipo: "sucesso", texto: T.guardar });
     } catch (e) { setMsg({ tipo: "erro", texto: e.message }); }
     finally { setSaving(false); }
   }, [orgId, orgNome, orgSigla, orgEndereco, orgTelefone, orgEmail, orgNif, orgSite, orgTemplate, T]);
@@ -264,7 +264,7 @@ export default function ConfiguracoesPage() {
                   <div><label className="block text-[12px] font-semibold text-on-surface-variant mb-1.5">{T.telefoneOrg}</label><input type="text" value={orgTelefone} onChange={function(e) { setOrgTelefone(e.target.value); }} className={inputCls} /></div>
                   <div><label className="block text-[12px] font-semibold text-on-surface-variant mb-1.5">{T.emailInstitucionalLabel}</label><input type="email" value={orgEmail} onChange={function(e) { setOrgEmail(e.target.value); }} className={inputCls} /></div>
                   <div><label className="block text-[12px] font-semibold text-on-surface-variant mb-1.5">NIF</label><input type="text" value={orgNif} onChange={function(e) { setOrgNif(e.target.value); }} className={inputCls} /></div>
-                  <div><label className="block text-[12px] font-semibold text-on-surface-variant mb-1.5">{T.website}</label><input type="url" value={orgSite} onChange={function(e) { setOrgSite(e.target.value); }} placeholder="https://cenffor.co.ao" className={inputCls} /></div>
+                  <div><label className="block text-[12px] font-semibold text-on-surface-variant mb-1.5">{T.website}</label><input type="url" value={orgSite} onChange={function(e) { setOrgSite(e.target.value); }} placeholder="https://empresa.co.ao" className={inputCls} /></div>
                 </div>
               )}
 

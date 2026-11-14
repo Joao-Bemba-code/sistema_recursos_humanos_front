@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "SGHR - CENFFOR",
+  title: "SGHR - Sistema de Gestão de Recursos Humanos",
   description: "Sistema de Gestao de Recursos Humanos",
 };
 

@@ -53,7 +53,9 @@ async function buildPdfHeader(title, org) {
   var pw = doc.internal.pageSize.getWidth();
   var logoImg = null;
 
-  logoImg = await carregarLogoDataUrl(imageUrl("/uploads/logos/logo_default.jpg"));
+  // Logo da organizacao da sessao; sem logo nao se mete nenhuma imagem.
+  var logoSrc = org && org.logo_url ? imageUrl(org.logo_url) : "";
+  if (logoSrc) logoImg = await carregarLogoDataUrl(logoSrc);
 
   var xText = 15;
   var y = 18;
@@ -68,7 +70,7 @@ async function buildPdfHeader(title, org) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(30, 30, 30);
-  var nome = (org && org.nome) ? org.nome : "CENFFOR";
+  var nome = (org && org.nome) ? org.nome : "SGHR";
   var nomeLinhas = doc.splitTextToSize(nome, pw - xText - 15);
   doc.text(nomeLinhas, xText, y);
   y += nomeLinhas.length * 18;
@@ -100,7 +102,7 @@ function addPdfFooter(doc, org) {
   var fY = doc.internal.pageSize.getHeight() - 12;
   doc.setFontSize(7);
   doc.setTextColor(150, 150, 150);
-  var nome = (org && org.nome) ? org.nome : "CENFFOR";
+  var nome = (org && org.nome) ? org.nome : "SGHR";
   doc.text(nome + " - SGHR | Gerado em: " + new Date().toLocaleDateString("pt-AO"), pw / 2, fY, { align: "center" });
 }
 

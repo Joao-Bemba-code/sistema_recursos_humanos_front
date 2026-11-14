@@ -68,6 +68,15 @@ export default function DashboardLayout({ children }) {
     }
   }, [auth, router, pathname]);
 
+  // Conta da plataforma: tem area e login proprios, fora do dashboard.
+  const superAdmin = !!(auth && auth.utilizador && auth.utilizador.super_admin);
+  useEffect(() => {
+    if (!auth || auth.loading || !auth.isAuthenticated || !auth.utilizador) return;
+    if (superAdmin) {
+      router.replace("/plataforma");
+    }
+  }, [auth, router, superAdmin]);
+
   if (auth && auth.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -102,6 +111,10 @@ export default function DashboardLayout({ children }) {
     );
   }
 
+  // Identidade visual da organizacao da sessao (a conta da plataforma nao tem).
+  const orgSessao = auth && auth.utilizador && auth.utilizador.organizacao ? auth.utilizador.organizacao : null;
+  const nomeRodape = superAdmin ? "Plataforma SGHR" : (orgSessao ? (orgSessao.nome_curto || orgSessao.nome) : "SGHR");
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <TopNavBar onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
@@ -111,8 +124,8 @@ export default function DashboardLayout({ children }) {
       <footer className="bg-surface border-t border-outline-variant/30 w-full py-8 mt-auto">
         <div className="flex flex-col md:flex-row justify-between items-center px-5 md:px-16 w-full max-w-[1440px] mx-auto gap-6">
           <div className="flex items-center gap-3">
-            <span className="text-lg font-bold text-primary">SGHR</span>
-            <span className="text-[13px] text-on-surface-variant/60 font-medium">&copy; 2026 CENFFOR. Todos os direitos reservados.</span>
+            <span className="text-lg font-bold text-primary">{nomeRodape}</span>
+            <span className="text-[13px] text-on-surface-variant/60 font-medium">&copy; 2026 {nomeRodape}. Todos os direitos reservados.</span>
           </div>
           <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-6 gap-y-2 md:gap-8 text-center md:text-right">
             <span className="text-[13px] font-medium text-on-surface-variant/80">Termos e Condições</span>

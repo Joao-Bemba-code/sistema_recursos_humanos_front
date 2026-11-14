@@ -28,9 +28,19 @@ export default function TopNavBar() {
 
   const allItems = NAV_ITEMS.flatMap((g) => g.items);
   const itensPermitidos = allItems.filter((i) => !i.modulo || MODULOS_ABERTOS_TODOS.includes(i.modulo) || auth.hasPermission(i.modulo, "read"));
-  const mainItems = itensPermitidos.filter((i) =>
-    ["/dashboard", "/dashboard/portal", "/dashboard/colaboradores", "/dashboard/contratos", "/dashboard/departamentos"].includes(i.href)
-  );
+
+  // Conta da plataforma: nao pertence a nenhuma organizacao e nao tem modulos.
+  const isSuperAdmin = !!(utilizador && utilizador.super_admin);
+  const organizacao = utilizador && utilizador.organizacao ? utilizador.organizacao : null;
+  var logoOrganizacao = organizacao && organizacao.logo_url ? organizacao.logo_url : "";
+  if (logoOrganizacao && logoOrganizacao.charAt(0) === "/") logoOrganizacao = api.baseURL + logoOrganizacao;
+  var nomeOrganizacao = organizacao ? (organizacao.nome_curto || organizacao.nome) : "";
+
+  const mainItems = isSuperAdmin
+    ? [{ label: "Plataforma", href: "/plataforma", icon: "corporate_fare" }]
+    : itensPermitidos.filter((i) =>
+        ["/dashboard", "/dashboard/portal", "/dashboard/colaboradores", "/dashboard/contratos", "/dashboard/departamentos"].includes(i.href)
+      );
   // Modulos que um simples colaborador pode ver (nao contam como administrativos)
   const rotasColaborador = ["/dashboard/portal", "/dashboard/comunicados", "/dashboard/mensagens", "/dashboard/ferias", "/dashboard/pedidos"];
   const temModulosAdministrativos = itensPermitidos.some((i) => i.href !== "/dashboard" && rotasColaborador.indexOf(i.href) === -1);
@@ -45,7 +55,9 @@ export default function TopNavBar() {
   }
   var rotuloPerfil = perfisNomes.join(", ");
 
-  const navGroups = itensPermitidos.length > 0
+  const navGroups = isSuperAdmin
+    ? [{ titulo: "Plataforma", items: mainItems }]
+    : itensPermitidos.length > 0
     ? (function () {
         var grupos = [];
         NAV_ITEMS.forEach(function (g) {
@@ -70,6 +82,8 @@ export default function TopNavBar() {
   }, []);
 
   useEffect(() => {
+    // A conta da plataforma nao tem notificacoes nem mensagens de organizacao.
+    if (isSuperAdmin) return;
     var fetchNotificacoes = function () {
       api.get("/api/notificacoes")
         .then(function (data) {
@@ -94,7 +108,7 @@ export default function TopNavBar() {
       fetchChatNaoLidas();
     }, 15000);
     return function () { clearInterval(interval); };
-  }, []);
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     if (mobileOpen) {
@@ -151,7 +165,7 @@ export default function TopNavBar() {
 
   var timeAgo = function (dateStr) {
     if (!dateStr) return "";
-    var diff = Date.now() - new Date(dateStr).getTime();
+    var diff = new Date().getTime() - new Date(dateStr).getTime();
     var mins = Math.floor(diff / 60000);
     if (mins < 1) return "Agora";
     if (mins < 60) return mins + " min";
@@ -195,7 +209,18 @@ export default function TopNavBar() {
             >
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
-            <Link href={soColaborador ? "/dashboard/portal" : "/dashboard"} className="text-xl font-bold tracking-tight text-primary flex-shrink-0">SGHR</Link>
+            <Link href={isSuperAdmin ? "/plataforma" : soColaborador ? "/dashboard/portal" : "/dashboard"} className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
+              {logoOrganizacao ? (
+                <img src={logoOrganizacao} alt={nomeOrganizacao || "Logo da organização"} className="h-7 w-auto max-w-[96px] object-contain" />
+              ) : (
+                <span className="text-xl font-bold tracking-tight text-primary">SGHR</span>
+              )}
+              {isSuperAdmin ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/15 rounded-full px-2 py-0.5">Plataforma</span>
+              ) : nomeOrganizacao ? (
+                <span className="hidden sm:inline text-[12px] font-semibold text-on-surface-variant max-w-[150px] truncate">{nomeOrganizacao}</span>
+              ) : null}
+            </Link>
             <nav className="hidden md:flex items-center gap-4 lg:gap-8 overflow-x-auto min-w-0">
               {mainItems.map((item) => {
                 const isActive = pathname === item.href;
@@ -217,6 +242,7 @@ export default function TopNavBar() {
           </div>
 
           <div className="flex items-center gap-3 md:gap-5">
+            {!isSuperAdmin && (<>
             {!soColaborador && (
               <Link href="/dashboard/configuracoes" className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors">
                 <span className="material-symbols-outlined text-[22px]">settings</span>
@@ -320,6 +346,7 @@ export default function TopNavBar() {
                 </div>
               )}
             </div>
+            </>)}
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
@@ -327,7 +354,7 @@ export default function TopNavBar() {
               >
                 <div className="hidden lg:flex flex-col items-end">
                   <span className="text-[12px] font-semibold">{utilizador ? utilizador.nome_completo : "Admin"}</span>
-                  <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{rotuloPerfil || "CENFFOR"}</span>
+                  <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">{isSuperAdmin ? "Administrador da plataforma" : (rotuloPerfil || nomeOrganizacao || "SGHR")}</span>
                 </div>
                 <div className="h-8 w-8 rounded-full border border-outline-variant/50 overflow-hidden bg-primary/10 flex items-center justify-center">
                   <span className="text-[12px] font-bold text-primary">{initials}</span>
@@ -341,10 +368,12 @@ export default function TopNavBar() {
                     <p className="text-[13px] font-semibold text-on-surface">{utilizador ? utilizador.nome_completo : ""}</p>
                     <p className="text-[11px] text-on-surface-variant/60">{utilizador ? utilizador.email : ""}</p>
                   </div>
-                  <Link href={soColaborador ? "/dashboard/portal" : (auth.hasPermission("configuracoes", "read") ? "/dashboard/configuracoes" : "/dashboard")} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
-                    <span className="material-symbols-outlined text-[18px]">person</span>
-                    {soColaborador ? "Os Meus Dados" : "Meu Perfil"}
-                  </Link>
+                  {!isSuperAdmin && (
+                    <Link href={soColaborador ? "/dashboard/portal" : (auth.hasPermission("configuracoes", "read") ? "/dashboard/configuracoes" : "/dashboard")} onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
+                      <span className="material-symbols-outlined text-[18px]">person</span>
+                      {soColaborador ? "Os Meus Dados" : "Meu Perfil"}
+                    </Link>
+                  )}
 {auth.hasPermission("configuracoes", "read") && (
                     <Link href="/dashboard/configuracoes" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-[13px] text-on-surface-variant hover:bg-primary/5 transition-colors">
                       <span className="material-symbols-outlined text-[18px]">settings</span>
@@ -368,7 +397,18 @@ export default function TopNavBar() {
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
           <div className="fixed inset-y-0 left-0 w-72 bg-surface shadow-2xl flex flex-col animate-slide-in">
             <div className="px-5 py-4 border-b border-outline-variant/20 flex items-center justify-between">
-              <Link href={soColaborador ? "/dashboard/portal" : "/dashboard"} onClick={() => setMobileOpen(false)} className="text-xl font-bold tracking-tight text-primary">SGHR</Link>
+              <Link href={isSuperAdmin ? "/plataforma" : soColaborador ? "/dashboard/portal" : "/dashboard"} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 min-w-0">
+                {logoOrganizacao ? (
+                  <img src={logoOrganizacao} alt={nomeOrganizacao || "Logo da organização"} className="h-7 w-auto max-w-[90px] object-contain" />
+                ) : (
+                  <span className="text-xl font-bold tracking-tight text-primary">SGHR</span>
+                )}
+                {isSuperAdmin ? (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/15 rounded-full px-2 py-0.5">Plataforma</span>
+                ) : nomeOrganizacao ? (
+                  <span className="text-[12px] font-semibold text-on-surface-variant truncate max-w-[140px]">{nomeOrganizacao}</span>
+                ) : null}
+              </Link>
               <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant">
                 <span className="material-symbols-outlined text-[22px]">close</span>
               </button>
