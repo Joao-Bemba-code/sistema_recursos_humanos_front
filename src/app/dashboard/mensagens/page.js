@@ -96,6 +96,110 @@ var textoAEcrever = function (nomes) {
 // 2 MB e o limite do resto do sistema (guardarFicheiro no backend).
 var TAMANHO_MAX_ANEXO = 2 * 1024 * 1024;
 
+// Tamanhos de letra do chat (como a opcao de tamanho de texto do WhatsApp).
+var ESCALAS_LETRA = [0.9, 1, 1.15, 1.3];
+
+// Anexos antigos ficam como /uploads/... e precisam do endereco da API.
+var urlAnexo = function (url) {
+  if (!url) return "";
+  var u = String(url);
+  if (u.charAt(0) === "/") return api.baseURL + u;
+  return u;
+};
+
+// Leitor de nota de voz proprio: tocar/pausar, ondas com progresso e
+// duracao, para caber na bolha em vez do leitor nativo do navegador.
+var BARRAS_VOZ = [6, 10, 14, 9, 17, 22, 13, 19, 25, 15, 11, 20, 26, 18, 12, 22, 16, 24, 14, 9, 17, 21, 12, 18, 10, 7];
+
+function NotaVoz({ src, meu, nome }) {
+  const audioRef = useRef(null);
+  const [aTocar, setATocar] = useState(false);
+  const [duracao, setDuracao] = useState(0);
+  const [atual, setAtual] = useState(0);
+  const [falhou, setFalhou] = useState(false);
+
+  const percent = duracao > 0 ? Math.min(atual / duracao, 1) : 0;
+
+  const alternar = function () {
+    var a = audioRef.current;
+    if (!a) return;
+    if (a.paused) {
+      var p = a.play();
+      if (p && p.catch) p.catch(function () { setFalhou(true); });
+    } else {
+      a.pause();
+    }
+  };
+
+  const procurar = function (ev) {
+    var a = audioRef.current;
+    if (!a || !duracao) return;
+    var caixa = ev.currentTarget.getBoundingClientRect();
+    var fracao = Math.min(Math.max((ev.clientX - caixa.left) / caixa.width, 0), 1);
+    a.currentTime = fracao * duracao;
+    setAtual(fracao * duracao);
+  };
+
+  var corCheia = meu ? "bg-white" : "bg-primary";
+  var corVazia = meu ? "bg-white/40" : "bg-primary/25";
+
+  return (
+    <div className="flex items-center gap-2 w-[220px] max-w-full">
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="metadata"
+        onLoadedMetadata={function (e) {
+          var d = e.currentTarget.duration;
+          if (d && isFinite(d)) setDuracao(d);
+        }}
+        onTimeUpdate={function (e) { setAtual(e.currentTarget.currentTime || 0); }}
+        onPlay={function () { setATocar(true); setFalhou(false); }}
+        onPause={function () { setATocar(false); }}
+        onEnded={function () { setATocar(false); setAtual(0); }}
+        onError={function () { setFalhou(true); }}
+        className="hidden"
+      />
+      <button
+        type="button"
+        onClick={alternar}
+        title={aTocar ? "Pausar" : "Reproduzir"}
+        className={"flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0 transition-colors " + (meu ? "bg-white/20 text-white hover:bg-white/30" : "bg-primary text-white hover:bg-primary/90")}
+      >
+        <span className="material-symbols-outlined text-[20px]">{aTocar ? "pause" : "play_arrow"}</span>
+      </button>
+      <div className="flex-1 min-w-0">
+        <div onClick={procurar} className="flex items-end gap-[2px] h-7 cursor-pointer" title="Avançar no áudio">
+          {BARRAS_VOZ.map(function (altura, i) {
+            var cheia = (i + 1) / BARRAS_VOZ.length <= percent + 0.0001;
+            return (
+              <span
+                key={i}
+                style={{ height: altura + "px" }}
+                className={"flex-1 rounded-full " + (cheia ? corCheia : corVazia)}
+              />
+            );
+          })}
+        </div>
+        <div className={"flex items-center justify-between gap-2 mt-1 text-[10px] font-medium tabular-nums " + (meu ? "text-white/80" : "text-on-surface-variant/70")}>
+          <span>{falhou ? "Não foi possível reproduzir" : duracaoCurta(Math.floor(aTocar ? atual : duracao))}</span>
+          {falhou ? (
+            <a href={src} download={nome || true} className="underline font-semibold whitespace-nowrap">Baixar</a>
+          ) : null}
+        </div>
+      </div>
+      <a
+        href={src}
+        download={nome || true}
+        title="Baixar áudio"
+        className={"flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0 " + (meu ? "text-white/70 hover:bg-white/15" : "text-on-surface-variant/60 hover:bg-black/5")}
+      >
+        <span className="material-symbols-outlined text-[16px]">download</span>
+      </a>
+    </div>
+  );
+}
+
 export default function MensagensPage() {
   const auth = useAuth();
   const eu = auth && auth.utilizador ? auth.utilizador : null;
@@ -123,6 +227,7 @@ export default function MensagensPage() {
   const [erroPessoas, setErroPessoas] = useState("");
   const [gravando, setGravando] = useState(false);
   const [segundosGravacao, setSegundosGravacao] = useState(0);
+  const [escalaLetra, setEscalaLetra] = useState(1);
 
   const ativaRef = useRef(null);
   const fimRef = useRef(null);
@@ -444,6 +549,34 @@ export default function MensagensPage() {
     }
   };
 
+  // ==================== TAMANHO DA LETRA ====================
+
+  // Le o tamanho guardado depois da primeira pintura, para nao haver
+  // diferencas entre servidor e navegador.
+  useEffect(function () {
+    var timer = setTimeout(function () {
+      try {
+        var guardado = parseInt(localStorage.getItem("chat_escala_letra"), 10);
+        if (!isNaN(guardado) && guardado >= 0 && guardado < ESCALAS_LETRA.length) {
+          setEscalaLetra(guardado);
+        }
+      } catch (e) {
+        // Sem armazenamento local: fica o tamanho normal.
+      }
+    }, 0);
+    return function () { clearTimeout(timer); };
+  }, []);
+
+  const mudarEscala = function (delta) {
+    var novo = Math.min(Math.max(escalaLetra + delta, 0), ESCALAS_LETRA.length - 1);
+    setEscalaLetra(novo);
+    try {
+      localStorage.setItem("chat_escala_letra", String(novo));
+    } catch (e) {
+      // Sem armazenamento local: so vale para esta sessao.
+    }
+  };
+
   // ==================== POLLING ====================
 
   useEffect(function () {
@@ -553,8 +686,9 @@ export default function MensagensPage() {
           )}
           <div
             title={new Date(m.createdAt).toLocaleString("pt-PT")}
+            style={{ fontSize: (13 * ESCALAS_LETRA[escalaLetra]).toFixed(1) + "px" }}
             className={
-              "px-3.5 py-2 rounded-2xl text-[13px] leading-relaxed break-words whitespace-pre-wrap shadow-sm " +
+              "px-3.5 py-2 rounded-2xl leading-relaxed break-words whitespace-pre-wrap shadow-sm " +
               (meu
                 ? "bg-primary text-white rounded-br-md"
                 : "bg-surface-card border border-outline-variant/30 text-on-surface rounded-bl-md")
@@ -566,12 +700,12 @@ export default function MensagensPage() {
               <div className={m.texto ? "mt-2" : ""}>
                 <button
                   type="button"
-                  onClick={function () { window.open(m.anexo_url, "_blank", "noopener,noreferrer"); }}
+                  onClick={function () { window.open(urlAnexo(m.anexo_url), "_blank", "noopener,noreferrer"); }}
                   className="block rounded-xl overflow-hidden border border-black/5 hover:opacity-95 transition-opacity"
                   title="Abrir imagem"
                 >
                   <img
-                    src={m.anexo_url}
+                    src={urlAnexo(m.anexo_url)}
                     alt={m.anexo_nome || "Imagem"}
                     className="rounded-xl max-h-64 max-w-full object-contain bg-black/5"
                   />
@@ -581,14 +715,7 @@ export default function MensagensPage() {
 
             {m.anexo_url && anexoVoz && (
               <div className={m.texto ? "mt-2" : ""}>
-                <div className={"flex items-center gap-2 rounded-xl px-2 py-1.5 " + (meu ? "bg-white/10" : "bg-surface-container-low")}>
-                  <audio
-                    controls
-                    preload="none"
-                    src={m.anexo_url}
-                    className="h-9 max-w-[230px]"
-                  />
-                </div>
+                <NotaVoz src={urlAnexo(m.anexo_url)} meu={meu} nome={m.anexo_nome} />
               </div>
             )}
 
@@ -775,13 +902,34 @@ export default function MensagensPage() {
                     )}
                   </div>
                 )}
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-bold text-on-surface truncate">{ativa.tipo === "geral" ? "Geral" : (ativa.titulo || "Conversa")}</p>
                   <p className={"text-[11px] truncate " + (aEscrever.length > 0 ? "text-primary font-semibold" : "text-on-surface-variant/60")}>
                     {aEscrever.length > 0
                       ? textoAEcrever(aEscrever)
                       : (ativa.tipo === "geral" ? "Canal partilhado por todos os utilizadores" : "Conversa direta")}
                   </p>
+                </div>
+                <div className="ml-auto flex items-center gap-0.5 rounded-full border border-outline-variant/30 bg-surface-container-low px-1 py-0.5 flex-shrink-0" title="Tamanho da letra das mensagens">
+                  <button
+                    type="button"
+                    onClick={function () { mudarEscala(-1); }}
+                    disabled={escalaLetra === 0}
+                    className="flex items-center justify-center w-6 h-6 rounded-full text-on-surface-variant hover:bg-surface-card disabled:opacity-30 transition-colors"
+                    title="Letra menor"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">remove</span>
+                  </button>
+                  <span className="text-[10px] font-bold text-on-surface-variant/70 w-6 text-center select-none">Aa</span>
+                  <button
+                    type="button"
+                    onClick={function () { mudarEscala(1); }}
+                    disabled={escalaLetra === ESCALAS_LETRA.length - 1}
+                    className="flex items-center justify-center w-6 h-6 rounded-full text-on-surface-variant hover:bg-surface-card disabled:opacity-30 transition-colors"
+                    title="Letra maior"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">add</span>
+                  </button>
                 </div>
               </div>
 
