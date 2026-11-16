@@ -14,11 +14,11 @@ var TIPO_LABELS = {
   outro: "Outro",
 };
 
-// Etiquetas do estado. "processando" mostra-se como "A processar" para o
+// Etiquetas do estado. "processando" mostra-se como "Em análise" para o
 // administrador e para o colaborador perceberem que alguem ja pegou no pedido.
 var ESTADOS_LABELS = {
   pendente: "Pendente",
-  processando: "A processar",
+  processando: "Em análise",
   aprovado: "Aprovado",
   rejeitado: "Rejeitado",
   cancelado: "Cancelado",
@@ -181,7 +181,7 @@ export default function PedidosPage() {
   var rotuloDecisao = function (estado) {
     if (estado === "aprovado") return "aprovado";
     if (estado === "rejeitado") return "rejeitado";
-    return "marcado como a processar";
+    return "marcado como em análise";
   };
 
   var confirmarDecisao = function (estado) {
@@ -285,7 +285,7 @@ export default function PedidosPage() {
           <p className="text-[22px] font-bold text-amber-600 mt-1">{stats.pendentes}</p>
         </div>
         <div className="bg-surface-card rounded-xl border border-outline-variant p-4">
-          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">A processar</p>
+          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Em análise</p>
           <p className="text-[22px] font-bold text-blue-600 mt-1">{stats.processando}</p>
         </div>
         <div className="bg-surface-card rounded-xl border border-outline-variant p-4">
@@ -319,7 +319,7 @@ export default function PedidosPage() {
             >
               <option value="">Todos os estados</option>
               <option value="pendente">Pendente</option>
-              <option value="processando">A processar</option>
+              <option value="processando">Em análise</option>
               <option value="aprovado">Aprovado</option>
               <option value="rejeitado">Rejeitado</option>
             </select>
@@ -395,7 +395,7 @@ export default function PedidosPage() {
                               onClick={function () { marcarProcessando(p); }}
                               className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition-colors"
                             >
-                              Processar
+                              Analisar
                             </button>
                           )}
                           {(p.estado === "pendente" || p.estado === "processando") && (
@@ -455,7 +455,7 @@ export default function PedidosPage() {
                           onClick={function () { marcarProcessando(p); }}
                           className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors"
                         >
-                          Processar
+                          Analisar
                         </button>
                       )}
                       {(p.estado === "pendente" || p.estado === "processando") && (
@@ -641,7 +641,7 @@ export default function PedidosPage() {
                 <div className="pt-3 border-t border-outline-variant/30">
                   {pedidoDetalhe.estado === "processando" && (
                     <p className="text-[12px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-3">
-                      Este pedido já está a ser processado. Confirma aqui a decisão final.
+                      Este pedido já está em análise. Confirma aqui a decisão final.
                     </p>
                   )}
                   <textarea
@@ -673,7 +673,7 @@ export default function PedidosPage() {
                       disabled={decidindo}
                       className="mt-2 w-full py-2 rounded-lg border border-blue-200 text-blue-700 text-[13px] font-medium hover:bg-blue-50 transition-colors disabled:opacity-40"
                     >
-                      {decidindo ? "..." : "Aceitar e deixar a processar"}
+                      {decidindo ? "..." : "Aceitar e deixar em análise"}
                     </button>
                   )}
                 </div>

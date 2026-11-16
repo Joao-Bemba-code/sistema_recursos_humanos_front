@@ -109,7 +109,7 @@ function FeriasWaveChart({ data }) {
 
 var ESTADOS_PEDIDO_LABELS = {
   pendente: "Pendente",
-  processando: "A processar",
+  processando: "Em análise",
   aprovado: "Aprovado",
   rejeitado: "Rejeitado",
   cancelado: "Cancelado",
