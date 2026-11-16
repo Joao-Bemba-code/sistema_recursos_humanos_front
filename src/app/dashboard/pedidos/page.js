@@ -14,9 +14,25 @@ var TIPO_LABELS = {
   outro: "Outro",
 };
 
+// Etiquetas do estado. "processando" mostra-se como "A processar" para o
+// administrador e para o colaborador perceberem que alguem ja pegou no pedido.
+var ESTADOS_LABELS = {
+  pendente: "Pendente",
+  processando: "A processar",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+  cancelado: "Cancelado",
+};
+
+function estadoLabel(estado) {
+  if (ESTADOS_LABELS[estado]) return ESTADOS_LABELS[estado];
+  return estado ? estado.charAt(0).toUpperCase() + estado.slice(1) : "";
+}
+
 function estadoClasses(estado) {
   if (estado === "aprovado") return "bg-green-50 text-green-700 border border-green-200";
   if (estado === "pendente") return "bg-amber-50 text-amber-700 border border-amber-200";
+  if (estado === "processando") return "bg-blue-50 text-blue-700 border border-blue-200";
   if (estado === "rejeitado") return "bg-red-50 text-red-700 border border-red-200";
   return "bg-surface-container text-on-surface-variant border border-outline-variant";
 }
@@ -39,7 +55,7 @@ export default function PedidosPage() {
 
   var [pedidos, setPedidos] = useState([]);
   var [loading, setLoading] = useState(true);
-  var [stats, setStats] = useState({ pendentes: 0, aprovados: 0, rejeitados: 0, total: 0 });
+  var [stats, setStats] = useState({ pendentes: 0, processando: 0, aprovados: 0, rejeitados: 0, total: 0 });
   var [search, setSearch] = useState("");
   var [filtroEstado, setFiltroEstado] = useState("");
   var [filtroTipo, setFiltroTipo] = useState("");
@@ -161,6 +177,13 @@ export default function PedidosPage() {
     }).catch(function () {});
   };
 
+  // Rotulo da accao nos pedidos de mensagens de confirmacao.
+  var rotuloDecisao = function (estado) {
+    if (estado === "aprovado") return "aprovado";
+    if (estado === "rejeitado") return "rejeitado";
+    return "marcado como a processar";
+  };
+
   var confirmarDecisao = function (estado) {
     if (!pedidoDetalhe) return;
     setMsg(null);
@@ -171,13 +194,30 @@ export default function PedidosPage() {
     }).then(function () {
       setShowDetalhe(false);
       setPedidoDetalhe(null);
-      setMsg({ tipo: "sucesso", texto: "Pedido " + (estado === "aprovado" ? "aprovado" : "rejeitado") + " com sucesso" });
+      setMsg({ tipo: "sucesso", texto: "Pedido " + rotuloDecisao(estado) + " com sucesso" });
       carregar(paginacao.pagina);
       carregarStats();
       setTimeout(function () { setMsg(null); }, 3000);
     }).catch(function (err) {
       setMsg({ tipo: "erro", texto: err.message || "Erro ao processar" });
     }).finally(function () { setDecidindo(false); });
+  };
+
+  // Aceitar o pedido sem decidir ainda: passa a "processando" e o colaborador
+  // ve que alguem ja esta a tratar dele. Faz-se direto da lista, sem abrir o
+  // detalhe, porque e uma accao de um clique sem comentario obrigatorio.
+  var marcarProcessando = function (pedido) {
+    setMsg(null);
+    api.put("/api/pedidos/" + pedido.id + "/estado", { estado: "processando" })
+      .then(function () {
+        setMsg({ tipo: "sucesso", texto: "Pedido " + rotuloDecisao("processando") });
+        carregar(paginacao.pagina);
+        carregarStats();
+        setTimeout(function () { setMsg(null); }, 3000);
+      })
+      .catch(function (err) {
+        setMsg({ tipo: "erro", texto: err.message || "Erro ao marcar o pedido" });
+      });
   };
 
   var handleEliminar = function () {
@@ -239,10 +279,14 @@ export default function PedidosPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-surface-card rounded-xl border border-outline-variant p-4">
           <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Pendentes</p>
           <p className="text-[22px] font-bold text-amber-600 mt-1">{stats.pendentes}</p>
+        </div>
+        <div className="bg-surface-card rounded-xl border border-outline-variant p-4">
+          <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">A processar</p>
+          <p className="text-[22px] font-bold text-blue-600 mt-1">{stats.processando}</p>
         </div>
         <div className="bg-surface-card rounded-xl border border-outline-variant p-4">
           <p className="text-[11px] font-semibold text-outline uppercase tracking-wide">Aprovados</p>
@@ -275,6 +319,7 @@ export default function PedidosPage() {
             >
               <option value="">Todos os estados</option>
               <option value="pendente">Pendente</option>
+              <option value="processando">A processar</option>
               <option value="aprovado">Aprovado</option>
               <option value="rejeitado">Rejeitado</option>
             </select>
@@ -327,7 +372,7 @@ export default function PedidosPage() {
                       <td className="px-4 py-3 text-[13px] text-on-surface font-medium max-w-[200px] truncate">{p.titulo}</td>
                       <td className="px-4 py-3">
                         <span className={"text-[11px] font-semibold px-2 py-0.5 rounded-full " + estadoClasses(p.estado)}>
-                          {p.estado.charAt(0).toUpperCase() + p.estado.slice(1)}
+                          {estadoLabel(p.estado)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-[12px] text-outline">{timeAgo(p.createdAt)}</td>
@@ -346,6 +391,14 @@ export default function PedidosPage() {
                             Eliminar
                           </button>
                           {p.estado === "pendente" && (
+                            <button
+                              onClick={function () { marcarProcessando(p); }}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              Processar
+                            </button>
+                          )}
+                          {(p.estado === "pendente" || p.estado === "processando") && (
                             <>
                               <button
                                 onClick={function () { handleVerDetalhe(p); }}
@@ -385,7 +438,7 @@ export default function PedidosPage() {
                       </p>
                     </div>
                     <span className={"text-[11px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 " + estadoClasses(p.estado)}>
-                      {p.estado.charAt(0).toUpperCase() + p.estado.slice(1)}
+                      {estadoLabel(p.estado)}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -398,6 +451,14 @@ export default function PedidosPage() {
                         Ver detalhe
                       </button>
                       {p.estado === "pendente" && (
+                        <button
+                          onClick={function () { marcarProcessando(p); }}
+                          className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-blue-600 border border-blue-200 hover:bg-blue-50 transition-colors"
+                        >
+                          Processar
+                        </button>
+                      )}
+                      {(p.estado === "pendente" || p.estado === "processando") && (
                         <button
                           onClick={function () { handleVerDetalhe(p); }}
                           className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-green-600 border border-green-200 hover:bg-green-50 transition-colors"
@@ -469,7 +530,7 @@ export default function PedidosPage() {
                 <div>
                   <p className="text-[11px] text-outline uppercase tracking-wide">Estado</p>
                   <span className={"inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mt-0.5 " + estadoClasses(pedidoDetalhe.estado)}>
-                    {pedidoDetalhe.estado.charAt(0).toUpperCase() + pedidoDetalhe.estado.slice(1)}
+                    {estadoLabel(pedidoDetalhe.estado)}
                   </span>
                 </div>
                 <div>
@@ -576,8 +637,13 @@ export default function PedidosPage() {
                 </div>
               )}
 
-              {pedidoDetalhe.estado === "pendente" && (
+              {(pedidoDetalhe.estado === "pendente" || pedidoDetalhe.estado === "processando") && (
                 <div className="pt-3 border-t border-outline-variant/30">
+                  {pedidoDetalhe.estado === "processando" && (
+                    <p className="text-[12px] text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-3">
+                      Este pedido já está a ser processado. Confirma aqui a decisão final.
+                    </p>
+                  )}
                   <textarea
                     value={comentario}
                     onChange={function (e) { setComentario(e.target.value); }}
@@ -601,6 +667,15 @@ export default function PedidosPage() {
                       {decidindo ? "..." : "Rejeitar"}
                     </button>
                   </div>
+                  {pedidoDetalhe.estado === "pendente" && (
+                    <button
+                      onClick={function () { confirmarDecisao("processando"); }}
+                      disabled={decidindo}
+                      className="mt-2 w-full py-2 rounded-lg border border-blue-200 text-blue-700 text-[13px] font-medium hover:bg-blue-50 transition-colors disabled:opacity-40"
+                    >
+                      {decidindo ? "..." : "Aceitar e deixar a processar"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

@@ -107,9 +107,23 @@ function FeriasWaveChart({ data }) {
   );
 }
 
+var ESTADOS_PEDIDO_LABELS = {
+  pendente: "Pendente",
+  processando: "A processar",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+  cancelado: "Cancelado",
+};
+
+function estadoPedidoLabel(estado) {
+  if (ESTADOS_PEDIDO_LABELS[estado]) return ESTADOS_PEDIDO_LABELS[estado];
+  return estado ? estado.charAt(0).toUpperCase() + estado.slice(1) : "";
+}
+
 function estadoClasses(estado) {
   if (estado === "aprovado") return "bg-green-50 text-green-700 border border-green-200";
   if (estado === "pendente") return "bg-amber-50 text-amber-700 border border-amber-200";
+  if (estado === "processando") return "bg-blue-50 text-blue-700 border border-blue-200";
   if (estado === "rejeitado") return "bg-red-50 text-red-700 border border-red-200";
   return "bg-surface-container text-on-surface-variant border border-outline-variant";
 }
@@ -1073,7 +1087,7 @@ export default function PortalPage() {
                       <tr key={i} className="hover:bg-surface-container/50 transition-colors">
                         <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{TIPO_LABELS[p.tipo] || p.tipo}</td>
                         <td className="px-4 py-2.5 text-[13px] text-on-surface font-medium">{p.titulo || "—"}</td>
-                        <td className="px-4 py-2.5"><span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + estadoClasses(p.estado)}>{p.estado}</span></td>
+                        <td className="px-4 py-2.5"><span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + estadoClasses(p.estado)}>{estadoPedidoLabel(p.estado)}</span></td>
                         <td className="px-4 py-2.5 text-[12px] text-outline">{formatDate(p.createdAt || p.data_criacao)}</td>
                       </tr>
                     );
@@ -1087,7 +1101,7 @@ export default function PortalPage() {
                   <div key={i} className="border border-outline-variant rounded-lg p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[12px] font-medium text-on-surface">{p.titulo || "—"}</span>
-                      <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + estadoClasses(p.estado)}>{p.estado}</span>
+                      <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + estadoClasses(p.estado)}>{estadoPedidoLabel(p.estado)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-on-surface-variant">{TIPO_LABELS[p.tipo] || p.tipo}</span>
