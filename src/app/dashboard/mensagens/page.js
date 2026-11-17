@@ -96,6 +96,31 @@ var textoAEcrever = function (nomes) {
 // 2 MB e o limite do resto do sistema (guardarFicheiro no backend).
 var TAMANHO_MAX_ANEXO = 2 * 1024 * 1024;
 
+// Emojis do seletor do chat, por categoria (estilo WhatsApp).
+var EMOJIS = {
+  "Sorrisos": [
+    "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃",
+    "😉", "😊", "😇", "😍", "🥰", "😘", "😋", "😛", "🤔", "🤐",
+    "😐", "😴", "🥳", "😎", "🤓", "🧐", "😟", "😕", "😢", "😭",
+    "😤", "😡", "🤯", "😱", "😨", "🥺", "😳", "🤗", "🤫", "😬",
+    "🙄", "😏", "😪", "🥴", "🤤", "😷", "🤒", "🤕", "🤢", "🤮",
+  ],
+  "Gestos": [
+    "👍", "👎", "👌", "🤌", "✌️", "🤞", "🤟", "🤙", "👏", "🙌",
+    "🤝", "🙏", "💪", "👋", "🖐️", "✋", "🫶", "🫰", "👉", "👈",
+    "👆", "👇", "☝️", "✊", "🤛", "🤜", "🫡", "👀", "🧠", "❤️",
+  ],
+  "Corações": [
+    "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
+    "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝",
+  ],
+  "Outros": [
+    "🎉", "🎊", "🔥", "⭐", "🌟", "💡", "✅", "❌", "⚠️", "📌",
+    "📎", "✏️", "📅", "⏰", "☕", "🍕", "🚗", "🏠", "💼", "📞",
+    "🐶", "🐱", "🌞", "🌙", "☔", "⚽", "🎯", "🏆", "💯", "🤖",
+  ],
+};
+
 // Tamanhos de letra do chat (como a opcao de tamanho de texto do WhatsApp).
 var ESCALAS_LETRA = [0.9, 1, 1.15, 1.3];
 
@@ -219,6 +244,15 @@ export default function MensagensPage() {
   const [enviando, setEnviando] = useState(false);
   const [msg, setMsg] = useState(null);
   const [mostrarNova, setMostrarNova] = useState(false);
+  const [modoNovo, setModoNovo] = useState("direta");
+  const [tituloGrupo, setTituloGrupo] = useState("");
+  const [seleccionados, setSeleccionados] = useState([]);
+  const [criandoGrupo, setCriandoGrupo] = useState(false);
+  const [menuConversa, setMenuConversa] = useState(false);
+  const [confirmacao, setConfirmacao] = useState(null);
+  const [membrosAberto, setMembrosAberto] = useState(false);
+  const [membrosSel, setMembrosSel] = useState([]);
+  const [aAdicionarMembros, setAAdicionarMembros] = useState(false);
   const [utilizadores, setUtilizadores] = useState([]);
   const [filtroUtilizador, setFiltroUtilizador] = useState("");
   const [verListaMobile, setVerListaMobile] = useState(true);
@@ -227,6 +261,13 @@ export default function MensagensPage() {
   const [erroPessoas, setErroPessoas] = useState("");
   const [gravando, setGravando] = useState(false);
   const [segundosGravacao, setSegundosGravacao] = useState(0);
+  const [emojisAberto, setEmojisAberto] = useState(false);
+  const [emojiAba, setEmojiAba] = useState("Sorrisos");
+  const [chamada, setChamada] = useState(null);
+  const [chamadaVer, setChamadaVer] = useState(0);
+  const [chamadaEntrante, setChamadaEntrante] = useState(null);
+  const [microfoneMudo, setMicrofoneMudo] = useState(false);
+  const [cameraLigada, setCameraLigada] = useState(true);
   const [escalaLetra, setEscalaLetra] = useState(1);
 
   const ativaRef = useRef(null);
@@ -240,6 +281,17 @@ export default function MensagensPage() {
   const gravacaoSegundosRef = useRef(0);
   const cancelarGravacaoRef = useRef(false);
   const anexoPreviewUrlRef = useRef(null);
+  const pcsRef = useRef({});
+  const streamsRef = useRef({});
+  const streamLocalRef = useRef(null);
+  const icePendentesRef = useRef({});
+  const videoTilesRef = useRef({});
+  const audioTilesRef = useRef({});
+  const videoLocalRef = useRef(null);
+  const chamadaRef = useRef(null);
+  const timerChamadaRef = useRef(null);
+  const processadoSinaisRef = useRef({});
+  const entranteRecusadaRef = useRef(null);
 
   // ==================== CONVERSAS ====================
 
@@ -400,6 +452,337 @@ export default function MensagensPage() {
       .catch(function () { return null; });
   };
 
+  // ==================== EMOJIS ====================
+
+  const inserirEmoji = function (emoji) {
+    setTexto(function (prev) { return prev + emoji; });
+    sinalizarEscrita();
+  };
+
+  // ==================== CONFERENCIA (DIRETAS, GRUPOS E GERAL) ====================
+  // O audio/video segue entre os navegadores por WebRTC. Cada par de
+  // participantes abre o seu proprio canal (malha); o servidor so troca os
+  // sinais e o estado da chamada, a cada 2 segundos.
+
+  var ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }];
+
+  const sendSinal = function (destinatarioId, tipo, corpo) {
+    var c = chamadaRef.current;
+    if (!c) return Promise.resolve(null);
+    return api.post("/api/chat/chamadas/" + c.id + "/sinais", {
+      tipo: tipo,
+      corpo: corpo,
+      destinatario_id: destinatarioId,
+    }).catch(function () { return null; });
+  };
+
+  const criarPeerPara = function (userId) {
+    var pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    pc.ontrack = function (ev) {
+      var stream = ev.streams && ev.streams[0] ? ev.streams[0] : new MediaStream([ev.track]);
+      streamsRef.current[userId] = stream;
+      setChamadaVer(function (v) { return v + 1; });
+    };
+    pc.onicecandidate = function (ev) {
+      if (!ev.candidate) return;
+      sendSinal(userId, "ice", JSON.stringify(ev.candidate.toJSON ? ev.candidate.toJSON() : ev.candidate));
+    };
+    pcsRef.current[userId] = pc;
+    var stream = streamLocalRef.current;
+    if (stream) {
+      stream.getTracks().forEach(function (t) { pc.addTrack(t, stream); });
+    }
+    return pc;
+  };
+
+  const despejarIce = async function (userId) {
+    var pc = pcsRef.current[userId];
+    if (!pc) return;
+    var pendentes = (icePendentesRef.current[userId] || []).splice(0);
+    for (var i = 0; i < pendentes.length; i++) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(pendentes[i]));
+      } catch (eIgnorado) {
+        // Candidato repetido ou fora de contexto: ignora-se.
+      }
+    }
+  };
+
+  const aplicarSinais = async function () {
+    var c = chamadaRef.current;
+    if (!c) return;
+    var data;
+    try {
+      data = await api.get("/api/chat/chamadas/" + c.id + "/sinais");
+    } catch (e) {
+      return;
+    }
+    var sinais = data.dados || [];
+    for (var i = 0; i < sinais.length; i++) {
+      var s = sinais[i];
+      if (processadoSinaisRef.current[s.id]) continue;
+      processadoSinaisRef.current[s.id] = true;
+      var origem = String(s.remetente_id);
+      var corpo;
+      try { corpo = JSON.parse(s.corpo); } catch (e) { continue; }
+
+      if (s.tipo === "offer") {
+        // Quem recebe a oferta responde com um answer; cada par tem um so pc.
+        if (!pcsRef.current[origem]) {
+          var pc = criarPeerPara(origem);
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription(corpo));
+            await despejarIce(origem);
+            var answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            await sendSinal(origem, "answer", JSON.stringify(answer));
+          } catch (e) {
+            try { pc.close(); } catch (eFechar) { /* ignora */ }
+            delete pcsRef.current[origem];
+          }
+        }
+      } else if (s.tipo === "answer") {
+        var pcA = pcsRef.current[origem];
+        if (pcA) {
+          try {
+            await pcA.setRemoteDescription(new RTCSessionDescription(corpo));
+            await despejarIce(origem);
+          } catch (eIgnorado) {
+            // Resposta repetida ou fora de contexto.
+          }
+        }
+      } else if (s.tipo === "ice") {
+        var pcI = pcsRef.current[origem];
+        if (pcI && pcI.remoteDescription) {
+          try {
+            await pcI.addIceCandidate(new RTCIceCandidate(corpo));
+          } catch (eIgnorado) {
+            // Ignora candidatos repetidos.
+          }
+        } else {
+          if (!icePendentesRef.current[origem]) icePendentesRef.current[origem] = [];
+          icePendentesRef.current[origem].push(corpo);
+        }
+      }
+    }
+  };
+
+  const montarMedia = async function (tipo) {
+    var stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: tipo === "video" });
+    streamLocalRef.current = stream;
+    return stream;
+  };
+
+  const limparChamada = function () {
+    if (timerChamadaRef.current) {
+      clearInterval(timerChamadaRef.current);
+      timerChamadaRef.current = null;
+    }
+    Object.keys(pcsRef.current).forEach(function (id) {
+      try { pcsRef.current[id].close(); } catch (eIgnorado) { /* ja fechada */ }
+    });
+    pcsRef.current = {};
+    streamsRef.current = {};
+    icePendentesRef.current = {};
+    if (streamLocalRef.current) {
+      streamLocalRef.current.getTracks().forEach(function (t) { t.stop(); });
+      streamLocalRef.current = null;
+    }
+    chamadaRef.current = null;
+    processadoSinaisRef.current = {};
+    setChamada(null);
+    setMicrofoneMudo(false);
+    setCameraLigada(true);
+  };
+
+  // Ajusta as pessoas visiveis na chamada e fecha os canais de quem saiu.
+  const atualizarMembros = function (c, membros) {
+    var novos = {};
+    (membros || []).forEach(function (p) {
+      novos[String(p.id)] = { nome_completo: p.nome_completo, fotografia: p.fotografia };
+    });
+    Object.keys(pcsRef.current).forEach(function (id) {
+      if (!novos[id]) {
+        try { pcsRef.current[id].close(); } catch (eIgnorado) { /* ignora */ }
+        delete pcsRef.current[id];
+        delete streamsRef.current[id];
+      }
+    });
+    c.membros = novos;
+  };
+
+  const iniciarTimersChamada = function () {
+    if (timerChamadaRef.current) clearInterval(timerChamadaRef.current);
+    timerChamadaRef.current = setInterval(async function () {
+      var c = chamadaRef.current;
+      if (!c) return;
+      await aplicarSinais();
+      if (chamadaRef.current !== c) return;
+      var data;
+      try {
+        data = await api.get("/api/chat/chamadas/" + c.id);
+      } catch (e) {
+        return;
+      }
+      var d = data.dados || {};
+      if (c.estado === "a_terminar") return;
+
+      if (["terminada", "recusada", "sem_resposta"].indexOf(d.estado) !== -1) {
+        var aviso = d.estado === "recusada" ? "A chamada foi recusada"
+          : (d.estado === "sem_resposta" ? "A chamada não foi atendida" : "Chamada terminada");
+        limparChamada();
+        setMsg({ tipo: "erro", texto: aviso });
+        setTimeout(function () { setMsg(null); }, 4000);
+        return;
+      }
+
+      // Se sairmos noutro aparelho, este ecra acompanha e sai tambem.
+      if ((d.saiu || []).indexOf(String(meuId)) !== -1) {
+        limparChamada();
+        return;
+      }
+
+      atualizarMembros(c, d.membros);
+      if (d.estado === "aceite") c.estado = "activa";
+      if (c.papel === "iniciador" && d.estado === "a_tocar") {
+        c.tempoToque = (c.tempoToque || 0) + 2;
+        if (c.tempoToque >= 60) {
+          api.post("/api/chat/chamadas/" + c.id + "/terminar", {}).catch(function () { return null; });
+          limparChamada();
+          setMsg({ tipo: "erro", texto: "A chamada não foi atendida" });
+          setTimeout(function () { setMsg(null); }, 4000);
+          return;
+        }
+      }
+      setChamada(Object.assign({}, c));
+      setChamadaVer(function (v) { return v + 1; });
+    }, 2000);
+  };
+
+  const iniciarChamada = async function (tipo) {
+    if (chamadaRef.current) return;
+    var conversa = ativaRef.current;
+    if (!conversa) return;
+    if (typeof window === "undefined" || typeof RTCPeerConnection === "undefined" ||
+        !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMsg({ tipo: "erro", texto: "Este navegador não permite chamadas" });
+      return;
+    }
+    try {
+      var data = await api.post("/api/chat/chamadas", { conversa_id: conversa.id, tipo: tipo });
+      var c = {
+        id: data.dados.id,
+        tipo: tipo,
+        papel: "iniciador",
+        estado: "a_tocar",
+        conversaId: conversa.id,
+        conversaTitulo: conversa.tipo === "geral" ? "Geral" : (conversa.titulo || "Conversa"),
+        membros: {},
+        tempoToque: 0,
+      };
+      processadoSinaisRef.current = {};
+      icePendentesRef.current = {};
+      chamadaRef.current = c;
+      await montarMedia(tipo);
+      setChamada(c);
+      setChamadaVer(function (v) { return v + 1; });
+      iniciarTimersChamada();
+    } catch (e) {
+      limparChamada();
+      setMsg({ tipo: "erro", texto: e.message || "Não foi possível iniciar a chamada" });
+      setTimeout(function () { setMsg(null); }, 5000);
+    }
+  };
+
+  const aceitarEntrante = async function () {
+    var e = chamadaEntrante;
+    if (!e || chamadaRef.current) return;
+    var c = {
+      id: e.id,
+      tipo: e.tipo,
+      papel: "recebido",
+      estado: "activa",
+      conversaId: e.conversa_id,
+      conversaTitulo: e.conversa_titulo,
+      membros: {},
+      tempoToque: 0,
+    };
+    setChamadaEntrante(null);
+    processadoSinaisRef.current = {};
+    icePendentesRef.current = {};
+    chamadaRef.current = c;
+    setChamada(c);
+    try {
+      var aceita = await api.post("/api/chat/chamadas/" + e.id + "/aceitar", {});
+      await montarMedia(e.tipo);
+      setChamadaVer(function (v) { return v + 1; });
+      // Oferta para cada pessoa que ja esta dentro da chamada.
+      var vivos = (aceita && aceita.dados && aceita.dados.vivos) || [];
+      var outros = vivos.filter(function (id) { return String(id) !== String(meuId); });
+      for (var i = 0; i < outros.length; i++) {
+        var pc = criarPeerPara(String(outros[i]));
+        var offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        await sendSinal(String(outros[i]), "offer", JSON.stringify(offer));
+      }
+      iniciarTimersChamada();
+    } catch (err) {
+      limparChamada();
+      setMsg({ tipo: "erro", texto: err.message || "Não foi possível atender a chamada" });
+      setTimeout(function () { setMsg(null); }, 5000);
+    }
+  };
+
+  const recusarEntrante = function () {
+    var e = chamadaEntrante;
+    if (!e) return;
+    entranteRecusadaRef.current = e.id;
+    setChamadaEntrante(null);
+    api.post("/api/chat/chamadas/" + e.id + "/recusar", {}).catch(function () { return null; });
+  };
+
+  const terminarChamada = async function () {
+    var c = chamadaRef.current;
+    if (c) {
+      c.estado = "a_terminar";
+      try {
+        await api.post("/api/chat/chamadas/" + c.id + "/terminar", {});
+      } catch (eIgnorado) {
+        // Se falhar, limpa-se na mesma localmente.
+      }
+    }
+    limparChamada();
+  };
+
+  const alternarMicrofone = function () {
+    var stream = streamLocalRef.current;
+    if (!stream) return;
+    var novo = !microfoneMudo;
+    stream.getAudioTracks().forEach(function (t) { t.enabled = !novo; });
+    setMicrofoneMudo(novo);
+  };
+
+  const alternarCamera = function () {
+    var stream = streamLocalRef.current;
+    if (!stream) return;
+    var novo = !cameraLigada;
+    stream.getVideoTracks().forEach(function (t) { t.enabled = novo; });
+    setCameraLigada(novo);
+  };
+
+  // Liga os streams aos elementos do ecra de chamada quando ele e pintado.
+  useEffect(function () {
+    if (!chamada) return;
+    var timer = setTimeout(function () {
+      if (videoLocalRef.current && streamLocalRef.current) videoLocalRef.current.srcObject = streamLocalRef.current;
+      Object.keys(streamsRef.current).forEach(function (id) {
+        var el = videoTilesRef.current[id] || audioTilesRef.current[id];
+        if (el) el.srcObject = streamsRef.current[id];
+      });
+    }, 60);
+    return function () { clearTimeout(timer); };
+  }, [chamada, chamadaVer]);
+
   // ==================== NOTA DE VOZ ====================
 
   const iniciarGravacao = async function () {
@@ -519,6 +902,9 @@ export default function MensagensPage() {
 
   const abrirNovaConversa = function () {
     setMostrarNova(true);
+    setModoNovo("direta");
+    setTituloGrupo("");
+    setSeleccionados([]);
     setFiltroUtilizador("");
     setMsg(null);
     setErroPessoas("");
@@ -547,6 +933,148 @@ export default function MensagensPage() {
     } finally {
       setCriandoConversa(false);
     }
+  };
+
+  // Marca/desmarca uma pessoa para o grupo (so quem tem conta de acesso).
+  const alternarSeleccionado = function (utilizador) {
+    if (!utilizador.tem_acesso || criandoGrupo) return;
+    setSeleccionados(function (prev) {
+      var id = utilizador.id;
+      if (prev.indexOf(id) === -1) return prev.concat([id]);
+      return prev.filter(function (x) { return x !== id; });
+    });
+  };
+
+  const criarGrupo = async function () {
+    if (criandoGrupo) return;
+    var nome = tituloGrupo.trim();
+    if (!nome) {
+      setMsg({ tipo: "erro", texto: "Indique o nome do grupo" });
+      return;
+    }
+    if (seleccionados.length === 0) {
+      setMsg({ tipo: "erro", texto: "Escolha pelo menos uma pessoa para o grupo" });
+      return;
+    }
+    setCriandoGrupo(true);
+    try {
+      const data = await api.post("/api/chat/grupos", { titulo: nome, utilizador_ids: seleccionados });
+      setMostrarNova(false);
+      setMsg(null);
+      carregarConversas();
+      if (data && data.dados) {
+        abrirConversa({
+          id: data.dados.id,
+          tipo: "grupo",
+          titulo: data.dados.titulo,
+          participantes: data.dados.participantes,
+        });
+      }
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message });
+    } finally {
+      setCriandoGrupo(false);
+    }
+  };
+
+  // ==================== GESTAO DE GRUPOS E CONVERSAS ====================
+
+  const carregarPessoasParaGrupos = function () {
+    setErroPessoas("");
+    setCarregandoPessoas(true);
+    api.get("/api/chat/utilizadores")
+      .then(function (data) { setUtilizadores(data.dados || []); })
+      .catch(function (e) {
+        setUtilizadores([]);
+        setErroPessoas(e.message || "Não foi possível carregar os colaboradores");
+      })
+      .finally(function () { setCarregandoPessoas(false); });
+  };
+
+  const abrirAdicionarMembros = function () {
+    setMenuConversa(false);
+    if (!ativa || ativa.tipo !== "grupo") return;
+    setMembrosSel([]);
+    setFiltroUtilizador("");
+    setMembrosAberto(true);
+    carregarPessoasParaGrupos();
+  };
+
+  const alternarMembro = function (utilizador) {
+    if (!utilizador.tem_acesso || aAdicionarMembros) return;
+    setMembrosSel(function (prev) {
+      var id = utilizador.id;
+      if (prev.indexOf(id) === -1) return prev.concat([id]);
+      return prev.filter(function (x) { return x !== id; });
+    });
+  };
+
+  const adicionarMembros = async function () {
+    if (!ativa || ativa.tipo !== "grupo" || membrosSel.length === 0 || aAdicionarMembros) return;
+    setAAdicionarMembros(true);
+    try {
+      const data = await api.post("/api/chat/grupos/" + ativa.id + "/membros", { utilizador_ids: membrosSel });
+      setMembrosAberto(false);
+      var n = data && data.dados ? data.dados.adicionados : 0;
+      setMsg({
+        tipo: "sucesso",
+        texto: n > 0 ? n + (n === 1 ? " pessoa adicionada ao grupo" : " pessoas adicionadas ao grupo")
+                     : "Essas pessoas já pertencem ao grupo",
+      });
+      setTimeout(function () { setMsg(null); }, 4000);
+      carregarConversas();
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message });
+    } finally {
+      setAAdicionarMembros(false);
+    }
+  };
+
+  const confirmarRemoverConversa = function () {
+    setMenuConversa(false);
+    if (!ativa) return;
+    var c = ativa;
+    setConfirmacao({
+      titulo: "Remover conversa",
+      texto: "A conversa sai da sua lista e volta a aparecer quando receber uma mensagem nova.",
+      botao: "Remover",
+      acao: async function () {
+        try {
+          await api.post("/api/chat/conversas/" + c.id + "/eliminar", {});
+          setAtiva(null);
+          ativaRef.current = null;
+          setMensagens([]);
+          setVerListaMobile(true);
+          carregarConversas();
+        } catch (e) {
+          setMsg({ tipo: "erro", texto: e.message });
+        }
+      },
+    });
+  };
+
+  const confirmarEliminarGrupo = function () {
+    setMenuConversa(false);
+    if (!ativa || ativa.tipo !== "grupo") return;
+    var c = ativa;
+    setConfirmacao({
+      titulo: "Eliminar grupo",
+      texto: "O grupo e todas as mensagens deixam de existir para todos os membros. Não pode ser anulado.",
+      botao: "Eliminar grupo",
+      perigoso: true,
+      acao: async function () {
+        try {
+          await api.delete("/api/chat/grupos/" + c.id);
+          setAtiva(null);
+          ativaRef.current = null;
+          setMensagens([]);
+          setVerListaMobile(true);
+          carregarConversas();
+        } catch (e) {
+          setMsg({ tipo: "erro", texto: e.message });
+        }
+      },
+    });
   };
 
   // ==================== TAMANHO DA LETRA ====================
@@ -586,6 +1114,22 @@ export default function MensagensPage() {
       carregarConversas();
       var a = ativaRef.current;
       if (a) carregarMensagens(a, false);
+      // Chamadas a chegar (so quando nao estamos ja em chamada).
+      if (!chamadaRef.current) {
+        api.get("/api/chat/chamadas/pendentes")
+          .then(function (data) {
+            var lista = (data && data.dados) || [];
+            if (lista.length === 0) {
+              entranteRecusadaRef.current = null;
+              setChamadaEntrante(null);
+              return;
+            }
+            var e = lista[0];
+            if (entranteRecusadaRef.current === e.id) return;
+            if (!chamadaRef.current) setChamadaEntrante(e);
+          })
+          .catch(function () { return null; });
+      }
     }, 5000);
     return function () {
       clearTimeout(timer);
@@ -622,6 +1166,13 @@ export default function MensagensPage() {
         }
       }
       if (anexoPreviewUrlRef.current) URL.revokeObjectURL(anexoPreviewUrlRef.current);
+      if (timerChamadaRef.current) clearInterval(timerChamadaRef.current);
+      Object.keys(pcsRef.current).forEach(function (id) {
+        try { pcsRef.current[id].close(); } catch (eIgnorado) { /* ja fechada */ }
+      });
+      if (streamLocalRef.current) {
+        streamLocalRef.current.getTracks().forEach(function (t) { t.stop(); });
+      }
     };
   }, []);
 
@@ -631,6 +1182,12 @@ export default function MensagensPage() {
                (u.email || "").toLowerCase().indexOf(filtroUtilizador.toLowerCase()) !== -1;
       })
     : utilizadores;
+
+  // Pessoas que ainda não estão no grupo aberto no modal "Adicionar membros".
+  var membrosDoGrupo = (ativa && ativa.membros_ids) || [];
+  var candidatosGrupo = utilizadoresFiltrados.filter(function (u) {
+    return membrosDoGrupo.map(String).indexOf(String(u.id)) === -1 && String(u.id) !== String(meuId);
+  });
 
   var totalNaoLidas = conversas.reduce(function (soma, c) {
     return soma + ((c.id === (ativa && ativa.id) ? 0 : (c.nao_lidas || 0)));
@@ -681,7 +1238,7 @@ export default function MensagensPage() {
           )
         )}
         <div className={"max-w-[80%] sm:max-w-[65%] flex flex-col " + (meu ? "items-end" : "items-start")}>
-          {!meu && ativa.tipo === "geral" && !agrupada && (
+          {!meu && (ativa.tipo === "geral" || ativa.tipo === "grupo") && !agrupada && (
             <span className="text-[10px] text-on-surface-variant/60 font-semibold mb-0.5 px-1">{nome}</span>
           )}
           <div
@@ -817,7 +1374,7 @@ export default function MensagensPage() {
             ) : (
               conversas.map(function (c) {
                 var ativaEsta = ativa && ativa.id === c.id;
-                var nome = c.tipo === "geral" ? "Geral" : (c.titulo || "Conversa");
+                var nome = c.tipo === "geral" ? "Geral" : (c.titulo || (c.tipo === "grupo" ? "Grupo" : "Conversa"));
                 var naoLidas = ativaEsta ? 0 : (c.nao_lidas || 0);
                 var escrevem = c.a_escrever || [];
                 var fotoConversa = c.outro && c.outro.fotografia ? c.outro.fotografia : null;
@@ -829,9 +1386,9 @@ export default function MensagensPage() {
                       ativaEsta ? "bg-primary/10 border-l-[3px] border-l-primary" : "hover:bg-surface-container-low border-l-[3px] border-l-transparent"
                     }`}
                   >
-                    {c.tipo === "geral" ? (
+                    {c.tipo === "geral" || c.tipo === "grupo" ? (
                       <div className="p-2.5 rounded-full bg-primary/10 flex-shrink-0">
-                        <span className="material-symbols-outlined text-[20px] text-primary">forum</span>
+                        <span className="material-symbols-outlined text-[20px] text-primary">{c.tipo === "grupo" ? "groups" : "forum"}</span>
                       </div>
                     ) : (
                       <div className="h-10 w-10 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -854,7 +1411,11 @@ export default function MensagensPage() {
                           </span>
                         ) : (
                           <span className={`text-[12px] truncate ${naoLidas > 0 ? "text-on-surface-variant font-medium" : "text-on-surface-variant/60"}`}>
-                            {c.ultima_mensagem ? c.ultima_mensagem : (c.tipo === "geral" ? "Canal partilhado por todos" : "Sem mensagens ainda")}
+                            {c.ultima_mensagem
+                              ? c.ultima_mensagem
+                              : (c.tipo === "geral"
+                                ? "Canal partilhado por todos"
+                                : (c.tipo === "grupo" ? "Grupo · " + (c.participantes || 0) + " pessoas" : "Sem mensagens ainda"))}
                           </span>
                         )}
                         {naoLidas > 0 && (
@@ -889,9 +1450,9 @@ export default function MensagensPage() {
                 >
                   <span className="material-symbols-outlined text-[20px]">arrow_back</span>
                 </button>
-                {ativa.tipo === "geral" ? (
+                {ativa.tipo === "geral" || ativa.tipo === "grupo" ? (
                   <div className="p-2 rounded-full bg-primary/10">
-                    <span className="material-symbols-outlined text-[20px] text-primary">forum</span>
+                    <span className="material-symbols-outlined text-[20px] text-primary">{ativa.tipo === "grupo" ? "groups" : "forum"}</span>
                   </div>
                 ) : (
                   <div className="h-9 w-9 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
@@ -903,11 +1464,13 @@ export default function MensagensPage() {
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-on-surface truncate">{ativa.tipo === "geral" ? "Geral" : (ativa.titulo || "Conversa")}</p>
+                  <p className="text-[13px] font-bold text-on-surface truncate">{ativa.tipo === "geral" ? "Geral" : (ativa.titulo || (ativa.tipo === "grupo" ? "Grupo" : "Conversa"))}</p>
                   <p className={"text-[11px] truncate " + (aEscrever.length > 0 ? "text-primary font-semibold" : "text-on-surface-variant/60")}>
                     {aEscrever.length > 0
                       ? textoAEcrever(aEscrever)
-                      : (ativa.tipo === "geral" ? "Canal partilhado por todos os utilizadores" : "Conversa direta")}
+                      : (ativa.tipo === "geral"
+                        ? "Canal partilhado por todos os utilizadores"
+                        : (ativa.tipo === "grupo" ? "Grupo · " + (ativa.participantes || 0) + " pessoas" : "Conversa direta"))}
                   </p>
                 </div>
                 <div className="ml-auto flex items-center gap-0.5 rounded-full border border-outline-variant/30 bg-surface-container-low px-1 py-0.5 flex-shrink-0" title="Tamanho da letra das mensagens">
@@ -930,6 +1493,73 @@ export default function MensagensPage() {
                   >
                     <span className="material-symbols-outlined text-[15px]">add</span>
                   </button>
+                </div>
+                <div className="relative flex items-center gap-0.5 flex-shrink-0 ml-1">
+                  <button
+                    type="button"
+                    onClick={function () { iniciarChamada("audio"); }}
+                    className="flex items-center justify-center w-8 h-8 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors"
+                    title="Chamada de voz"
+                  >
+                    <span className="material-symbols-outlined text-[19px]">call</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={function () { iniciarChamada("video"); }}
+                    className="flex items-center justify-center w-8 h-8 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors"
+                    title="Chamada de vídeo"
+                  >
+                    <span className="material-symbols-outlined text-[19px]">videocam</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={function () { setMenuConversa(function (v) { return !v; }); }}
+                    className={"flex items-center justify-center w-8 h-8 rounded-full transition-colors " + (menuConversa ? "bg-surface-container-high text-on-surface" : "text-on-surface-variant hover:bg-surface-container-low")}
+                    title="Mais opções"
+                  >
+                    <span className="material-symbols-outlined text-[19px]">more_vert</span>
+                  </button>
+
+                  {menuConversa && (
+                    <>
+                      <button
+                        type="button"
+                        aria-label="Fechar menu"
+                        onClick={function () { setMenuConversa(false); }}
+                        className="fixed inset-0 z-[70] cursor-default"
+                      />
+                      <div className="absolute right-0 top-9 z-[71] w-56 rounded-xl bg-surface-card border border-outline-variant/30 shadow-xl py-1.5">
+                        {ativa.tipo === "grupo" && (
+                          <button
+                            type="button"
+                            onClick={abrirAdicionarMembros}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left text-[13px] font-medium text-on-surface hover:bg-surface-container-low transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">group_add</span>
+                            Adicionar membros
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={confirmarRemoverConversa}
+                          className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left text-[13px] font-medium text-on-surface hover:bg-surface-container-low transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[18px] text-on-surface-variant">delete_sweep</span>
+                          Remover conversa
+                        </button>
+                        {ativa.tipo === "grupo" && (!ativa.criador_id || String(ativa.criador_id) === String(meuId)) && (
+                          <button
+                            type="button"
+                            onClick={confirmarEliminarGrupo}
+                            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left text-[13px] font-medium text-error hover:bg-error/10 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                            Eliminar grupo
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -965,6 +1595,49 @@ export default function MensagensPage() {
 
               {/* Envio */}
               <form onSubmit={enviar} className="border-t border-outline-variant/30 p-3 space-y-2 bg-surface-card">
+                {emojisAberto && !gravando && (
+                  <div className="rounded-xl bg-surface-container-low border border-outline-variant/30 overflow-hidden">
+                    <div className="flex items-center gap-1.5 px-2 pt-2">
+                      {Object.keys(EMOJIS).map(function (cat) {
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={function () { setEmojiAba(cat); }}
+                            className={"px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors " + (emojiAba === cat
+                              ? "bg-primary text-white"
+                              : "bg-surface-card text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-high")}
+                          >
+                            {cat}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={function () { setEmojisAberto(false); }}
+                        className="ml-auto p-1 rounded-lg hover:bg-black/5 text-on-surface-variant"
+                        title="Fechar emojis"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">close</span>
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-8 sm:grid-cols-10 gap-0.5 p-2 max-h-40 overflow-y-auto">
+                      {EMOJIS[emojiAba].map(function (em) {
+                        return (
+                          <button
+                            key={em}
+                            type="button"
+                            onClick={function () { inserirEmoji(em); }}
+                            className="h-8 w-8 flex items-center justify-center text-[20px] rounded-lg hover:bg-surface-container-high transition-colors"
+                          >
+                            {em}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {anexo && !gravando && (
                   <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-surface-container-low border border-outline-variant/30">
                     {anexoPreview ? (
@@ -1030,6 +1703,15 @@ export default function MensagensPage() {
                     />
                     <button
                       type="button"
+                      onClick={function () { setEmojisAberto(function (v) { return !v; }); }}
+                      disabled={enviando}
+                      className={"flex items-center justify-center w-10 h-10 rounded-full transition-colors flex-shrink-0 disabled:opacity-40 " + (emojisAberto ? "bg-primary/10 text-primary" : "text-on-surface-variant hover:bg-surface-container-low")}
+                      title="Emojis"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">mood</span>
+                    </button>
+                    <button
+                      type="button"
                       onClick={function () { if (ficheiroRef.current) ficheiroRef.current.click(); }}
                       disabled={enviando}
                       className="flex items-center justify-center w-10 h-10 rounded-full text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40 transition-colors flex-shrink-0"
@@ -1077,19 +1759,193 @@ export default function MensagensPage() {
         </div>
       </section>
 
+      {/* ============ ECRA DE CHAMADA ============ */}
+      {chamada && (
+        <div className="fixed inset-0 z-[95] bg-black flex flex-col">
+          <div className="relative flex-1 min-h-0 overflow-y-auto">
+            <div className="sticky top-0 z-10 -mb-16 flex flex-col items-center gap-1 py-4 pointer-events-none">
+              <p className="text-[16px] font-bold text-white">{chamada.conversaTitulo || "Chamada"}</p>
+              <p className="text-[12px] text-white/70">
+                {chamada.papel === "iniciador" && chamada.estado !== "activa"
+                  ? "A chamar…"
+                  : "Em chamada · " + (Object.keys(chamada.membros).length + 1) + " pessoas"}
+              </p>
+            </div>
+            <div className={"grid gap-2 p-3 pt-16 " + (Object.keys(chamada.membros).length <= 1 ? "grid-cols-1 max-w-sm mx-auto w-full" : "grid-cols-2")}>
+              {chamada.tipo === "video" && (
+                <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-neutral-900 border border-white/10">
+                  <video
+                    ref={videoLocalRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <span className="absolute bottom-1.5 left-2 text-[11px] font-semibold text-white/90">Tu</span>
+                </div>
+              )}
+              {Object.keys(chamada.membros).map(function (id) {
+                var p = chamada.membros[id];
+                return (
+                  <div
+                    key={id}
+                    className="relative aspect-[3/4] rounded-xl overflow-hidden bg-neutral-900 border border-white/10 flex items-center justify-center"
+                  >
+                    {chamada.tipo === "video" ? (
+                      <video
+                        ref={function (el) { videoTilesRef.current[id] = el; }}
+                        autoPlay
+                        playsInline
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="h-20 w-20 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center">
+                          {p.fotografia ? (
+                            <img src={p.fotografia} alt={p.nome_completo || "Participante"} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-[22px] font-bold text-white">{iniciaisDe(p.nome_completo)}</span>
+                          )}
+                        </div>
+                        <span className="material-symbols-outlined text-[18px] text-white/40">graphic_eq</span>
+                      </div>
+                    )}
+                    {chamada.tipo === "audio" && (
+                      <audio ref={function (el) { audioTilesRef.current[id] = el; }} autoPlay className="hidden" />
+                    )}
+                    <span className="absolute bottom-1.5 left-2 text-[11px] font-semibold text-white/90">{p.nome_completo || "Participante"}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex items-center justify-center gap-5 py-6">
+            <button
+              type="button"
+              onClick={alternarMicrofone}
+              title={microfoneMudo ? "Reativar microfone" : "Silenciar microfone"}
+              className={"w-14 h-14 rounded-full flex items-center justify-center transition-colors " + (microfoneMudo ? "bg-white/30 text-white" : "bg-white/10 text-white hover:bg-white/20")}
+            >
+              <span className="material-symbols-outlined text-[24px]">{microfoneMudo ? "mic_off" : "mic"}</span>
+            </button>
+            {chamada.tipo === "video" && (
+              <button
+                type="button"
+                onClick={alternarCamera}
+                title={cameraLigada ? "Desligar câmara" : "Ligar câmara"}
+                className={"w-14 h-14 rounded-full flex items-center justify-center transition-colors " + (!cameraLigada ? "bg-white/30 text-white" : "bg-white/10 text-white hover:bg-white/20")}
+              >
+                <span className="material-symbols-outlined text-[24px]">{cameraLigada ? "videocam" : "videocam_off"}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={terminarChamada}
+              title="Terminar chamada"
+              className="w-16 h-16 rounded-full bg-error text-white flex items-center justify-center hover:bg-error/90 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[28px]">call_end</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============ CHAMADA A CHEGAR ============ */}
+      {chamadaEntrante && !chamada && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-surface-card w-full max-w-sm rounded-2xl shadow-2xl border border-outline-variant/30 p-6 flex flex-col items-center gap-3">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+              {chamadaEntrante.iniciador && chamadaEntrante.iniciador.fotografia ? (
+                <img src={chamadaEntrante.iniciador.fotografia} alt={chamadaEntrante.iniciador.nome_completo || "Chamada"} className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-[20px] font-bold text-primary">{iniciaisDe(chamadaEntrante.iniciador && chamadaEntrante.iniciador.nome_completo)}</span>
+              )}
+            </div>
+            <div className="text-center">
+              <p className="text-[15px] font-bold text-on-surface">{(chamadaEntrante.iniciador && chamadaEntrante.iniciador.nome_completo) || "Chamada"}</p>
+              <p className="text-[12px] text-on-surface-variant/70 mt-0.5">
+                {(chamadaEntrante.conversa_titulo ? chamadaEntrante.conversa_titulo + " · " : "") +
+                  (chamadaEntrante.tipo === "video" ? "Chamada de vídeo a chegar…" : "Chamada de voz a chegar…")}
+              </p>
+            </div>
+            <div className="flex items-center gap-8 mt-2">
+              <button
+                type="button"
+                onClick={recusarEntrante}
+                title="Recusar"
+                className="w-14 h-14 rounded-full bg-error text-white flex items-center justify-center hover:bg-error/90 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[24px]">call_end</span>
+              </button>
+              <button
+                type="button"
+                onClick={aceitarEntrante}
+                title="Aceitar"
+                className="w-14 h-14 rounded-full bg-success text-white flex items-center justify-center hover:bg-success/90 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[24px]">{chamadaEntrante.tipo === "video" ? "videocam" : "call"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ============ MODAL NOVA CONVERSA ============ */}
       {mostrarNova && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40">
           <div className="bg-surface-card w-full max-w-md rounded-2xl shadow-2xl border border-outline-variant/30 flex flex-col max-h-[80vh]">
             <div className="px-5 py-4 border-b border-outline-variant/30 flex items-center justify-between gap-2">
               <div>
-                <h2 className="text-[15px] font-bold text-on-surface">Nova conversa</h2>
-                <p className="text-[12px] text-on-surface-variant/60">Escolha a pessoa com quem quer falar</p>
+                <h2 className="text-[15px] font-bold text-on-surface">{modoNovo === "grupo" ? "Novo grupo" : "Nova conversa"}</h2>
+                <p className="text-[12px] text-on-surface-variant/60">
+                  {modoNovo === "grupo" ? "Dê um nome ao grupo e escolha as pessoas" : "Escolha a pessoa com quem quer falar"}
+                </p>
               </div>
               <button onClick={function () { setMostrarNova(false); }} className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
+            <div className="px-5 pt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={function () { setModoNovo("direta"); }}
+                className={
+                  "px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors " +
+                  (modoNovo === "direta"
+                    ? "bg-primary text-white"
+                    : "bg-surface-container-low text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-high")
+                }
+              >
+                Conversa direta
+              </button>
+              <button
+                type="button"
+                onClick={function () { setModoNovo("grupo"); }}
+                className={
+                  "px-3.5 py-1.5 rounded-full text-[12px] font-semibold transition-colors " +
+                  (modoNovo === "grupo"
+                    ? "bg-primary text-white"
+                    : "bg-surface-container-low text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-high")
+                }
+              >
+                Grupo
+              </button>
+            </div>
+            {modoNovo === "grupo" && (
+              <div className="px-5 pt-3">
+                <div className="relative">
+                  <span className="material-symbols-outlined text-[18px] text-on-surface-variant/50 absolute left-3 top-1/2 -translate-y-1/2">groups</span>
+                  <input
+                    type="text"
+                    value={tituloGrupo}
+                    onChange={function (e) { setTituloGrupo(e.target.value); }}
+                    placeholder="Nome do grupo"
+                    maxLength={150}
+                    className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-surface-container-low border border-outline-variant/40 text-[13px] text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+              </div>
+            )}
             <div className="px-5 py-3 border-b border-outline-variant/20">
               <div className="relative">
                 <span className="material-symbols-outlined text-[18px] text-on-surface-variant/50 absolute left-3 top-1/2 -translate-y-1/2">search</span>
@@ -1121,6 +1977,34 @@ export default function MensagensPage() {
                 </div>
               ) : (
                 utilizadoresFiltrados.map(function (u) {
+                  var marcado = seleccionados.indexOf(u.id) !== -1;
+                  if (modoNovo === "grupo") {
+                    return (
+                      <button
+                        key={u.colaborador_id || u.id}
+                        onClick={function () { alternarSeleccionado(u); }}
+                        disabled={!u.tem_acesso || criandoGrupo}
+                        className={"w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed " + (marcado ? "bg-primary/10" : "hover:bg-primary/5")}
+                      >
+                        <div className="h-9 w-9 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          {u.fotografia ? (
+                            <img src={u.fotografia} alt={u.nome_completo} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-[12px] font-bold text-primary">{iniciaisDe(u.nome_completo)}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold text-on-surface truncate">{u.nome_completo}</p>
+                          <p className="text-[11px] text-on-surface-variant/60 truncate">
+                            {!u.tem_acesso ? "Sem acesso ao sistema" : (u.email || "Utilizador")}
+                          </p>
+                        </div>
+                        <span className={"material-symbols-outlined text-[20px] ml-auto " + (marcado ? "text-primary" : "text-on-surface-variant/40")}>
+                          {!u.tem_acesso ? "block" : (marcado ? "check_circle" : "radio_button_unchecked")}
+                        </span>
+                      </button>
+                    );
+                  }
                   return (
                     <button
                       key={u.colaborador_id || u.id}
@@ -1148,6 +2032,160 @@ export default function MensagensPage() {
                   );
                 })
               )}
+            </div>
+            {modoNovo === "grupo" && (
+              <div className="px-5 py-3 border-t border-outline-variant/30">
+                <button
+                  type="button"
+                  onClick={criarGrupo}
+                  disabled={criandoGrupo || !tituloGrupo.trim() || seleccionados.length === 0}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+                >
+                  {criandoGrupo ? (
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <span className="material-symbols-outlined text-[18px]">group_add</span>
+                  )}
+                  {criandoGrupo
+                    ? "A criar..."
+                    : "Criar grupo" + (seleccionados.length > 0 ? " · " + (seleccionados.length + 1) + " pessoas" : "")}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ MODAL ADICIONAR MEMBROS ============ */}
+      {membrosAberto && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-surface-card w-full max-w-md rounded-2xl shadow-2xl border border-outline-variant/30 flex flex-col max-h-[80vh]">
+            <div className="px-5 py-4 border-b border-outline-variant/30 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="text-[15px] font-bold text-on-surface">Adicionar membros</h2>
+                <p className="text-[12px] text-on-surface-variant/60 truncate">Grupo «{ativa && ativa.titulo ? ativa.titulo : "Grupo"}»</p>
+              </div>
+              <button onClick={function () { setMembrosAberto(false); }} className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="px-5 py-3 border-b border-outline-variant/20">
+              <div className="relative">
+                <span className="material-symbols-outlined text-[18px] text-on-surface-variant/50 absolute left-3 top-1/2 -translate-y-1/2">search</span>
+                <input
+                  type="text"
+                  value={filtroUtilizador}
+                  onChange={function (e) { setFiltroUtilizador(e.target.value); }}
+                  placeholder="Procurar por nome ou email..."
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-surface-container-low border border-outline-variant/40 text-[13px] text-on-surface placeholder:text-on-surface-variant/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto py-2">
+              {carregandoPessoas ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="w-7 h-7 border-4 border-outline-variant border-t-primary rounded-full animate-spin" />
+                </div>
+              ) : erroPessoas ? (
+                <div className="px-5 py-8 text-center">
+                  <span className="material-symbols-outlined text-[32px] text-error/40 block mb-2">error</span>
+                  <p className="text-[12px] text-error">{erroPessoas}</p>
+                </div>
+              ) : candidatosGrupo.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <span className="material-symbols-outlined text-[32px] text-on-surface-variant/20 block mb-2">person_search</span>
+                  <p className="text-[12px] text-on-surface-variant/60">
+                    {utilizadores.length === 0
+                      ? "Sem colaboradores activos"
+                      : (filtroUtilizador ? "Sem resultados para a procura" : "Todas as pessoas já estão no grupo")}
+                  </p>
+                </div>
+              ) : (
+                candidatosGrupo.map(function (u) {
+                  var marcado = membrosSel.indexOf(u.id) !== -1;
+                  return (
+                    <button
+                      key={u.colaborador_id || u.id}
+                      onClick={function () { alternarMembro(u); }}
+                      disabled={!u.tem_acesso || aAdicionarMembros}
+                      className={"w-full flex items-center gap-3 px-5 py-2.5 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed " + (marcado ? "bg-primary/10" : "hover:bg-primary/5")}
+                    >
+                      <div className="h-9 w-9 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        {u.fotografia ? (
+                          <img src={u.fotografia} alt={u.nome_completo} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-[12px] font-bold text-primary">{iniciaisDe(u.nome_completo)}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-on-surface truncate">{u.nome_completo}</p>
+                        <p className="text-[11px] text-on-surface-variant/60 truncate">
+                          {!u.tem_acesso ? "Sem acesso ao sistema" : (u.email || "Utilizador")}
+                        </p>
+                      </div>
+                      <span className={"material-symbols-outlined text-[20px] ml-auto " + (marcado ? "text-primary" : "text-on-surface-variant/40")}>
+                        {!u.tem_acesso ? "block" : (marcado ? "check_circle" : "radio_button_unchecked")}
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-outline-variant/30">
+              <button
+                type="button"
+                onClick={adicionarMembros}
+                disabled={aAdicionarMembros || membrosSel.length === 0}
+                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+              >
+                {aAdicionarMembros ? (
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <span className="material-symbols-outlined text-[18px]">group_add</span>
+                )}
+                {aAdicionarMembros
+                  ? "A adicionar..."
+                  : "Adicionar" + (membrosSel.length > 0 ? " · " + membrosSel.length + (membrosSel.length === 1 ? " pessoa" : " pessoas") : "")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============ MODAL DE CONFIRMAÇÃO ============ */}
+      {confirmacao && (
+        <div className="fixed inset-0 z-[92] flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-surface-card w-full max-w-sm rounded-2xl shadow-2xl border border-outline-variant/30 p-5">
+            <div className="flex items-start gap-3">
+              <div className={"h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 " + (confirmacao.perigoso ? "bg-error/10" : "bg-primary/10")}>
+                <span className={"material-symbols-outlined text-[20px] " + (confirmacao.perigoso ? "text-error" : "text-primary")}>
+                  {confirmacao.perigoso ? "warning" : "help"}
+                </span>
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-[14px] font-bold text-on-surface">{confirmacao.titulo}</h2>
+                <p className="text-[12px] text-on-surface-variant/70 mt-1">{confirmacao.texto}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 mt-5">
+              <button
+                type="button"
+                onClick={function () { setConfirmacao(null); }}
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold text-on-surface-variant hover:bg-surface-container-low transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={function () {
+                  var ac = confirmacao.acao;
+                  setConfirmacao(null);
+                  if (ac) ac();
+                }}
+                className={"px-4 py-2 rounded-lg text-[13px] font-semibold text-white transition-colors " + (confirmacao.perigoso ? "bg-error hover:bg-error/90" : "bg-primary hover:bg-primary/90")}
+              >
+                {confirmacao.botao}
+              </button>
             </div>
           </div>
         </div>

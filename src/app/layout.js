@@ -1,6 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import PwaRegister from "@/components/PwaRegister";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,6 +11,22 @@ const inter = Inter({
 export const metadata = {
   title: "SGHR - Sistema de Gestão de Recursos Humanos",
   description: "Sistema de Gestao de Recursos Humanos",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SGHR",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#002b92",
 };
 
 export default function RootLayout({ children }) {
@@ -20,6 +37,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-screen bg-background text-on-surface">
         <AuthProvider>{children}</AuthProvider>
+        <PwaRegister />
       </body>
     </html>
   );
