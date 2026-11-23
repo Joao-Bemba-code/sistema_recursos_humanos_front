@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS } from "@/lib/constants";
+import { NAV_ITEMS, moduloVisivelPara } from "@/lib/constants";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 
@@ -42,10 +42,7 @@ export default function Sidebar({ collapsed, onToggle }) {
     ? [{ titulo: "Plataforma", items: [{ label: "Organizações", href: "/plataforma", icon: "apartment" }] }]
     : NAV_ITEMS.map((group) => ({
       ...group,
-      items: group.items.filter((item) => {
-        if (!item.modulo) return true;
-        return auth.hasPermission(item.modulo, "read");
-      }),
+      items: group.items.filter((item) => moduloVisivelPara(item.modulo, auth)),
     })).filter((group) => group.items.length > 0);
 
   return (

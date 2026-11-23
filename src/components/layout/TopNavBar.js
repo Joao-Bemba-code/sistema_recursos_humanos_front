@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
-import { NAV_ITEMS, MODULOS_ABERTOS_TODOS } from "@/lib/constants";
+import { NAV_ITEMS, moduloVisivelPara } from "@/lib/constants";
 import { getT, getNavLabel, getGroupLabel } from "@/lib/translations";
 
 export default function TopNavBar() {
@@ -27,7 +27,7 @@ export default function TopNavBar() {
   var T = getT();
 
   const allItems = NAV_ITEMS.flatMap((g) => g.items);
-  const itensPermitidos = allItems.filter((i) => !i.modulo || MODULOS_ABERTOS_TODOS.includes(i.modulo) || auth.hasPermission(i.modulo, "read"));
+  const itensPermitidos = allItems.filter((i) => moduloVisivelPara(i.modulo, auth));
 
   // Conta da plataforma: nao pertence a nenhuma organizacao e nao tem modulos.
   const isSuperAdmin = !!(utilizador && utilizador.super_admin);
@@ -38,7 +38,7 @@ export default function TopNavBar() {
         ["/dashboard", "/dashboard/portal", "/dashboard/colaboradores", "/dashboard/contratos", "/dashboard/departamentos"].includes(i.href)
       );
   // Modulos que um simples colaborador pode ver (nao contam como administrativos)
-  const rotasColaborador = ["/dashboard/portal", "/dashboard/comunicados", "/dashboard/mensagens", "/dashboard/ferias", "/dashboard/pedidos"];
+  const rotasColaborador = ["/dashboard/portal", "/dashboard/minhas-formacoes", "/dashboard/comunicados", "/dashboard/mensagens", "/dashboard/ferias", "/dashboard/pedidos"];
   const temModulosAdministrativos = itensPermitidos.some((i) => i.href !== "/dashboard" && rotasColaborador.indexOf(i.href) === -1);
   const isAdmin = auth.isAdmin();
   const soColaborador = auth.hasPermission("portal", "read") && !isAdmin && !temModulosAdministrativos;
@@ -49,7 +49,7 @@ export default function TopNavBar() {
     ? (function () {
         var grupos = [];
         NAV_ITEMS.forEach(function (g) {
-          var items = g.items.filter(function (i) { return !i.modulo || MODULOS_ABERTOS_TODOS.includes(i.modulo) || auth.hasPermission(i.modulo, "read"); });
+          var items = g.items.filter(function (i) { return moduloVisivelPara(i.modulo, auth); });
           if (items.length > 0) grupos.push({ titulo: g.titulo, items: items });
         });
         return grupos;
@@ -132,7 +132,7 @@ export default function TopNavBar() {
     error: "error",
   };
 
-  var MODULO_LABELS_NOTIF = { pedidos: "Pedidos", avaliacao: "Avaliação", advertencias: "Advertência", folha_salarial: "Folha Salarial", portal: "Portal" };
+  var MODULO_LABELS_NOTIF = { pedidos: "Pedidos", avaliacao: "Avaliação", advertencias: "Advertência", folha_salarial: "Folha Salarial", portal: "Portal", formacao: "Formação" };
   var labelDeModulo = function (mod) { return MODULO_LABELS_NOTIF[mod] || "Sistema"; };
 
   var modulosDisponiveis = [];

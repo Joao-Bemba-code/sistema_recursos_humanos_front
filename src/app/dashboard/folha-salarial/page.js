@@ -109,7 +109,7 @@ export default function FolhaSalarialPage() {
   const defaultFormPag = {
     colaborador_id: "", mes: "", ano: "", salario_base: "",
     subsidios: "", horas_extras: "", descontos: "", irt: "",
-    seguranca_social: "", desconto_faltas: "", data_pagamento: "", estado: "Pendente"
+    seguranca_social: "", desconto_faltas: "", desconto_banco_horas: "", data_pagamento: "", estado: "Pendente"
   };
 
   const loadColaboradores = async () => {
@@ -174,7 +174,7 @@ export default function FolhaSalarialPage() {
 
   const handleColaboradorChange = async (e) => {
     const colabId = e.target.value;
-    setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: "", subsidios: "", desconto_faltas: "", detalhe_faltas: null, seguranca_social: "", irt: "" }));
+    setForm(prev => ({ ...prev, colaborador_id: colabId, salario_base: "", subsidios: "", desconto_faltas: "", desconto_banco_horas: "", detalhe_faltas: null, seguranca_social: "", irt: "" }));
     if (!colabId) return;
     try {
       const data = await api.get(`/api/folha-salarial/contrato-actual/${colabId}`);
@@ -194,6 +194,7 @@ export default function FolhaSalarialPage() {
         }));
       }
       buscarDescontoFaltas(colabId, form.mes, form.ano);
+      buscarDescontoBancoHoras(colabId, form.mes, form.ano);
     } catch (e) {
       console.error("Erro ao buscar contrato:", e);
     }
@@ -211,12 +212,26 @@ export default function FolhaSalarialPage() {
     }
   };
 
+  const buscarDescontoBancoHoras = async (colabId, mes, ano, apenasMes) => {
+    if (!colabId || !mes || !ano) return;
+    try {
+      const salario = form.salario_base ? `&salario_base=${form.salario_base}` : "";
+      const data = await api.get(`/api/banco-horas/preview-desconto?colaborador_id=${colabId}&mes=${mes}&ano=${ano}${apenasMes ? "&apenas_mes=true" : ""}${salario}`);
+      if (data && data.dados) {
+        setForm(prev => ({ ...prev, desconto_banco_horas: data.dados.total || 0 }));
+      }
+    } catch (e) {
+      console.error("Erro ao buscar desconto do banco de horas:", e);
+    }
+  };
+
   const handleMesAnoChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => {
       const novo = { ...prev, [name]: value };
       if (novo.colaborador_id && novo.mes && novo.ano) {
         buscarDescontoFaltas(novo.colaborador_id, novo.mes, novo.ano);
+        buscarDescontoBancoHoras(novo.colaborador_id, novo.mes, novo.ano);
       }
       return novo;
     });
@@ -247,7 +262,8 @@ export default function FolhaSalarialPage() {
     var irt = parseFloat(f.irt) || 0;
     var ss = parseFloat(f.seguranca_social) || 0;
     var df = parseFloat(f.desconto_faltas) || 0;
-    return sb + sub + he - desc - irt - ss - df;
+    var dbh = parseFloat(f.desconto_banco_horas) || 0;
+    return sb + sub + he - desc - irt - ss - df - dbh;
   };
 
   const abrirNovo = () => {
@@ -286,6 +302,7 @@ export default function FolhaSalarialPage() {
         irt: item.irt || "",
         seguranca_social: item.seguranca_social || "",
         desconto_faltas: item.desconto_faltas || "",
+        desconto_banco_horas: item.desconto_banco_horas || "",
         data_pagamento: item.data_pagamento ? item.data_pagamento.substring(0, 10) : "",
         estado: item.estado || "Pendente"
       });
@@ -870,6 +887,7 @@ export default function FolhaSalarialPage() {
                           <span>IRT: {helpers.formatCurrency(item.irt)}</span>
                           <span>INSS: {helpers.formatCurrency(item.seguranca_social)}</span>
                           {(parseFloat(item.desconto_faltas) || 0) > 0 && <span className="text-red-600 font-semibold">Faltas: -{helpers.formatCurrency(item.desconto_faltas)}</span>}
+                          {(parseFloat(item.desconto_banco_horas) || 0) > 0 && <span className="text-red-600 font-semibold">Banco de Horas: -{helpers.formatCurrency(item.desconto_banco_horas)}</span>}
                           {(parseFloat(item.descontos) || 0) > 0 && <span className="text-red-600 font-semibold">Descontos: -{helpers.formatCurrency(item.descontos)}</span>}
                         </div>
                       </td>
@@ -1067,6 +1085,10 @@ export default function FolhaSalarialPage() {
                     <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto Faltas/Atrasos</label>
                     <input type="number" step="0.01" name="desconto_faltas" value={form.desconto_faltas || ""} onChange={handleInput} placeholder="Calculado automaticamente" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
                   </div>
+                  <div>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Desconto Banco de Horas</label>
+                    <input type="number" step="0.01" name="desconto_banco_horas" value={form.desconto_banco_horas || ""} onChange={handleInput} placeholder="Calculado automaticamente" readOnly className="w-full px-3 py-2.5 bg-surface-variant/30 border border-outline-variant/50 rounded-lg text-[14px] text-on-surface-variant/60 cursor-not-allowed" />
+                  </div>
 
                   {form.detalhe_faltas && (
                     <div className="sm:col-span-2 bg-error/5 border border-error/10 rounded-lg p-3 space-y-2">
@@ -1107,6 +1129,7 @@ export default function FolhaSalarialPage() {
                             const novo = { ...prev, apenas_mes: marcado };
                             if (novo.colaborador_id && novo.mes && novo.ano) {
                               buscarDescontoFaltas(novo.colaborador_id, novo.mes, novo.ano, marcado);
+                              buscarDescontoBancoHoras(novo.colaborador_id, novo.mes, novo.ano, marcado);
                             }
                             return novo;
                           });
@@ -1466,6 +1489,7 @@ export default function FolhaSalarialPage() {
                         ["IRT", helpers.formatCurrency(viewItem.irt)],
                         ["INSS", helpers.formatCurrency(viewItem.seguranca_social)],
                         ["Desconto Faltas", helpers.formatCurrency(viewItem.desconto_faltas)],
+                        ["Desconto Banco Horas", helpers.formatCurrency(viewItem.desconto_banco_horas)],
                         ["Outros Descontos", helpers.formatCurrency(viewItem.descontos)],
                       ].map(function(pair) {
                         return (

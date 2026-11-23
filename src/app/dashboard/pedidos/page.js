@@ -623,6 +623,30 @@ export default function PedidosPage() {
                 </div>
               )}
 
+              {pedidoDetalhe.tipo === "dispensa" && (dadosDetalhe.data_inicio || dadosDetalhe.data_fim) && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Data Início</p>
+                      <p className="text-[13px] text-on-surface-variant mt-0.5">{formatDate(dadosDetalhe.data_inicio)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Data Fim</p>
+                      <p className="text-[13px] text-on-surface-variant mt-0.5">{formatDate(dadosDetalhe.data_fim || dadosDetalhe.data_inicio)}</p>
+                    </div>
+                    {dadosDetalhe.numero_dias && (
+                      <div>
+                        <p className="text-[11px] text-outline uppercase tracking-wide">Total Dias</p>
+                        <p className="text-[13px] text-on-surface-variant mt-0.5">{dadosDetalhe.numero_dias} dia(s)</p>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant/70 bg-surface-container rounded-lg px-3 py-2">
+                    Ao aprovar, as saídas antecipadas deste período ficam justificadas automaticamente no Banco de Horas.
+                  </p>
+                </div>
+              )}
+
               {pedidoDetalhe.tipo === "adiantamento" && dadosDetalhe.valor && (
                 <div>
                   <p className="text-[11px] text-outline uppercase tracking-wide">Valor</p>

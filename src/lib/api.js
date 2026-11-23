@@ -76,7 +76,9 @@ var api = {
     return this.request("DELETE", endpoint);
   },
 
-  upload: async function (endpoint, formData) {
+  // `metodo` permite reutilizar o upload para PUT (ex.: registo de avaliação
+  // com anexo). Por omissão mantém-se POST, compatível com os chamadores atuais.
+  upload: async function (endpoint, formData, metodo) {
     var url = this.baseURL + endpoint;
     var token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     var headers = {};
@@ -86,7 +88,7 @@ var api = {
 
     try {
       var response = await fetch(url, {
-        method: "POST",
+        method: metodo || "POST",
         headers: headers,
         body: formData,
       });

@@ -2,7 +2,20 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api-nexushr.o
 
 // Modulos visiveis a qualquer utilizador autenticado, sem depender da matriz
 // de permissoes (o backend restringe os dados ao proprio utilizador).
-export const MODULOS_ABERTOS_TODOS = ["tarefas", "mensagens"];
+export const MODULOS_ABERTOS_TODOS = ["tarefas", "mensagens", "minhas_formacoes", "banco_horas"];
+
+// Atalhos pessoais: só aparecem para quem não tem perfil administrativo.
+// Um gestor trata as formações no módulo "Formação", não em "As Minhas Formações".
+export const MODULOS_SO_COLABORADOR = ["minhas_formacoes"];
+
+export function moduloVisivelPara(modulo, auth) {
+  if (!modulo) return true;
+  if (MODULOS_SO_COLABORADOR.indexOf(modulo) !== -1) {
+    return !!(auth && typeof auth.isAdmin === "function" && !auth.isAdmin());
+  }
+  if (MODULOS_ABERTOS_TODOS.indexOf(modulo) !== -1) return true;
+  return !!(auth && typeof auth.hasPermission === "function" && auth.hasPermission(modulo, "read"));
+}
 
 export const NAV_ITEMS = [
   {
@@ -12,6 +25,7 @@ export const NAV_ITEMS = [
       { label: "Portal", href: "/dashboard/portal", icon: "person", modulo: "portal" },
       { label: "Comunicados", href: "/dashboard/comunicados", icon: "campaign", modulo: null },
       { label: "Mensagens", href: "/dashboard/mensagens", icon: "forum", modulo: "mensagens" },
+      { label: "As Minhas Formações", href: "/dashboard/minhas-formacoes", icon: "school", modulo: "minhas_formacoes" },
     ],
   },
   {
@@ -30,6 +44,7 @@ export const NAV_ITEMS = [
       { label: "Assiduidade", href: "/dashboard/assiduidade", icon: "schedule", modulo: "assiduidade" },
       { label: "Escalas e Turnos", href: "/dashboard/escalas", icon: "work_history", modulo: "assiduidade" },
       { label: "Faltas e Atrasos", href: "/dashboard/faltas", icon: "event_busy", modulo: "faltas" },
+      { label: "Banco de Horas", href: "/dashboard/banco-horas", icon: "schedule", modulo: "banco_horas" },
       { label: "Férias", href: "/dashboard/ferias", icon: "calendar_month", modulo: "ferias" },
       { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment", modulo: "pedidos" },
     ],

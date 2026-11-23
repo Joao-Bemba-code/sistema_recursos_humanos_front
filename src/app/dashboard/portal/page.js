@@ -801,6 +801,31 @@ export default function PortalPage() {
         </section>
 
         <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[14px] font-semibold text-on-surface">Banco de Horas</h2>
+            <Link href="/dashboard/banco-horas" className="text-[12px] font-medium text-primary hover:underline">Ver detalhes</Link>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <div className="bg-surface-container rounded-lg p-3 text-center">
+              <p className="text-[16px] font-bold text-primary">{(descontoEstimado.banco_horas?.saldo || 0).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}h</p>
+              <p className="text-[10px] text-outline mt-0.5">Saldo</p>
+            </div>
+            <div className="bg-surface-container rounded-lg p-3 text-center">
+              <p className="text-[16px] font-bold text-red-600">{(descontoEstimado.banco_horas?.horas_devidas || 0).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}h</p>
+              <p className="text-[10px] text-outline mt-0.5">Em dívida</p>
+            </div>
+            <div className="bg-surface-container rounded-lg p-3 text-center">
+              <p className="text-[16px] font-bold text-emerald-600">{(descontoEstimado.banco_horas?.horas_credito || 0).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}h</p>
+              <p className="text-[10px] text-outline mt-0.5">A crédito</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-outline">
+            Horas em falta não compensadas: {(descontoEstimado.horas_banco_descontar || 0).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}h
+            {" · "}Desconto previsto: {(descontoEstimado.desconto_banco_horas || 0).toLocaleString("pt-PT", { style: "currency", currency: "AOA" })}
+          </p>
+        </section>
+
+        <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
           <h2 className="text-[14px] font-semibold text-on-surface mb-3">Avaliações</h2>
           <div className="flex items-baseline gap-2">
             <span className="text-[28px] font-bold text-on-surface">{avaliacoes.pontuacao > 0 ? avaliacoes.pontuacao.toFixed(1) : "0.0"}</span>

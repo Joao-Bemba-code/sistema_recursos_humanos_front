@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { moduloVisivelPara } from "@/lib/constants";
 import { getT } from "@/lib/translations";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -25,6 +26,7 @@ var ALL_MODULES = [
   { label: "Pedidos", href: "/dashboard/pedidos", icon: "assignment", modulo: "pedidos" },
   { label: "Avaliação", href: "/dashboard/avaliacao", icon: "query_stats", modulo: "avaliacao" },
   { label: "Formação", href: "/dashboard/formacao", icon: "school", modulo: "formacao" },
+  { label: "As Minhas Formações", href: "/dashboard/minhas-formacoes", icon: "school", modulo: "minhas_formacoes" },
   { label: "Tarefas", href: "/dashboard/tarefas", icon: "task_alt", modulo: "tarefas" },
   { label: "Folha Salarial", href: "/dashboard/folha-salarial", icon: "payments", modulo: "folha_salarial" },
   { label: "Créditos", href: "/dashboard/creditos", icon: "savings", modulo: "creditos" },
@@ -36,6 +38,7 @@ var ALL_MODULES = [
 function useAnimatedCounter(target, duration, enabled) {
   var [value, setValue] = useState(0);
   useEffect(function () {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!enabled || target === 0) { setValue(target); return; }
     var start = performance.now();
     function step(now) {
@@ -124,6 +127,7 @@ export default function DashboardPage() {
   useEffect(function () {
     var cfgs = cardConfigsPara();
     var ativos = cfgs.slice(0, 4);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCartoes(ativos);
     if (ativos.length === 0) { setLoading(false); return; }
     var ops = ativos.map(function (cfg) {
@@ -181,7 +185,7 @@ export default function DashboardPage() {
   var dataHoje = now.toLocaleDateString("pt-PT", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   var modulosVisiveis = ALL_MODULES.filter(function (m) {
-    return auth.hasPermission(m.modulo, "read");
+    return moduloVisivelPara(m.modulo, auth);
   });
 
   var textoSistema = tem("colaboradores", "read")
