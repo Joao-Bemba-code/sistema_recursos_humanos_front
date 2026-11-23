@@ -128,7 +128,7 @@ var ESCALAS_LETRA = [0.9, 1, 1.15, 1.3];
 var urlAnexo = function (url) {
   if (!url) return "";
   var u = String(url);
-  if (u.charAt(0) === "/") return api.baseURL + u;
+  if (u.charAt(0) === "/") return api.urlComToken(u);
   return u;
 };
 

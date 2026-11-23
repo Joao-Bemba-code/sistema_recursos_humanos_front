@@ -32,7 +32,7 @@ var FORM_VAZIO = {
 function srcLogo(url) {
   if (!url) return "";
   if (/^https?:\/\//i.test(url)) return url;
-  return api.baseURL + url;
+  return api.urlComToken(url);
 }
 
 function iniciais(nome) {

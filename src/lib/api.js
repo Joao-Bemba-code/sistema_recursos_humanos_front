@@ -1,7 +1,20 @@
-var API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api-nexushr.onrender.com";
+var API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.apikamgest.store";
 
 var api = {
   baseURL: API_BASE,
+
+  // Ficheiros legados em /uploads exigem autenticacao no backend. Como <img>
+  // e <a href> nao enviam o header Authorization, anexamos o token ao endereco.
+  // URLs externas (Cloudinary) sao devolvidas sem alteracao.
+  urlComToken: function (url) {
+    if (!url) return "";
+    var u = String(url);
+    if (/^https?:\/\//i.test(u)) return u;
+    var absoluta = this.baseURL + (u.charAt(0) === "/" ? "" : "/") + u;
+    var token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) return absoluta;
+    return absoluta + (absoluta.indexOf("?") === -1 ? "?" : "&") + "token=" + encodeURIComponent(token);
+  },
 
   getHeaders: function () {
     if (typeof window !== "undefined") {

@@ -33,7 +33,7 @@ export default function Sidebar({ collapsed, onToggle }) {
   const organizacao = utilizador && utilizador.organizacao ? utilizador.organizacao : null;
 
   var logoOrganizacao = organizacao && organizacao.logo_url ? organizacao.logo_url : "";
-  if (logoOrganizacao && logoOrganizacao.charAt(0) === "/") logoOrganizacao = api.baseURL + logoOrganizacao;
+  if (logoOrganizacao && logoOrganizacao.charAt(0) === "/") logoOrganizacao = api.urlComToken(logoOrganizacao);
   var nomeOrganizacao = isSuperAdmin
     ? "Plataforma"
     : "Sistema de Recursos Humanos";
