@@ -4,7 +4,9 @@
 var { createServer } = require("http");
 var next = require("next");
 
-var port = parseInt(process.env.PORT || "3000", 10);
+// O Hostinger encaminha para a porta 8000 quando nao injecta process.env.PORT
+// (confirmado pela API a correr nessa porta).
+var port = parseInt(process.env.PORT || "8000", 10);
 var dev = process.env.NODE_ENV === "development";
 
 var app = next({ dev: dev });
