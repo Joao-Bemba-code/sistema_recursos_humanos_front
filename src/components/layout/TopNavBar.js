@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import { NAV_ITEMS, moduloVisivelPara } from "@/lib/constants";
 import { getT, getNavLabel, getGroupLabel } from "@/lib/translations";
+import PushNotificationManager from "@/components/PushNotificationManager";
 
 export default function TopNavBar() {
   const pathname = usePathname();
@@ -271,6 +272,7 @@ export default function TopNavBar() {
                       </button>
                     )}
                   </div>
+                  <PushNotificationManager key={utilizador ? utilizador.id : "sem-utilizador"} utilizadorId={utilizador ? utilizador.id : null} />
                   {notificacoes.length === 0 ? (
                     <div className="px-4 py-8 text-center">
                       <span className="material-symbols-outlined text-[32px] text-on-surface-variant/20 block mb-2">notifications_none</span>

@@ -11,7 +11,10 @@ export default function PwaRegister() {
     if (!("serviceWorker" in navigator)) return;
     if (!window.isSecureContext) return;
     var timer = setTimeout(function () {
-      navigator.serviceWorker.register("/sw.js").catch(function () {
+      navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
+        updateViaCache: "none",
+      }).catch(function () {
         // Sem service worker a app continua a funcionar normalmente.
       });
     }, 2000);

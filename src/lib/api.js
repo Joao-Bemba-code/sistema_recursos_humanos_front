@@ -35,7 +35,7 @@ var api = {
       headers: this.getHeaders(),
     };
 
-    if (data && (method === "POST" || method === "PUT" || method === "PATCH")) {
+    if (data && (method === "POST" || method === "PUT" || method === "PATCH" || method === "DELETE")) {
       options.body = JSON.stringify(data);
     }
 
