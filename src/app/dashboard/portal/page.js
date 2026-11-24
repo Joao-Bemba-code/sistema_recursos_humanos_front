@@ -30,6 +30,72 @@ var TIPOS_PRESENCA = [
   { value: "fim_semana", label: "Fim de semana" },
 ];
 var COMUNICADO_BADGES = { Geral: "badge-primary", Urgente: "badge-danger", Informativo: "badge-secondary", Evento: "badge-warning" };
+
+function ehImagemComunicado(anexo) {
+  if (!anexo) return false;
+  return String(anexo.tipo || "").toLowerCase().indexOf("image/") === 0 ||
+    /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|tiff?|webp)$/i.test(String(anexo.nome || ""));
+}
+
+function primeiraImagemComunicado(anexos) {
+  if (!Array.isArray(anexos)) return null;
+  return anexos.find(ehImagemComunicado) || null;
+}
+
+function ImagemComunicadoPortal({ comunicadoId, anexo }) {
+  const [url, setUrl] = useState("");
+  const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    let activo = true;
+    let urlCriada = "";
+    api.getBlob(
+      `/api/comunicados/${comunicadoId}/anexos/${anexo.id}`,
+      "Não foi possível carregar a imagem"
+    ).then(function (blob) {
+      if (!activo) return;
+      urlCriada = window.URL.createObjectURL(blob);
+      setUrl(urlCriada);
+    }).catch(function (e) {
+      if (activo) setErro(e.message || "Não foi possível carregar a imagem");
+    });
+
+    return function () {
+      activo = false;
+      if (urlCriada) window.URL.revokeObjectURL(urlCriada);
+    };
+  }, [comunicadoId, anexo.id]);
+
+  if (erro || !url) {
+    return (
+      <div className="flex h-32 items-center justify-center gap-2 rounded-lg bg-background/60 px-4 text-center text-[12px] text-on-surface-variant">
+        <span className="material-symbols-outlined text-[18px]">{erro ? "broken_image" : "progress_activity"}</span>
+        {erro || "A carregar imagem..."}
+      </div>
+    );
+  }
+
+  var imagem = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt={`Imagem do comunicado: ${anexo.nome || "anexo"}`}
+      loading="lazy"
+      decoding="async"
+      onError={function () { setErro("Não foi possível mostrar esta imagem"); }}
+      className="max-h-56 w-full object-contain bg-background/60"
+    />
+  );
+  var ehSvg = String(anexo.tipo || "").toLowerCase() === "image/svg+xml" || /\.svg$/i.test(String(anexo.nome || ""));
+  if (ehSvg) return <div className="block">{imagem}</div>;
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" title="Abrir imagem em tamanho completo" className="block">
+      {imagem}
+    </a>
+  );
+}
+
 function diasEntre(inicio, fim) {
   if (!inicio || !fim) return 0;
   var d1 = new Date(inicio);
@@ -430,6 +496,18 @@ export default function PortalPage() {
     }
   };
 
+  var descarregarImagemComunicado = async function (comunicado, anexo) {
+    try {
+      await api.downloadFile(
+        `/api/comunicados/${comunicado.id}/anexos/${anexo.id}`,
+        anexo.nome,
+        "Erro ao descarregar a imagem"
+      );
+    } catch (e) {
+      toast.addToast("error", e.message || "Erro ao descarregar a imagem");
+    }
+  };
+
   var handleSubmitSolicitacao = function (e) {
     e.preventDefault();
     if (!solicitacaoForm.tipo || !solicitacaoForm.titulo) return;
@@ -501,6 +579,7 @@ export default function PortalPage() {
           <div className="space-y-3">
             {comunicados.map(function (c) {
               var badge = COMUNICADO_BADGES[c.tipo] || "badge-secondary";
+              var imagem = primeiraImagemComunicado(c.anexos);
               return (
                 <article key={c.id} className="border border-outline-variant rounded-lg p-4">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -508,7 +587,20 @@ export default function PortalPage() {
                     <span className="text-[11px] text-outline">{formatDate(c.data_inicio)}</span>
                   </div>
                   <h3 className="text-[13px] font-semibold text-on-surface leading-snug break-words">{c.titulo}</h3>
-                  <p className="text-[12px] text-on-surface-variant leading-relaxed mt-1 whitespace-pre-line break-words line-clamp-3">{c.conteudo}</p>
+                  {String(c.conteudo || "").trim() && (
+                    <p className="text-[12px] text-on-surface-variant leading-relaxed mt-1 whitespace-pre-line break-words line-clamp-3">{c.conteudo}</p>
+                  )}
+                  {imagem && (
+                    <div className="mt-3 space-y-2">
+                      <div className="overflow-hidden rounded-lg border border-outline-variant/30">
+                        <ImagemComunicadoPortal key={imagem.id} comunicadoId={c.id} anexo={imagem} />
+                      </div>
+                      <button type="button" onClick={() => descarregarImagemComunicado(c, imagem)} className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
+                        <span className="material-symbols-outlined text-[16px]">download</span>
+                        Descarregar imagem
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
             })}

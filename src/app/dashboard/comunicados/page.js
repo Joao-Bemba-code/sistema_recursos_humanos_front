@@ -20,6 +20,71 @@ var TIPOS = [
   { value: "Evento", label: "Evento" },
 ];
 
+function ehImagemAnexo(anexo) {
+  if (!anexo) return false;
+  return String(anexo.tipo || "").toLowerCase().indexOf("image/") === 0 ||
+    /\.(avif|bmp|gif|heic|heif|jpe?g|png|svg|tiff?|webp)$/i.test(String(anexo.nome || ""));
+}
+
+function primeiraImagem(anexos) {
+  if (!Array.isArray(anexos)) return null;
+  return anexos.find(ehImagemAnexo) || null;
+}
+
+function ImagemAnexoComunicado({ comunicadoId, anexo, compacta }) {
+  const [url, setUrl] = useState("");
+  const [erro, setErro] = useState("");
+
+  useEffect(() => {
+    let activo = true;
+    let urlCriada = "";
+    api.getBlob(
+      `/api/comunicados/${comunicadoId}/anexos/${anexo.id}`,
+      "Não foi possível carregar a imagem"
+    ).then(function (blob) {
+      if (!activo) return;
+      urlCriada = window.URL.createObjectURL(blob);
+      setUrl(urlCriada);
+    }).catch(function (e) {
+      if (activo) setErro(e.message || "Não foi possível carregar a imagem");
+    });
+
+    return function () {
+      activo = false;
+      if (urlCriada) window.URL.revokeObjectURL(urlCriada);
+    };
+  }, [comunicadoId, anexo.id]);
+
+  if (erro || !url) {
+    return (
+      <div className={`flex items-center justify-center gap-2 rounded-lg bg-background/60 text-on-surface-variant ${compacta ? "h-32" : "min-h-48"} px-4 text-center text-[12px]`}>
+        <span className="material-symbols-outlined text-[18px]">{erro ? "broken_image" : "progress_activity"}</span>
+        {erro || "A carregar imagem..."}
+      </div>
+    );
+  }
+
+  var imagem = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt={`Imagem do comunicado: ${anexo.nome || "anexo"}`}
+      loading="lazy"
+      decoding="async"
+      onError={function () { setErro("Não foi possível mostrar esta imagem"); }}
+      className={`w-full object-contain bg-background/60 ${compacta ? "max-h-48" : "max-h-[28rem]"}`}
+    />
+  );
+  var ehSvg = String(anexo.tipo || "").toLowerCase() === "image/svg+xml" || /\.svg$/i.test(String(anexo.nome || ""));
+  if (ehSvg) return <div className="block">{imagem}</div>;
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" title="Abrir imagem em tamanho completo" className="block">
+      {imagem}
+    </a>
+  );
+}
+
 export default function ComunicadosPage() {
   const auth = useAuth();
   const [comunicados, setComunicados] = useState([]);
@@ -144,6 +209,15 @@ export default function ComunicadosPage() {
 
   const guardar = async (e) => {
     e.preventDefault();
+    var temTexto = String(form.conteudo || "").trim().length > 0;
+    var temImagemNova = anexosNovos.some(ehImagemAnexo);
+    var temImagemExistente = anexosExistentes.some(function (a) {
+      return anexosRemover.indexOf(a.id) === -1 && ehImagemAnexo(a);
+    });
+    if (!temTexto && !temImagemNova && !temImagemExistente) {
+      setMsg({ tipo: "erro", texto: "Escreva o conteúdo ou adicione uma imagem ao comunicado" });
+      return;
+    }
     setSaving(true);
     setMsg(null);
     try {
@@ -211,7 +285,7 @@ export default function ComunicadosPage() {
 
   const descarregarAnexo = async (comunicadoId, anexo) => {
     try {
-      await api.downloadPdf(`/api/comunicados/${comunicadoId}/anexos/${anexo.id}`, anexo.nome);
+      await api.downloadFile(`/api/comunicados/${comunicadoId}/anexos/${anexo.id}`, anexo.nome, "Erro ao descarregar o anexo");
     } catch (e) {
       setMsg({ tipo: "erro", texto: e.message });
     }
@@ -383,6 +457,7 @@ export default function ComunicadosPage() {
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {comunicados.map((c) => {
             var t = tipoInfo(c.tipo);
+            var imagemDestaque = primeiraImagem(c.anexos);
             return (
               <article key={c.id} className="bg-surface rounded-xl border border-outline-variant/30 shadow-sm p-5 flex flex-col gap-3 transition-shadow hover:shadow-md">
                 <div className="flex items-center justify-between gap-2">
@@ -399,8 +474,22 @@ export default function ComunicadosPage() {
 
                 <div>
                   <h2 className="text-[15px] font-bold text-on-surface leading-snug line-clamp-2">{c.titulo}</h2>
-                  <p className="mt-2 text-[13px] text-on-surface-variant/80 leading-relaxed line-clamp-3 whitespace-pre-line break-words">{c.conteudo}</p>
+                  {String(c.conteudo || "").trim() && (
+                    <p className="mt-2 text-[13px] text-on-surface-variant/80 leading-relaxed line-clamp-3 whitespace-pre-line break-words">{c.conteudo}</p>
+                  )}
                 </div>
+
+                {imagemDestaque && (
+                  <div className="space-y-2">
+                    <div className="overflow-hidden rounded-lg border border-outline-variant/30">
+                      <ImagemAnexoComunicado key={imagemDestaque.id} comunicadoId={c.id} anexo={imagemDestaque} compacta />
+                    </div>
+                    <button type="button" onClick={() => descarregarAnexo(c.id, imagemDestaque)} className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">download</span>
+                      Descarregar imagem
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-on-surface-variant/60 mt-auto">
                   {c.departamento && (
@@ -546,8 +635,9 @@ export default function ComunicadosPage() {
                   </div>
                 )}
                 <div className="sm:col-span-2">
-                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Conteúdo *</label>
-                  <textarea name="conteudo" value={form.conteudo || ""} onChange={handleInput} required rows={6} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                  <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Conteúdo</label>
+                  <textarea name="conteudo" value={form.conteudo || ""} onChange={handleInput} rows={6} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                  <p className="text-[11px] text-on-surface-variant/60 mt-1">Opcional se o comunicado tiver uma imagem.</p>
                 </div>
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant/70 uppercase px-1 block mb-1">Data de Início</label>
@@ -653,9 +743,11 @@ export default function ComunicadosPage() {
                 </div>
               </div>
 
-              <div className="bg-background/50 rounded-lg p-4 border border-outline-variant/20">
-                <p className="text-[14px] text-on-surface leading-relaxed whitespace-pre-line break-words">{avisoView.conteudo}</p>
-              </div>
+              {String(avisoView.conteudo || "").trim() && (
+                <div className="bg-background/50 rounded-lg p-4 border border-outline-variant/20">
+                  <p className="text-[14px] text-on-surface leading-relaxed whitespace-pre-line break-words">{avisoView.conteudo}</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 {[["Data de Início", formatarData(avisoView.data_inicio)], ["Data de Fim", formatarData(avisoView.data_fim) || "—"],
@@ -702,17 +794,25 @@ export default function ComunicadosPage() {
                 <div className="space-y-2">
                   <p className="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-wide">Documentos anexos</p>
                   {avisoView.anexos.map(function (a) {
+                    var imagem = ehImagemAnexo(a);
                     return (
-                      <div key={a.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-outline-variant/30 bg-background/50">
-                        <span className="material-symbols-outlined text-[18px] text-primary">attach_file</span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-semibold text-on-surface truncate">{a.nome}</p>
-                          <p className="text-[11px] text-on-surface-variant/60">{formatarTamanho(a.tamanho)}</p>
+                      <div key={a.id} className="overflow-hidden rounded-lg border border-outline-variant/30 bg-background/50">
+                        {imagem && (
+                          <div className="p-2 border-b border-outline-variant/20">
+                            <ImagemAnexoComunicado comunicadoId={avisoView.id} anexo={a} />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2.5 px-3 py-2">
+                          <span className="material-symbols-outlined text-[18px] text-primary">{imagem ? "image" : "attach_file"}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold text-on-surface truncate">{a.nome}</p>
+                            <p className="text-[11px] text-on-surface-variant/60">{formatarTamanho(a.tamanho)}</p>
+                          </div>
+                          <button onClick={() => descarregarAnexo(avisoView.id, a)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
+                            <span className="material-symbols-outlined text-[16px]">download</span>
+                            Descarregar
+                          </button>
                         </div>
-                        <button onClick={() => descarregarAnexo(avisoView.id, a)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
-                          <span className="material-symbols-outlined text-[16px]">download</span>
-                          Descarregar
-                        </button>
                       </div>
                     );
                   })}
