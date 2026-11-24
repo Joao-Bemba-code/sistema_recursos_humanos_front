@@ -1,4 +1,8 @@
-var API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.apikamgest.store";
+// Producao usa sempre a API da Hostinger. Em desenvolvimento mantemos a
+// variavel local para permitir testar contra localhost ou outro servidor.
+var API_BASE = process.env.NODE_ENV === "production"
+  ? "https://apikamgest.store"
+  : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 var api = {
   baseURL: API_BASE,

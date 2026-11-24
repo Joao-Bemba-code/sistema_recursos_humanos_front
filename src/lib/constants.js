@@ -1,4 +1,6 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api-nexushr.onrender.com";
+export const API_URL = process.env.NODE_ENV === "production"
+  ? "https://apikamgest.store"
+  : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 // Modulos visiveis a qualquer utilizador autenticado, sem depender da matriz
 // de permissoes (o backend restringe os dados ao proprio utilizador).
