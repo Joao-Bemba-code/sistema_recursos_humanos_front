@@ -13,14 +13,42 @@ function base64urlParaUint8Array(valor) {
 }
 
 function serializarSubscricao(subscricao) {
+  if (!subscricao || typeof subscricao !== "object") {
+    throw new Error("A subscrição de notificações é inválida. Volte a activar.");
+  }
+
+  var dados = subscricao;
+  if (typeof dados.toJSON === "function") {
+    try {
+      dados = dados.toJSON();
+    } catch (e) {
+      // Alguns navegadores expõem as chaves directamente na subscrição.
+    }
+  }
+
+  var chaves = dados && dados.keys || subscricao.keys;
+  var endpoint = String(dados && dados.endpoint || subscricao.endpoint || "").trim();
+  var p256dh = chaves && typeof chaves.p256dh === "string" ? chaves.p256dh.trim() : "";
+  var auth = chaves && typeof chaves.auth === "string" ? chaves.auth.trim() : "";
+
+  if (!endpoint || !p256dh || !auth) {
+    throw new Error("O navegador não forneceu as chaves desta subscrição. As notificações serão reactivadas.");
+  }
+
   return {
-    endpoint: subscricao.endpoint,
-    expirationTime: subscricao.expirationTime,
-    keys: {
-      p256dh: subscricao.keys.p256dh,
-      auth: subscricao.keys.auth,
-    },
+    endpoint: endpoint,
+    expirationTime: dados && dados.expirationTime,
+    keys: { p256dh: p256dh, auth: auth },
   };
+}
+
+function subscricaoValida(subscricao) {
+  try {
+    serializarSubscricao(subscricao);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 function suportaPush() {
@@ -97,13 +125,33 @@ export default function PushNotificationManager({ utilizadorId }) {
         });
         var subscricao = await registration.pushManager.getSubscription();
         var chaveAnterior = localStorage.getItem("sghr-push-vapid");
-        if (subscricao && chaveAnterior && chaveAnterior !== config.chave_publica) {
-          await subscricao.unsubscribe();
+        var precisaRecriar = !!subscricao && (
+          !chaveAnterior ||
+          chaveAnterior !== config.chave_publica ||
+          !subscricaoValida(subscricao)
+        );
+
+        if (precisaRecriar) {
+          try { await subscricao.unsubscribe(); } catch (e) {}
           subscricao = null;
+          localStorage.removeItem("sghr-push-vapid");
+        }
+
+        // Se a permissão já foi concedida, recupera automaticamente uma
+        // subscrição antiga, inválida ou criada com outra chave VAPID.
+        if (!subscricao && Notification.permission === "granted") {
+          subscricao = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: base64urlParaUint8Array(config.chave_publica),
+          });
+          if (!subscricaoValida(subscricao)) {
+            try { await subscricao.unsubscribe(); } catch (e) {}
+            throw new Error("O navegador criou uma subscrição sem chaves. Feche e volte a abrir o SGHR e tente novamente.");
+          }
         }
 
         if (!activo) return;
-        setTemSubscricao(!!subscricao);
+        setTemSubscricao(false);
 
         // Sincroniza sempre que o utilizador entra. Isto tambem transfere a
         // subscricao deste navegador para a conta que acabou de iniciar sessao.
@@ -112,7 +160,10 @@ export default function PushNotificationManager({ utilizadorId }) {
             subscricao: serializarSubscricao(subscricao),
             user_agent: navigator.userAgent,
           });
-          if (activo) localStorage.setItem("sghr-push-vapid", config.chave_publica);
+          if (activo) {
+            localStorage.setItem("sghr-push-vapid", config.chave_publica);
+            setTemSubscricao(true);
+          }
         }
       } catch (e) {
         if (activo) setErro(e.message || "Não foi possível verificar as notificações deste dispositivo.");
@@ -144,6 +195,12 @@ export default function PushNotificationManager({ utilizadorId }) {
       var registration = await navigator.serviceWorker.ready;
       var subscricao = await registration.pushManager.getSubscription();
       var criada = false;
+
+      if (subscricao && !subscricaoValida(subscricao)) {
+        try { await subscricao.unsubscribe(); } catch (e) {}
+        subscricao = null;
+      }
+
       if (!subscricao) {
         subscricao = await registration.pushManager.subscribe({
           userVisibleOnly: true,
@@ -152,9 +209,18 @@ export default function PushNotificationManager({ utilizadorId }) {
         criada = true;
       }
 
+      var dadosSubscricao;
+      try {
+        dadosSubscricao = serializarSubscricao(subscricao);
+      } catch (e) {
+        try { if (subscricao) await subscricao.unsubscribe(); } catch (erro) {}
+        setTemSubscricao(false);
+        throw new Error("O navegador não forneceu as chaves de notificação. Feche e volte a abrir o SGHR e tente novamente.");
+      }
+
       try {
         await api.post("/api/notificacoes/push/subscribe", {
-          subscricao: serializarSubscricao(subscricao),
+          subscricao: dadosSubscricao,
           user_agent: navigator.userAgent,
         });
       } catch (e) {
