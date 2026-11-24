@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
-var apiUrl = process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production" ? "https://apikamgest.store" : "http://localhost:8080");
+var apiUrl = process.env.NODE_ENV === "production"
+  ? "https://apikamgest.store"
+  : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 const nextConfig = {
   async rewrites() {
