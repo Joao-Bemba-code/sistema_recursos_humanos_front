@@ -16,9 +16,10 @@ var OPERACOES = [
   { chave: "delete", label: "Eliminar", icon: "delete" },
 ];
 
-// O Download so faz sentido nos documentos dos colaboradores e controla o
-// descarregamento de qualquer documento (incluindo o mapa mensal gerado).
+// O Download existe nos modulos com ficheiros enviados por upload:
+// documentos do colaborador (inclui o mapa mensal) e anexos de comunicados.
 var OPERACAO_DOWNLOAD = { chave: "download", label: "Download", icon: "download" };
+var MODULOS_COM_DOWNLOAD = ["documentos_colaborador", "comunicados"];
 
 var NIVEL_LABELS = {
   0: "Colaborador",
@@ -768,7 +769,7 @@ export default function UtilizadoresPage() {
             <p className="text-[12px] text-on-surface-variant/70 mb-3">Marque apenas os módulos e operações que este perfil pode aceder. O que não estiver marcado fica bloqueado.</p>
             <div className="flex items-start gap-2 p-3 mb-3 rounded-lg bg-primary/5 border border-primary/15">
               <span className="material-symbols-outlined text-[18px] text-primary mt-px">info</span>
-              <p className="text-[12px] text-on-surface-variant/80 leading-relaxed">Qualquer operação marcada ativa automaticamente o <strong>Ver</strong> — sem ele o módulo nem aparece no menu. Ao retirar o <strong>Ver</strong>, todo o módulo fica bloqueado. Em <strong>Documentos de Colaborador</strong>, a coluna <strong>Download</strong> permite ou bloqueia o descarregamento de documentos, incluindo o mapa mensal.</p>
+              <p className="text-[12px] text-on-surface-variant/80 leading-relaxed">Qualquer operação marcada ativa automaticamente o <strong>Ver</strong> — sem ele o módulo nem aparece no menu. Ao retirar o <strong>Ver</strong>, todo o módulo fica bloqueado. Em <strong>Documentos de Colaborador</strong> e <strong>Comunicados</strong>, a coluna <strong>Download</strong> permite ou bloqueia o descarregamento de ficheiros (documentos, mapa mensal e anexos).</p>
             </div>
             {modulos.length === 0 ? (
               <p className="text-[13px] text-on-surface-variant/60 py-4 text-center">Nenhum módulo disponível</p>
@@ -796,7 +797,7 @@ export default function UtilizadoresPage() {
                     <div key={mod.chave} className="grid grid-cols-[minmax(160px,1fr)_repeat(5,64px)_28px] gap-1 items-center px-1 py-1.5 rounded-lg hover:bg-surface-container/50 transition-colors">
                       <span className="text-[13px] font-semibold text-on-surface">{mod.nome}</span>
                       {OPERACOES.map(function (op) { return renderCheck(mod, op); })}
-                      {mod.chave === "documentos_colaborador"
+                      {MODULOS_COM_DOWNLOAD.indexOf(mod.chave) !== -1
                         ? renderCheck(mod, OPERACAO_DOWNLOAD)
                         : <span key="sem-download" className="text-center text-[12px] text-on-surface-variant/30">—</span>}
                       <span />

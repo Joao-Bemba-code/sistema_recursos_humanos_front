@@ -121,6 +121,7 @@ export default function ComunicadosPage() {
     });
   })();
   var canManage = !!(auth && (auth.isAdmin() || auth.hasPermission("comunicados", "create") || hasRoleRh));
+  var podeDescarregarDocumentos = !!(auth && auth.hasPermission("comunicados", "download"));
 
   const carregar = async (page = 1) => {
     setLoading(true);
@@ -479,7 +480,7 @@ export default function ComunicadosPage() {
                   )}
                 </div>
 
-                {imagemDestaque && (
+                {imagemDestaque && podeDescarregarDocumentos && (
                   <div className="space-y-2">
                     <div className="overflow-hidden rounded-lg border border-outline-variant/30">
                       <ImagemAnexoComunicado key={imagemDestaque.id} comunicadoId={c.id} anexo={imagemDestaque} compacta />
@@ -797,7 +798,7 @@ export default function ComunicadosPage() {
                     var imagem = ehImagemAnexo(a);
                     return (
                       <div key={a.id} className="overflow-hidden rounded-lg border border-outline-variant/30 bg-background/50">
-                        {imagem && (
+                        {imagem && podeDescarregarDocumentos && (
                           <div className="p-2 border-b border-outline-variant/20">
                             <ImagemAnexoComunicado comunicadoId={avisoView.id} anexo={a} />
                           </div>
@@ -808,10 +809,12 @@ export default function ComunicadosPage() {
                             <p className="text-[13px] font-semibold text-on-surface truncate">{a.nome}</p>
                             <p className="text-[11px] text-on-surface-variant/60">{formatarTamanho(a.tamanho)}</p>
                           </div>
-                          <button onClick={() => descarregarAnexo(avisoView.id, a)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
-                            <span className="material-symbols-outlined text-[16px]">download</span>
-                            Descarregar
-                          </button>
+                          {podeDescarregarDocumentos && (
+                            <button onClick={() => descarregarAnexo(avisoView.id, a)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
+                              <span className="material-symbols-outlined text-[16px]">download</span>
+                              Descarregar
+                            </button>
+                          )}
                         </div>
                       </div>
                     );

@@ -272,6 +272,7 @@ function movimentoPortalValido(de, para) {
 export default function PortalPage() {
   var auth = useAuth();
   var utilizador = auth ? auth.utilizador : null;
+  var podeDescarregarDocumentos = !!(auth && auth.hasPermission("comunicados", "download"));
   var toast = useToast();
 
   var [portalData, setPortalData] = useState(null);
@@ -590,7 +591,7 @@ export default function PortalPage() {
                   {String(c.conteudo || "").trim() && (
                     <p className="text-[12px] text-on-surface-variant leading-relaxed mt-1 whitespace-pre-line break-words line-clamp-3">{c.conteudo}</p>
                   )}
-                  {imagem && (
+                  {imagem && podeDescarregarDocumentos && (
                     <div className="mt-3 space-y-2">
                       <div className="overflow-hidden rounded-lg border border-outline-variant/30">
                         <ImagemComunicadoPortal key={imagem.id} comunicadoId={c.id} anexo={imagem} />
