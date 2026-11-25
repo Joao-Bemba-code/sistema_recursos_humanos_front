@@ -42,6 +42,7 @@ export default function ColaboradoresPage() {
   const { hasPermission } = useAuth();
   const podeVerDocumentos = hasPermission("documentos_colaborador", "read");
   const podeEditarDocumentos = hasPermission("documentos_colaborador", "update") || hasPermission("documentos_colaborador", "create");
+  const podeDescarregarDocumentos = hasPermission("documentos_colaborador", "download");
   const [colaboradores, setColaboradores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -865,6 +866,7 @@ export default function ColaboradoresPage() {
                 <DocumentosTab
                   documentos={form.documentos || []}
                   podeEditar={podeEditarDocumentos}
+                  podeDescarregar={podeDescarregarDocumentos}
                   colaboradorId={editando ? editando.id : null}
                   onRemoverDoc={removerDocumentoGravado}
                   onErro={(msg) => toast.addToast("error", msg)}

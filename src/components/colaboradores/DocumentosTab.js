@@ -23,6 +23,7 @@ var VARIANTE_ESTADO = {
 
 var ACAO_LABEL = {
   carregado: "Carregado",
+  descarregado: "Descarregado",
   substituido: "Substituído",
   validado: "Validado",
   corrigir: "Marcado A corrigir",
@@ -41,7 +42,7 @@ var listaSegura = function (lista) {
   return Array.isArray(lista) ? lista : [];
 };
 
-export default function DocumentosTab({ documentos, onChange, podeEditar, colaboradorId, onRemoverDoc, onErro }) {
+export default function DocumentosTab({ documentos, onChange, podeEditar, podeDescarregar, colaboradorId, onRemoverDoc, onErro }) {
   var docs = listaSegura(documentos);
   var [corrigir, setCorrigir] = useState(null);
   var [aAdicionarOutro, setAAdicionarOutro] = useState(false);
@@ -131,6 +132,18 @@ export default function DocumentosTab({ documentos, onChange, podeEditar, colabo
       }
     } catch (e) {
       if (onErro) onErro(e.message || "Não foi possível abrir o documento");
+    }
+  };
+
+  var descarregarFicheiro = async function (doc) {
+    try {
+      await api.downloadFile(
+        "/api/colaboradores/" + colaboradorId + "/documentos/" + doc.id + "/download",
+        doc.ficheiro_nome || "documento",
+        "Não foi possível descarregar o documento"
+      );
+    } catch (e) {
+      if (onErro) onErro(e.message || "Não foi possível descarregar o documento");
     }
   };
 
@@ -228,6 +241,22 @@ export default function DocumentosTab({ documentos, onChange, podeEditar, colabo
         Ver
       </button>
     );
+    if (doc.id && podeDescarregar) {
+      botoes.push(
+        <button key="descarregar" type="button" onClick={function () { descarregarFicheiro(doc); }}
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary/5 text-primary text-[11px] font-bold hover:bg-primary/10 transition-colors">
+          <span className="material-symbols-outlined text-[14px]">download</span>
+          Descarregar
+        </button>
+      );
+    } else if (doc.id) {
+      botoes.push(
+        <span key="bloqueado" className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-surface-container text-on-surface-variant/70 text-[11px] font-semibold">
+          <span className="material-symbols-outlined text-[14px]">lock</span>
+          Download bloqueado
+        </span>
+      );
+    }
     return <div className="flex flex-wrap items-center gap-1.5">{botoes}</div>;
   };
 
@@ -392,32 +421,34 @@ export default function DocumentosTab({ documentos, onChange, podeEditar, colabo
                 </div>
 
                 {podeEditar && (
-                  <FileUpload
-                    hideLabel
-                    permitirRemover={false}
-                    value={doc.ficheiro_url || ""}
-                    nomeFicheiro={doc.ficheiro_nome}
-                    onChange={function (url, meta) {
-                      var lista = docs.slice();
-                      var alvo = lista.indexOf(doc);
-                      if (alvo === -1) return;
-                      lista[alvo] = Object.assign({}, doc, {
-                        ficheiro_url: url,
-                        ficheiro_nome: (meta && meta.nome_original) || url.split("/").pop(),
-                        ficheiro_tipo: (meta && meta.tipo) || doc.ficheiro_tipo || null,
-                        ficheiro_tamanho: (meta && meta.tamanho) || doc.ficheiro_tamanho || null,
-                        estado: "Por conferir",
-                        motivo_correcao: null,
-                        validado_por: null,
-                        validado_em: null,
-                        carregado_em: new Date().toISOString(),
-                      });
-                      emitir(lista);
-                    }}
-                    pasta="documentos"
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    icone="attach_file"
-                  />
+                  <>
+                    <FileUpload
+                      hideLabel
+                      permitirRemover={false}
+                      value={doc.ficheiro_url || ""}
+                      nomeFicheiro={doc.ficheiro_nome}
+                      onChange={function (url, meta) {
+                        var lista = docs.slice();
+                        var alvo = lista.indexOf(doc);
+                        if (alvo === -1) return;
+                        lista[alvo] = Object.assign({}, doc, {
+                          ficheiro_url: url,
+                          ficheiro_nome: (meta && meta.nome_original) || url.split("/").pop(),
+                          ficheiro_tipo: (meta && meta.tipo) || doc.ficheiro_tipo || null,
+                          ficheiro_tamanho: (meta && meta.tamanho) || doc.ficheiro_tamanho || null,
+                          estado: "Por conferir",
+                          motivo_correcao: null,
+                          validado_por: null,
+                          validado_em: null,
+                          carregado_em: new Date().toISOString(),
+                        });
+                        emitir(lista);
+                      }}
+                      pasta="documentos"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      icone="attach_file"
+                    />
+                  </>
                 )}
 
                 {renderAcoes(doc)}
@@ -464,6 +495,15 @@ export default function DocumentosTab({ documentos, onChange, podeEditar, colabo
           </div>
         )}
       </div>
+
+      {colaboradorId && (
+        <div className="rounded-lg border border-outline-variant/30 bg-surface-container-low/40 p-3">
+          <p className="text-[11px] leading-relaxed text-on-surface-variant/70">
+            Para gerar o Mapa Mensal de Controlo de Assiduidade e Bolsa de Horas, use Relatórios → Assiduidade.
+            O download é permitido ou bloqueado pelo perfil em Utilizadores → Gerir Permissões → Documentos de Colaborador → Download.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

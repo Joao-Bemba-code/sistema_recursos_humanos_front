@@ -12,6 +12,7 @@ var ROTAS_MODULOS = {
   "/dashboard/portal": "portal",
   "/dashboard/minhas-formacoes": "minhas_formacoes",
   "/dashboard/colaboradores": "colaboradores",
+  "/dashboard/atividades": "atividades",
   "/dashboard/contratos": "contratos",
   "/dashboard/departamentos": "departamentos",
   "/dashboard/assiduidade": "assiduidade",

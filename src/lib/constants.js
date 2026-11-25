@@ -4,7 +4,7 @@ export const API_URL = process.env.NODE_ENV === "production"
 
 // Modulos visiveis a qualquer utilizador autenticado, sem depender da matriz
 // de permissoes (o backend restringe os dados ao proprio utilizador).
-export const MODULOS_ABERTOS_TODOS = ["tarefas", "mensagens", "minhas_formacoes", "banco_horas"];
+export const MODULOS_ABERTOS_TODOS = ["tarefas", "mensagens", "minhas_formacoes", "banco_horas", "atividades"];
 
 // Atalhos pessoais: só aparecem para quem não tem perfil administrativo.
 // Um gestor trata as formações no módulo "Formação", não em "As Minhas Formações".
@@ -34,6 +34,7 @@ export const NAV_ITEMS = [
     titulo: "Gestão de Pessoas",
     items: [
       { label: "Colaboradores", href: "/dashboard/colaboradores", icon: "group", modulo: "colaboradores" },
+      { label: "Atividades", href: "/dashboard/atividades", icon: "history", modulo: "atividades" },
       { label: "Contratos", href: "/dashboard/contratos", icon: "description", modulo: "contratos" },
       { label: "Departamentos", href: "/dashboard/departamentos", icon: "apartment", modulo: "departamentos" },
       { label: "Advertências", href: "/dashboard/advertencias", icon: "warning", modulo: "advertencias" },

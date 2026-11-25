@@ -16,6 +16,10 @@ var OPERACOES = [
   { chave: "delete", label: "Eliminar", icon: "delete" },
 ];
 
+// O Download so faz sentido nos documentos dos colaboradores e controla o
+// descarregamento de qualquer documento (incluindo o mapa mensal gerado).
+var OPERACAO_DOWNLOAD = { chave: "download", label: "Download", icon: "download" };
+
 var NIVEL_LABELS = {
   0: "Colaborador",
   1: "Técnico",
@@ -283,6 +287,22 @@ export default function UtilizadoresPage() {
       }
       return novo;
     });
+  };
+
+  var renderCheck = function (mod, op) {
+    var aceite = (perfilPermissoes[mod.chave] || []).indexOf(op.chave) !== -1;
+    return (
+      <div key={op.chave} className="flex justify-center">
+        <button
+          type="button"
+          onClick={function () { togglePermissao(mod.chave, op.chave); }}
+          title={op.label}
+          className={"w-6 h-6 rounded-md border flex items-center justify-center transition-all " + (aceite ? "bg-primary border-primary text-white" : "border-outline-variant/50 text-transparent hover:border-primary/40")}
+        >
+          <span className="material-symbols-outlined text-[14px]">check</span>
+        </button>
+      </div>
+    );
   };
 
   var guardarPermissoes = async function () {
@@ -748,13 +768,13 @@ export default function UtilizadoresPage() {
             <p className="text-[12px] text-on-surface-variant/70 mb-3">Marque apenas os módulos e operações que este perfil pode aceder. O que não estiver marcado fica bloqueado.</p>
             <div className="flex items-start gap-2 p-3 mb-3 rounded-lg bg-primary/5 border border-primary/15">
               <span className="material-symbols-outlined text-[18px] text-primary mt-px">info</span>
-              <p className="text-[12px] text-on-surface-variant/80 leading-relaxed">Qualquer operação marcada ativa automaticamente o <strong>Ver</strong> — sem ele o módulo nem aparece no menu. Ao retirar o <strong>Ver</strong>, todo o módulo fica bloqueado.</p>
+              <p className="text-[12px] text-on-surface-variant/80 leading-relaxed">Qualquer operação marcada ativa automaticamente o <strong>Ver</strong> — sem ele o módulo nem aparece no menu. Ao retirar o <strong>Ver</strong>, todo o módulo fica bloqueado. Em <strong>Documentos de Colaborador</strong>, a coluna <strong>Download</strong> permite ou bloqueia o descarregamento de documentos, incluindo o mapa mensal.</p>
             </div>
             {modulos.length === 0 ? (
               <p className="text-[13px] text-on-surface-variant/60 py-4 text-center">Nenhum módulo disponível</p>
             ) : (
               <div className="space-y-3 max-h-[50vh] overflow-y-auto">
-                <div className="grid grid-cols-[minmax(160px,1fr)_repeat(4,64px)_28px] gap-1 px-1 pb-1 border-b border-outline-variant/20 sticky top-0 bg-surface">
+                <div className="grid grid-cols-[minmax(160px,1fr)_repeat(5,64px)_28px] gap-1 px-1 pb-1 border-b border-outline-variant/20 sticky top-0 bg-surface">
                   <span className="text-[11px] font-bold text-on-surface-variant/70 uppercase py-1.5">Módulo</span>
                   {OPERACOES.map(function (op) {
                     return (
@@ -764,30 +784,21 @@ export default function UtilizadoresPage() {
                       </span>
                     );
                   })}
+                  <span className="text-[10px] font-bold text-on-surface-variant/70 uppercase text-center py-1.5 flex flex-col items-center gap-0.5">
+                    <span className="material-symbols-outlined text-[14px]">download</span>
+                    Download
+                  </span>
                   <span />
                 </div>
 
                 {modulos.map(function (mod) {
-                  var ativos = perfilPermissoes[mod.chave] || [];
-
                   return (
-                    <div key={mod.chave} className="grid grid-cols-[minmax(160px,1fr)_repeat(4,64px)_28px] gap-1 items-center px-1 py-1.5 rounded-lg hover:bg-surface-container/50 transition-colors">
+                    <div key={mod.chave} className="grid grid-cols-[minmax(160px,1fr)_repeat(5,64px)_28px] gap-1 items-center px-1 py-1.5 rounded-lg hover:bg-surface-container/50 transition-colors">
                       <span className="text-[13px] font-semibold text-on-surface">{mod.nome}</span>
-                      {OPERACOES.map(function (op) {
-                        var aceite = ativos.indexOf(op.chave) !== -1;
-                        return (
-                          <div key={op.chave} className="flex justify-center">
-                            <button
-                              type="button"
-                              onClick={function () { togglePermissao(mod.chave, op.chave); }}
-                              title={op.label}
-                              className={"w-6 h-6 rounded-md border flex items-center justify-center transition-all " + (aceite ? "bg-primary border-primary text-white" : "border-outline-variant/50 text-transparent hover:border-primary/40")}
-                            >
-                              <span className="material-symbols-outlined text-[14px]">check</span>
-                            </button>
-                          </div>
-                        );
-                      })}
+                      {OPERACOES.map(function (op) { return renderCheck(mod, op); })}
+                      {mod.chave === "documentos_colaborador"
+                        ? renderCheck(mod, OPERACAO_DOWNLOAD)
+                        : <span key="sem-download" className="text-center text-[12px] text-on-surface-variant/30">—</span>}
                       <span />
                     </div>
                   );

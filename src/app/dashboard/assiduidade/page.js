@@ -362,12 +362,10 @@ useEffect(function () {
         titulo="Gestão de Assiduidade e Presença"
         breadcrumb={[{ label: "SGHR" }, { label: "Assiduidade" }]}
         acoes={
-          <>
-            <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
-              <span className="material-symbols-outlined text-[18px]">add_circle</span>
-              Novo Registo
-            </button>
-          </>
+          <button onClick={abrirNovo} className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95">
+            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+            Novo Registo
+          </button>
         }
       />
 

@@ -7,6 +7,7 @@ import { getT } from "@/lib/translations";
 import { TIPOS_COLABORADOR, TIPOS_CONTRATO } from "@/lib/constants";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { useAuth } from "@/context/AuthContext";
 
 var TIPOS_DEPT = [
   { value: "Direccao", label: "Direccao" },
@@ -108,11 +109,19 @@ function addPdfFooter(doc, org) {
 
 export default function RelatoriosPage() {
   var t = getT();
+  const { isAdmin, hasPermission } = useAuth();
+  const podeBaixarRelatorios = isAdmin();
+  const podeDescarregarDocumentos = hasPermission("documentos_colaborador", "download");
   var [stats, setStats] = useState({ colaboradores: 0, contratos: 0, departamentos: 0, ferias: 0 });
   var [statsLoading, setStatsLoading] = useState(true);
   var [loadingReport, setLoadingReport] = useState(null);
   var [msg, setMsg] = useState(null);
   var [org, setOrg] = useState(null);
+  var [colaboradoresAssiduidade, setColaboradoresAssiduidade] = useState([]);
+  var [colaboradorAssiduidadeId, setColaboradorAssiduidadeId] = useState("");
+  var [mapaMes, setMapaMes] = useState(String(new Date().getMonth() + 1));
+  var [mapaAno, setMapaAno] = useState(String(new Date().getFullYear()));
+  var [gerandoMapa, setGerandoMapa] = useState(false);
 
   var carregarStats = async function () {
     setStatsLoading(true);
@@ -137,6 +146,12 @@ export default function RelatoriosPage() {
   useEffect(function () { carregarStats(); }, []);
 
   useEffect(function () {
+    api.get("/api/colaboradores?limit=500").then(function (data) {
+      setColaboradoresAssiduidade((data && data.dados) || []);
+    }).catch(function () {});
+  }, []);
+
+  useEffect(function () {
     api.get("/auth/profile").then(function (data) {
       var o = data && data.utilizador && data.utilizador.organizacao;
       if (o) { setOrg(o); return; }
@@ -151,6 +166,10 @@ export default function RelatoriosPage() {
   var tipoDeptLabel = function (v) { return (TIPOS_DEPT.find(function (x) { return x.value === v; }) || {}).label || v || "—"; };
 
   var gerarRelatorio = async function (key) {
+    if (!podeBaixarRelatorios) {
+      setMsg({ tipo: "erro", texto: "Sem permissão para gerar relatórios" });
+      return;
+    }
     setLoadingReport(key);
     setMsg(null);
     try {
@@ -159,14 +178,50 @@ export default function RelatoriosPage() {
         case "contratos": await genPdfContratos(); break;
         case "departamentos": await genPdfDepartamentos(); break;
         case "ferias": await genPdfFerias(); break;
-        case "assiduidade": await genPdfAssiduidade(); break;
+        case "assiduidade": await baixarRelatorioServidor("relatorio-assiduidade", "relatorio_assiduidade.pdf", colaboradorAssiduidadeId ? "colaborador_id=" + encodeURIComponent(colaboradorAssiduidadeId) : undefined); break;
         case "formacao": await genPdfFormacao(); break;
+        case "posicoes": await baixarRelatorioServidor("relatorio-posicoes", "relatorio_posicoes.pdf"); break;
       }
       setMsg({ tipo: "sucesso", texto: "Relatorio gerado com sucesso" });
     } catch (e) {
       setMsg({ tipo: "erro", texto: e.message || "Erro ao gerar relatorio" });
     } finally {
       setLoadingReport(null);
+    }
+  };
+
+  // Mapa Mensal e descarregado directamente em Relatorios. Nao fica anexado
+  // a ficha do colaborador. O backend valida a permissao de download.
+  var descarregarMapaMensal = async function () {
+    if (!podeBaixarRelatorios) {
+      setMsg({ tipo: "erro", texto: "Sem permissão para gerar o mapa mensal" });
+      return;
+    }
+    if (!podeDescarregarDocumentos) {
+      setMsg({ tipo: "erro", texto: "O seu perfil não permite descarregar documentos" });
+      return;
+    }
+    if (!colaboradorAssiduidadeId) {
+      setMsg({ tipo: "erro", texto: "Selecione o colaborador para descarregar o mapa mensal" });
+      return;
+    }
+    var mes = parseInt(mapaMes, 10);
+    var ano = parseInt(mapaAno, 10);
+    if (!mes || mes < 1 || mes > 12 || !ano || ano < 1900 || ano > 2100) {
+      setMsg({ tipo: "erro", texto: "Indique um mês (1-12) e um ano válidos" });
+      return;
+    }
+    setGerandoMapa(true);
+    setMsg(null);
+    try {
+      var endpoint = "/api/mapa-assiduidade/pdf?colaborador_id=" + encodeURIComponent(colaboradorAssiduidadeId) +
+        "&mes=" + mes + "&ano=" + ano;
+      await api.downloadFile(endpoint, "mapa_assiduidade_" + mes + "_" + ano + ".pdf", "Não foi possível descarregar o mapa");
+      setMsg({ tipo: "sucesso", texto: "Mapa mensal descarregado com sucesso" });
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message || "Não foi possível descarregar o mapa" });
+    } finally {
+      setGerandoMapa(false);
     }
   };
 
@@ -438,6 +493,17 @@ export default function RelatoriosPage() {
     doc.save("Relatorio_Formacao.pdf");
   };
 
+  var baixarRelatorioServidor = async function (tipo, filename, query) {
+    if (!podeBaixarRelatorios) return;
+    try {
+      var endpoint = "/api/pdf/" + tipo + (query ? "?" + query : "");
+      await api.downloadPdf(endpoint, filename);
+      setMsg({ tipo: "sucesso", texto: "Relatório gerado com sucesso" });
+    } catch (e) {
+      setMsg({ tipo: "erro", texto: e.message || "Erro ao gerar relatório" });
+    }
+  };
+
   var statCards = [
     { key: "col", label: "Colaboradores", value: stats.colaboradores, icon: "group", color: "primary" },
     { key: "con", label: "Contratos", value: stats.contratos, icon: "description", color: "success" },
@@ -473,8 +539,14 @@ export default function RelatoriosPage() {
     {
       key: "assiduidade",
       title: "Relatorio de Assiduidade",
-      desc: "Registo de presencas e assiduidade dos colaboradores com horas trabalhadas e estado.",
+      desc: "Mapa Mensal de Controlo de Assiduidade e Bolsa de Horas, descarregável aqui sem anexar à ficha do colaborador.",
       icon: "schedule",
+    },
+    {
+      key: "posicoes",
+      title: "Relatorio de Posições",
+      desc: "Lista de colaboradores organizada por tipo de colaborador / posicao, estado e unidade.",
+      icon: "work",
     },
     {
       key: "formacao",
@@ -542,23 +614,87 @@ export default function RelatoriosPage() {
               </div>
               <h3 className="text-[15px] font-bold text-on-surface mb-1.5">{rc.title}</h3>
               <p className="text-[12px] text-on-surface-variant/70 leading-relaxed mb-5 flex-grow">{rc.desc}</p>
-              <button
-                onClick={function () { gerarRelatorio(rc.key); }}
-                disabled={isLoading}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
-              >
-                {isLoading ? (
-                  <>
-                    <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
-                    A gerar...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
-                    Gerar Relatorio
-                  </>
-                )}
-              </button>
+              {rc.key === "assiduidade" ? (
+                <div className="mb-3 space-y-3 rounded-xl border border-outline-variant/30 bg-background/40 p-3">
+                  <div>
+                    <label className="text-[11px] font-medium text-on-surface-variant/70 block mb-1">Colaborador</label>
+                    <select
+                      value={colaboradorAssiduidadeId}
+                      onChange={function (e) { setColaboradorAssiduidadeId(e.target.value); }}
+                      className="w-full px-3 py-2 bg-background border border-outline-variant/40 rounded-lg text-[12px] focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Selecione o colaborador</option>
+                      {colaboradoresAssiduidade.map(function (c) {
+                        return <option key={c.id} value={c.id}>{c.nome_completo} ({c.numero_colaborador})</option>;
+                      })}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="space-y-1 text-[11px] font-semibold text-on-surface-variant">
+                      Mês
+                      <input type="number" min="1" max="12" value={mapaMes}
+                        onChange={function (e) { setMapaMes(e.target.value); }}
+                        className="w-full px-2.5 py-1.5 bg-background border border-outline-variant/40 rounded-lg text-[12px] text-on-surface" />
+                    </label>
+                    <label className="space-y-1 text-[11px] font-semibold text-on-surface-variant">
+                      Ano
+                      <input type="number" min="1900" max="2100" value={mapaAno}
+                        onChange={function (e) { setMapaAno(e.target.value); }}
+                        className="w-full px-2.5 py-1.5 bg-background border border-outline-variant/40 rounded-lg text-[12px] text-on-surface" />
+                    </label>
+                  </div>
+                  <button
+                    onClick={descarregarMapaMensal}
+                    disabled={gerandoMapa}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                  >
+                    {gerandoMapa ? (
+                      <>
+                        <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                        A gerar mapa...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                        Descarregar mapa mensal
+                      </>
+                    )}
+                  </button>
+                  {!podeDescarregarDocumentos && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-surface-container text-on-surface-variant/70 text-[11px] font-semibold">
+                      <span className="material-symbols-outlined text-[14px]">lock</span>
+                      Download bloqueado para o seu perfil
+                    </span>
+                  )}
+                  <p className="text-[11px] leading-relaxed text-on-surface-variant/60">
+                    O mapa é gerado e descarregado aqui, sem ficar anexado à ficha do colaborador. Para permitir ou bloquear downloads, use Utilizadores → Gerir Permissões → Documentos de Colaborador → Download.
+                  </p>
+                  {podeBaixarRelatorios && (
+                    <button onClick={function () { gerarRelatorio("assiduidade"); }} disabled={isLoading}
+                      className="w-full text-[11px] font-semibold text-primary hover:underline disabled:opacity-50">
+                      Gerar relatório geral de assiduidade
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={function () { gerarRelatorio(rc.key); }}
+                  disabled={isLoading}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-primary text-white text-[13px] font-semibold rounded-lg shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                >
+                  {isLoading ? (
+                    <>
+                      <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                      A gerar...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                      Gerar Relatorio
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           );
         })}
