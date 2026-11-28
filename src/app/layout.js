@@ -35,8 +35,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="pt-AO" className={inter.className}>
       <head>
-        <link rel="preload" href="/fonts/material-symbols/material-symbols-outlined.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        <link href="/fonts/material-symbols.css" rel="stylesheet" />
+        <link rel="preload" href="/fonts/material-symbols/material-symbols-outlined.woff2?v=20261128" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link href="/fonts/material-symbols.css?v=20261128" rel="stylesheet" />
       </head>
       <body className="min-h-screen bg-background text-on-surface">
         <AuthProvider>{children}</AuthProvider>
