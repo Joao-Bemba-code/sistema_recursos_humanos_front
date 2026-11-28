@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -8,7 +8,7 @@ import { formatDate } from "@/lib/helpers";
 import { useToast } from "@/components/ui/Toast";
 import PageHeader from "@/components/ui/PageHeader";
 
-var TIPO_LABELS = { ferias: "Férias", adiantamento: "Adiantamento", justificacao: "Justificação", aumento: "Aumento", dispensa: "Dispensa", licenca: "Licença", outro: "Outro" };
+var TIPO_LABELS = { ferias: "Férias", adiantamento: "Adiantamento", justificacao: "Justificação", aumento: "Aumento", dispensa: "Dispensa", licenca: "Licença", credito: "Crédito", outro: "Outro" };
 var TIPOS_SOLICITACAO = [
   { value: "ferias", label: "Férias" },
   { value: "dispensa", label: "Dispensa" },
@@ -16,6 +16,7 @@ var TIPOS_SOLICITACAO = [
   { value: "adiantamento", label: "Adiantamento" },
   { value: "aumento", label: "Aumento Salarial" },
   { value: "justificacao", label: "Justificação" },
+  { value: "credito", label: "Crédito" },
   { value: "outro", label: "Outro" },
 ];
 var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -29,7 +30,40 @@ var TIPOS_PRESENCA = [
   { value: "ferias", label: "Férias" },
   { value: "fim_semana", label: "Fim de semana" },
 ];
-var COMUNICADO_BADGES = { Geral: "badge-primary", Urgente: "badge-danger", Informativo: "badge-secondary", Evento: "badge-warning" };
+var COMUNICADO_ESTILO = {
+  Geral: { badge: "bg-primary/10 text-primary", icon: "campaign" },
+  Urgente: { badge: "bg-red-50 text-red-700", icon: "priority_high" },
+  Informativo: { badge: "bg-sky-50 text-sky-700", icon: "info" },
+  Evento: { badge: "bg-amber-50 text-amber-700", icon: "event" },
+};
+
+function tempoRelativoComunicado(data) {
+  if (!data) return "";
+  var d = new Date(data);
+  if (isNaN(d.getTime())) return "";
+  var minutos = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (minutos < 1) return "agora mesmo";
+  if (minutos < 60) return "há " + minutos + " min";
+  var horas = Math.floor(minutos / 60);
+  if (horas < 24) return "há " + horas + "h";
+  var dias = Math.floor(horas / 24);
+  if (dias === 1) return "ontem";
+  if (dias < 7) return "há " + dias + " dias";
+  return formatDate(data);
+}
+
+function comunicadoRecente(c) {
+  if (!c || !c.createdAt) return false;
+  return Date.now() - new Date(c.createdAt).getTime() < 3 * 24 * 60 * 60 * 1000;
+}
+
+function estiloComunicado(tipo) {
+  return COMUNICADO_ESTILO[tipo] || COMUNICADO_ESTILO.Geral;
+}
+
+function chaveComunicadoVisto(id, utilizadorId) {
+  return "sghr-comunicado-visto-" + (utilizadorId || "anon") + "-" + id;
+}
 
 function ehImagemComunicado(anexo) {
   if (!anexo) return false;
@@ -285,15 +319,32 @@ export default function PortalPage() {
   var [sobreColunaPortal, setSobreColunaPortal] = useState(null); // coluna sob o arrasto
   var [loading, setLoading] = useState(true);
   var [comunicados, setComunicados] = useState([]);
+  var [comunicadoAberto, setComunicadoAberto] = useState(null);
+  var [comunicadosVistos, setComunicadosVistos] = useState({});
+  var comunicadoLinkRef = useRef("");
+  var utilizadorId = utilizador ? utilizador.id : null;
+  var marcarComunicadoVisto = useCallback(function (comunicado) {
+    if (!comunicado) return;
+    try { window.localStorage.setItem(chaveComunicadoVisto(comunicado.id, utilizadorId), String(Date.now())); } catch (e) {}
+    setComunicadosVistos(function (anteriores) {
+      return Object.assign({}, anteriores, { [comunicado.id]: true });
+    });
+  }, [utilizadorId]);
+  var abrirComunicado = useCallback(function (comunicado) {
+    marcarComunicadoVisto(comunicado);
+    setComunicadoAberto(comunicado);
+  }, [marcarComunicadoVisto]);
   var [showSolicitacaoModal, setShowSolicitacaoModal] = useState(false);
   var [showPasswordModal, setShowPasswordModal] = useState(false);
   var [justificacaoForm, setJustificacaoForm] = useState({ falta: null, tipo: "Atestado_Medico", ficheiro: null });
-  var [solicitacaoForm, setSolicitacaoForm] = useState({ tipo: "dispensa", titulo: "", descricao: "", data_inicio: "", data_fim: "", numero_dias: "", ficheiro: null });
+  var [solicitacaoForm, setSolicitacaoForm] = useState({ tipo: "dispensa", titulo: "", descricao: "", data_inicio: "", data_fim: "", numero_dias: "", valor_credito: "", parcelas_credito: "", ficheiro: null });
+  var [elegibilidadeCredito, setElegibilidadeCredito] = useState(null);
   var [passwordForm, setPasswordForm] = useState({ atual: "", nova: "", confirmar: "" });
   var [passwordMsg, setPasswordMsg] = useState("");
   var [submitting, setSubmitting] = useState(false);
   var [uploadDrag, setUploadDrag] = useState(false);
   var fileInputRef = useRef(null);
+  var historicoRef = useRef(null);
 
   var [search, setSearch] = useState("");
   var [filterTipo, setFilterTipo] = useState("");
@@ -383,38 +434,6 @@ export default function PortalPage() {
   }
   var dataHoje = now.toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
-  useEffect(function () {
-    var fetchData = function () {
-      api.get("/api/portal/stats").then(function (res) {
-        if (res && res.dados) setPortalData(res.dados);
-      }).catch(function () {}).finally(function () { setLoading(false); });
-      api.get("/api/comunicados?page=1&limit=5").then(function (res) {
-        if (res && res.dados) setComunicados(res.dados);
-      }).catch(function () {});
-      // Tarefas sao para todos: o backend devolve apenas as atribuicoes do
-      // proprio colaborador quando o perfil nao e de gestao.
-      if (auth && auth.isAuthenticated) {
-        api.get("/api/tarefas/estatisticas").then(function (res) {
-          if (res && res.dados) setTarefasStats(res.dados);
-        }).catch(function () {});
-        carregarTarefasActivas();
-      }
-    };
-    fetchData();
-    var interval = setInterval(fetchData, 30000);
-    return function () { clearInterval(interval); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Tick de 1 segundo para a contagem regressiva das tarefas em curso.
-  useEffect(function () {
-    var intervalo = setInterval(function () {
-      if (typeof document !== "undefined" && document.hidden) return;
-      setTarefasAgora(Date.now());
-    }, 1000);
-    return function () { clearInterval(intervalo); };
-  }, []);
-
   var carregarTarefasActivas = function () {
     if (!(auth && auth.isAuthenticated)) return;
     api.get("/api/tarefas?page=1&limit=6").then(function (res) {
@@ -440,6 +459,83 @@ export default function PortalPage() {
       setTarefasActivas(activas.slice(0, 4));
     }).catch(function () { setTarefasActivas([]); });
   };
+
+  var abrirJustificacaoRapida = function () {
+    var pendente = (registos || []).find(function (r) {
+      return (r.estado === "Ausente" || r.estado === "Atrasado") && !r.justificado;
+    });
+    if (!pendente) {
+      toast.addToast("error", "Não existem faltas ou atrasos por justificar no histórico visível");
+      return;
+    }
+    setJustificacaoForm({ falta: pendente, tipo: "Atestado_Medico", ficheiro: null });
+  };
+
+  var irParaHistorico = function () {
+    if (historicoRef.current && historicoRef.current.scrollIntoView) {
+      historicoRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  useEffect(function () {
+    var fetchData = function () {
+      api.get("/api/portal/stats").then(function (res) {
+        if (res && res.dados) setPortalData(res.dados);
+      }).catch(function () {}).finally(function () { setLoading(false); });
+      api.get("/api/comunicados?page=1&limit=5").then(function (res) {
+        if (res && res.dados) setComunicados(res.dados);
+      }).catch(function () {});
+      // Tarefas sao para todos: o backend devolve apenas as atribuicoes do
+      // proprio colaborador quando o perfil nao e de gestao.
+      if (auth && auth.isAuthenticated) {
+        api.get("/api/tarefas/estatisticas").then(function (res) {
+          if (res && res.dados) setTarefasStats(res.dados);
+        }).catch(function () {});
+        carregarTarefasActivas();
+      }
+    };
+    fetchData();
+    var interval = setInterval(fetchData, 30000);
+    return function () { clearInterval(interval); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Ligacao dos avisos: /dashboard/comunicados?comunicado=<id> abre o detalhe.
+  useEffect(function () {
+    if (typeof window === "undefined") return;
+    var id = new URLSearchParams(window.location.search).get("comunicado");
+    if (!id || comunicadoLinkRef.current === id || comunicadoAberto) return;
+    var encontrado = comunicados.find(function (c) { return c.id === id; });
+    if (encontrado) {
+      comunicadoLinkRef.current = id;
+      window.setTimeout(function () { abrirComunicado(encontrado); }, 0);
+      return;
+    }
+    api.get("/api/comunicados/" + id).then(function (res) {
+      if (res && res.dados) {
+        comunicadoLinkRef.current = id;
+        abrirComunicado(res.dados);
+      }
+    }).catch(function () {});
+  }, [comunicados, comunicadoAberto, abrirComunicado]);
+
+  useEffect(function () {
+    if (!comunicadoAberto) return;
+    function fecharComTecla(e) {
+      if (e.key === "Escape") setComunicadoAberto(null);
+    }
+    window.addEventListener("keydown", fecharComTecla);
+    return function () { window.removeEventListener("keydown", fecharComTecla); };
+  }, [comunicadoAberto]);
+
+  // Tick de 1 segundo para a contagem regressiva das tarefas em curso.
+  useEffect(function () {
+    var intervalo = setInterval(function () {
+      if (typeof document !== "undefined" && document.hidden) return;
+      setTarefasAgora(Date.now());
+    }, 1000);
+    return function () { clearInterval(intervalo); };
+  }, []);
 
   var acaoTarefa = function (t, aloc, caminho) {
     setTarefaAcao(true);
@@ -468,7 +564,7 @@ export default function PortalPage() {
   };
 
   useEffect(function () {
-    carregarRegistros(1);
+    Promise.resolve().then(function () { carregarRegistros(1); });
   }, []);
 
   var handleFileDrop = function (e) {
@@ -497,6 +593,13 @@ export default function PortalPage() {
     }
   };
 
+  function comunicadoFoiVisto(comunicado) {
+    if (!comunicado) return true;
+    if (comunicadosVistos[comunicado.id]) return true;
+    if (typeof window === "undefined") return false;
+    try { return !!window.localStorage.getItem(chaveComunicadoVisto(comunicado.id, utilizadorId)); } catch (e) { return false; }
+  }
+
   var descarregarImagemComunicado = async function (comunicado, anexo) {
     try {
       await api.downloadFile(
@@ -522,14 +625,21 @@ export default function PortalPage() {
       data_fim: solicitacaoForm.data_fim,
       numero_dias: solicitacaoForm.numero_dias,
     };
+    if (solicitacaoForm.tipo === "credito") {
+      dados.valor = solicitacaoForm.valor_credito;
+      dados.parcelas = solicitacaoForm.parcelas_credito;
+    }
     formData.append("dados", JSON.stringify(dados));
     if (solicitacaoForm.ficheiro) formData.append("ficheiro", solicitacaoForm.ficheiro);
     api.upload("/api/pedidos", formData).then(function () {
       setShowSolicitacaoModal(false);
-      setSolicitacaoForm({ tipo: "dispensa", titulo: "", descricao: "", data_inicio: "", data_fim: "", numero_dias: "", ficheiro: null });
+      setSolicitacaoForm({ tipo: "dispensa", titulo: "", descricao: "", data_inicio: "", data_fim: "", numero_dias: "", valor_credito: "", parcelas_credito: "", ficheiro: null });
+      setElegibilidadeCredito(null);
       return api.get("/api/portal/stats");
     }).then(function (res) { if (res && res.dados) setPortalData(res.dados); })
-      .catch(function () {}).finally(function () { setSubmitting(false); });
+      .catch(function (err) {
+        toast.addToast("error", err.message || "Não foi possível enviar a solicitação");
+      }).finally(function () { setSubmitting(false); });
   };
 
   var handleSubmitJustificacao = function (e) {
@@ -561,6 +671,19 @@ export default function PortalPage() {
       .finally(function () { setSubmitting(false); });
   };
 
+  var verificarElegibilidade = function (tipo, valor, parcelas) {
+    if (tipo !== "credito" || !valor || !parcelas) {
+      setElegibilidadeCredito(null);
+      return;
+    }
+    api.get("/api/portal/credito/elegibilidade?valor=" + encodeURIComponent(valor) +
+      "&parcelas=" + encodeURIComponent(parcelas)).then(function (res) {
+      setElegibilidadeCredito(res && res.dados ? res.dados : null);
+    }).catch(function () {
+      setElegibilidadeCredito(null);
+    });
+  };
+
   var ferias = portalData ? portalData.ferias : { disponiveis: 0, gozados: 0, planeados: 0 };
   var avaliacoes = portalData ? portalData.avaliacoes : { pontuacao: 0, ciclos: [], tarefas: [] };
   var tarefasAvaliadas = (avaliacoes && avaliacoes.tarefas) || [];
@@ -571,37 +694,88 @@ export default function PortalPage() {
     <div className="max-w-4xl mx-auto space-y-8">
       <PageHeader titulo={saudacao + nome} subtitulo={dataHoje} />
 
+      <nav aria-label="Ações rápidas do portal" className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={function () { setShowSolicitacaoModal(true); }}
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-card px-3 py-2.5 text-[12px] font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <span className="material-symbols-outlined text-[17px] text-primary" aria-hidden="true">add_task</span>
+          Nova solicitação
+        </button>
+        <button
+          type="button"
+          onClick={abrirJustificacaoRapida}
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-card px-3 py-2.5 text-[12px] font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <span className="material-symbols-outlined text-[17px] text-primary" aria-hidden="true">fact_check</span>
+          Justificar falta
+        </button>
+        <button
+          type="button"
+          onClick={irParaHistorico}
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-card px-3 py-2.5 text-[12px] font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <span className="material-symbols-outlined text-[17px] text-primary" aria-hidden="true">history</span>
+          Histórico
+        </button>
+      </nav>
+
       {comunicados.length > 0 && (
-        <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[14px] font-semibold text-on-surface">Comunicados</h2>
-            <Link href="/dashboard/comunicados" className="text-[12px] font-medium text-primary hover:underline">Ver todos</Link>
+        <section className="bg-surface-card border border-outline-variant rounded-xl p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <span className="material-symbols-outlined text-[20px]" aria-hidden="true">campaign</span>
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-[14px] font-semibold text-on-surface">Comunicados</h2>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">{comunicados.length}</span>
+                </div>
+                <p className="text-[11px] text-on-surface-variant/70">Novidades e avisos da sua organização</p>
+              </div>
+            </div>
+            <Link href="/dashboard/comunicados" className="inline-flex flex-shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-primary hover:bg-primary/5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+              Ver todos
+              <span className="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_forward</span>
+            </Link>
           </div>
-          <div className="space-y-3">
+
+          <div className="grid gap-3 sm:grid-cols-2">
             {comunicados.map(function (c) {
-              var badge = COMUNICADO_BADGES[c.tipo] || "badge-secondary";
+              var estilo = COMUNICADO_ESTILO[c.tipo] || COMUNICADO_ESTILO.Geral;
+              var naoVisto = comunicadoRecente(c) && !comunicadoFoiVisto(c);
+              var conteudo = String(c.conteudo || "").trim();
               var imagem = primeiraImagemComunicado(c.anexos);
               return (
-                <article key={c.id} className="border border-outline-variant rounded-lg p-4">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className={"text-[10px] font-semibold px-2 py-0.5 rounded " + badge}>{c.tipo || "Geral"}</span>
-                    <span className="text-[11px] text-outline">{formatDate(c.data_inicio)}</span>
-                  </div>
-                  <h3 className="text-[13px] font-semibold text-on-surface leading-snug break-words">{c.titulo}</h3>
-                  {String(c.conteudo || "").trim() && (
-                    <p className="text-[12px] text-on-surface-variant leading-relaxed mt-1 whitespace-pre-line break-words line-clamp-3">{c.conteudo}</p>
-                  )}
-                  {imagem && podeDescarregarDocumentos && (
-                    <div className="mt-3 space-y-2">
-                      <div className="overflow-hidden rounded-lg border border-outline-variant/30">
-                        <ImagemComunicadoPortal key={imagem.id} comunicadoId={c.id} anexo={imagem} />
-                      </div>
-                      <button type="button" onClick={() => descarregarImagemComunicado(c, imagem)} className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-primary/10 text-primary text-[12px] font-semibold hover:bg-primary/20 transition-colors">
-                        <span className="material-symbols-outlined text-[16px]">download</span>
-                        Descarregar imagem
-                      </button>
+                <article key={c.id} className="group relative rounded-xl border border-outline-variant bg-surface-card transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-within:border-primary/50">
+                  <button
+                    type="button"
+                    onClick={function () { abrirComunicado(c); }}
+                    className="w-full rounded-xl p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    aria-label={"Abrir comunicado: " + c.titulo}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={"inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold " + estilo.badge}>
+                        <span className="material-symbols-outlined text-[13px]" aria-hidden="true">{estilo.icon}</span>
+                        {c.tipo || "Geral"}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[10px] text-outline">
+                        {imagem && <span className="material-symbols-outlined text-[13px]" title="Contém imagem" aria-hidden="true">image</span>}
+                        {naoVisto && <span className="h-1.5 w-1.5 rounded-full bg-primary" title="Novo" />}
+                        <time dateTime={c.data_inicio}>{tempoRelativoComunicado(c.data_inicio)}</time>
+                      </span>
                     </div>
-                  )}
+                    <h3 className="mt-2 break-words text-[13px] font-semibold leading-snug text-on-surface group-hover:text-primary">{c.titulo}</h3>
+                    {conteudo && (
+                      <p className="mt-1 line-clamp-2 whitespace-pre-line break-words text-[12px] leading-relaxed text-on-surface-variant">{conteudo}</p>
+                    )}
+                    <div className="mt-3 flex items-center justify-between border-t border-outline-variant/40 pt-2.5">
+                      <span className="text-[11px] font-medium text-primary/80 group-hover:text-primary">Ler comunicado</span>
+                      <span className="material-symbols-outlined text-[16px] text-primary/70 transition-transform group-hover:translate-x-0.5" aria-hidden="true">arrow_forward</span>
+                    </div>
+                  </button>
                 </article>
               );
             })}
@@ -983,10 +1157,10 @@ export default function PortalPage() {
         </section>
       </div>
 
-      <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[14px] font-semibold text-on-surface">Histórico de Presença e Faltas</h2>
-          <span className="text-[11px] text-outline">{regPaginacao.total} registo(s)</span>
+      <section ref={historicoRef} aria-labelledby="historico-titulo" className="bg-surface-card border border-outline-variant rounded-xl p-5 scroll-mt-6">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h2 id="historico-titulo" className="text-[14px] font-semibold text-on-surface">Histórico de Presença e Faltas</h2>
+          <span className="text-[11px] text-outline" role="status" aria-live="polite">{regPaginacao.total} registo(s)</span>
         </div>
 
         <form onSubmit={handleFilterSubmit} className="space-y-2 mb-4">
@@ -996,23 +1170,24 @@ export default function PortalPage() {
               value={search}
               onChange={handleSearchChange}
               placeholder="Pesquisar data, estado ou observação..."
-              className="flex-1 px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors"
+              aria-label="Pesquisar no histórico de presença"
+              className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors"
             />
             <button type="submit" className="px-3 py-2 rounded-lg bg-primary text-white text-[12px] font-medium hover:bg-primary/90 transition-colors">Pesquisar</button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-            <select value={filterTipo} onChange={function (e) { handleFilterChange("tipo", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
+            <select value={filterTipo} onChange={function (e) { handleFilterChange("tipo", e.target.value); }} aria-label="Filtrar por tipo de presença" className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
               {TIPOS_PRESENCA.map(function (t) { return <option key={t.value} value={t.value}>{t.label}</option>; })}
             </select>
-            <select value={filterMes} onChange={function (e) { handleFilterChange("mes", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
+            <select value={filterMes} onChange={function (e) { handleFilterChange("mes", e.target.value); }} aria-label="Filtrar por mês" className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
               <option value="">Mês</option>
               {MESES.map(function (m, i) { return <option key={i + 1} value={i + 1}>{m}</option>; })}
             </select>
-            <select value={filterAno} onChange={function (e) { handleFilterChange("ano", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
+            <select value={filterAno} onChange={function (e) { handleFilterChange("ano", e.target.value); }} aria-label="Filtrar por ano" className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
               <option value="">Ano</option>
               {anos.map(function (a) { return <option key={a} value={a}>{a}</option>; })}
             </select>
-            <select value={filterDia} onChange={function (e) { handleFilterChange("dia", e.target.value); }} className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
+            <select value={filterDia} onChange={function (e) { handleFilterChange("dia", e.target.value); }} aria-label="Filtrar por dia" className="px-2 py-2 rounded-lg border border-outline-variant text-[12px] text-on-surface bg-surface-card focus:ring-1 focus:ring-primary/30">
               <option value="">Dia</option>
               {Array.from({ length: 31 }, function (_, i) { return i + 1; }).map(function (d) {
                 return <option key={d} value={d}>{String(d).padStart(2, "0")}</option>;
@@ -1027,21 +1202,33 @@ export default function PortalPage() {
         </form>
 
         {regLoading && registos.length === 0 ? (
-          <p className="text-[12px] text-outline py-4 text-center">A carregar...</p>
+          <div role="status" className="flex items-center justify-center gap-2 py-8 text-[12px] text-outline">
+            <span className="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
+            A carregar registos...
+          </div>
         ) : registos.length === 0 ? (
-          <p className="text-[12px] text-outline py-4 text-center">Sem registos encontrados</p>
+          <div className="flex flex-col items-center gap-2 py-8 text-on-surface-variant/60">
+            <span className="material-symbols-outlined text-[24px]" aria-hidden="true">event_busy</span>
+            <p className="text-[12px]">Sem registos encontrados{temFiltros ? " com os filtros atuais." : "."}</p>
+            {temFiltros ? (
+              <button type="button" onClick={limparFiltros} className="mt-1 rounded-lg border border-outline-variant px-3 py-1.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container transition-colors">
+                Limpar filtros
+              </button>
+            ) : null}
+          </div>
         ) : (
           <>
-            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-x-auto mb-4">
+            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-x-auto mb-4" role="region" aria-label="Histórico de presença em formato de tabela" tabIndex={0}>
               <table className="w-full text-left">
+                <caption className="sr-only">Registos de presença, entradas, saídas, horas e estado</caption>
                 <thead className="bg-surface-container border-b border-outline-variant">
                   <tr>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Data</th>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Entrada</th>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Saída</th>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Horas</th>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Estado</th>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant text-center">Acção</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Data</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Entrada</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Saída</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Horas</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Estado</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant text-center">Acção</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/30">
@@ -1049,7 +1236,7 @@ export default function PortalPage() {
                     var faltaAtroso = r.estado === "Ausente" || r.estado === "Atrasado";
                     return (
                       <tr key={r.id || i} className="hover:bg-surface-container/50 transition-colors">
-                        <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{formatDate(r.data)}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-on-surface-variant"><time dateTime={r.data}>{formatDate(r.data)}</time></td>
                         <td className="px-4 py-2.5 text-[12px] text-on-surface">{r.hora_entrada ? r.hora_entrada.slice(0, 5) : "—"}</td>
                         <td className="px-4 py-2.5 text-[12px] text-on-surface">{r.hora_saida ? r.hora_saida.slice(0, 5) : "—"}</td>
                         <td className="px-4 py-2.5 text-[12px] text-on-surface font-medium">{r.horas_trabalhadas ? Number(r.horas_trabalhadas).toFixed(1) : "—"}h</td>
@@ -1078,7 +1265,7 @@ export default function PortalPage() {
                 return (
                   <div key={r.id || i} className="border border-outline-variant rounded-lg p-3">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[12px] font-medium text-on-surface">{formatDate(r.data)}</span>
+                      <time dateTime={r.data} className="text-[12px] font-medium text-on-surface">{formatDate(r.data)}</time>
                       <span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + presencaClasses(r.estado)}>{presencaLabel(r.estado)}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-center mb-2">
@@ -1181,22 +1368,35 @@ export default function PortalPage() {
         </div>
       )}
 
-      <section className="bg-surface-card border border-outline-variant rounded-xl p-5">
-        <h2 className="text-[14px] font-semibold text-on-surface mb-3">Pedidos Recentes</h2>
+      <section aria-labelledby="pedidos-titulo" className="bg-surface-card border border-outline-variant rounded-xl p-5">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h2 id="pedidos-titulo" className="text-[14px] font-semibold text-on-surface">Pedidos Recentes</h2>
+          <span className="text-[11px] text-outline" role="status" aria-live="polite">{pedidosRecentes.length} pedido(s)</span>
+        </div>
         {loading ? (
-          <p className="text-[12px] text-outline">A carregar...</p>
+          <div role="status" className="flex items-center justify-center gap-2 py-6 text-[12px] text-outline">
+            <span className="material-symbols-outlined animate-spin text-[18px]" aria-hidden="true">progress_activity</span>
+            A carregar pedidos...
+          </div>
         ) : pedidosRecentes.length === 0 ? (
-          <p className="text-[12px] text-outline">Sem pedidos</p>
+          <div className="flex flex-col items-center gap-2 py-6 text-on-surface-variant/60">
+            <span className="material-symbols-outlined text-[24px]" aria-hidden="true">inbox</span>
+            <p className="text-[12px]">Ainda não existem pedidos enviados</p>
+            <button type="button" onClick={function () { setShowSolicitacaoModal(true); }} className="mt-1 rounded-lg bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors">
+              Criar primeiro pedido
+            </button>
+          </div>
         ) : (
           <div className="space-y-2 sm:space-y-0">
-            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-x-auto">
+            <div className="hidden sm:block border border-outline-variant rounded-lg overflow-x-auto" role="region" aria-label="Pedidos recentes em formato de tabela" tabIndex={0}>
               <table className="w-full text-left">
+                <caption className="sr-only">Tipo, título, estado e data dos pedidos recentes</caption>
                 <thead className="bg-surface-container border-b border-outline-variant">
                   <tr>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Tipo</th>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Título</th>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Estado</th>
-                    <th className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Data</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Tipo</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Título</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Estado</th>
+                    <th scope="col" className="px-4 py-2 text-[11px] font-medium text-on-surface-variant">Data</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant/30">
@@ -1206,7 +1406,7 @@ export default function PortalPage() {
                         <td className="px-4 py-2.5 text-[12px] text-on-surface-variant">{TIPO_LABELS[p.tipo] || p.tipo}</td>
                         <td className="px-4 py-2.5 text-[13px] text-on-surface font-medium">{p.titulo || "—"}</td>
                         <td className="px-4 py-2.5"><span className={"text-[11px] font-semibold px-2 py-0.5 rounded " + estadoClasses(p.estado)}>{estadoPedidoLabel(p.estado)}</span></td>
-                        <td className="px-4 py-2.5 text-[12px] text-outline">{formatDate(p.createdAt || p.data_criacao)}</td>
+                        <td className="px-4 py-2.5 text-[12px] text-outline"><time dateTime={String(p.createdAt || p.data_criacao || "").slice(0, 10)}>{formatDate(p.createdAt || p.data_criacao)}</time></td>
                       </tr>
                     );
                   })}
@@ -1223,7 +1423,7 @@ export default function PortalPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] text-on-surface-variant">{TIPO_LABELS[p.tipo] || p.tipo}</span>
-                      <span className="text-[11px] text-outline">{formatDate(p.createdAt || p.data_criacao)}</span>
+                      <time dateTime={String(p.createdAt || p.data_criacao || "").slice(0, 10)} className="text-[11px] text-outline">{formatDate(p.createdAt || p.data_criacao)}</time>
                     </div>
                   </div>
                 );
@@ -1234,7 +1434,12 @@ export default function PortalPage() {
       </section>
 
       <section className="border-t border-outline-variant pt-6">
-        <button onClick={function () { setShowPasswordModal(true); setPasswordMsg(""); }} className="text-[13px] text-on-surface-variant hover:text-on-surface transition-colors">
+        <button
+          type="button"
+          onClick={function () { setShowPasswordModal(true); setPasswordMsg(""); }}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] text-on-surface-variant hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-colors"
+        >
+          <span className="material-symbols-outlined text-[17px]" aria-hidden="true">lock</span>
           Alterar senha
         </button>
       </section>
@@ -1255,7 +1460,10 @@ export default function PortalPage() {
             <form onSubmit={handleSubmitSolicitacao} className="space-y-3">
               <div>
                 <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Tipo</label>
-                <select value={solicitacaoForm.tipo} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { tipo: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
+                <select value={solicitacaoForm.tipo} onChange={function (e) {
+                  setSolicitacaoForm(Object.assign({}, solicitacaoForm, { tipo: e.target.value }));
+                  verificarElegibilidade(e.target.value, solicitacaoForm.valor_credito, solicitacaoForm.parcelas_credito);
+                }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors">
                   {TIPOS_SOLICITACAO.map(function (t) { return <option key={t.value} value={t.value}>{t.label}</option>; })}
                 </select>
               </div>
@@ -1267,25 +1475,59 @@ export default function PortalPage() {
                 <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Conteúdo</label>
                 <textarea value={solicitacaoForm.descricao} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { descricao: e.target.value })); }} rows={2} placeholder="Descreva o motivo da solicitação" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors resize-none" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Início</label>
-                  <input type="date" value={solicitacaoForm.data_inicio} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { data_inicio: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+              {solicitacaoForm.tipo !== "credito" ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Início</label>
+                      <input type="date" value={solicitacaoForm.data_inicio} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { data_inicio: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Fim</label>
+                      <input type="date" value={solicitacaoForm.data_fim} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { data_fim: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Nº de dias</label>
+                      <input type="number" min="1" value={solicitacaoForm.numero_dias} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { numero_dias: e.target.value })); }} placeholder="Opcional" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                    </div>
+                    <div className="hidden sm:block" />
+                  </div>
+                  {solicitacaoForm.data_inicio && solicitacaoForm.data_fim && (
+                    <p className="text-[12px] text-on-surface-variant">Total: <span className="font-bold text-primary">{diasEntre(solicitacaoForm.data_inicio, solicitacaoForm.data_fim)} dia(s)</span></p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                      <label htmlFor="credito-valor" className="text-[11px] font-medium text-on-surface-variant block mb-1">Montante pedido (AOA)</label>
+                      <input id="credito-valor" type="number" min="1" step="0.01" value={solicitacaoForm.valor_credito} onChange={function (e) {
+                        setSolicitacaoForm(Object.assign({}, solicitacaoForm, { valor_credito: e.target.value }));
+                        verificarElegibilidade(solicitacaoForm.tipo, e.target.value, solicitacaoForm.parcelas_credito);
+                      }} placeholder="Ex.: 500000" required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                    </div>
+                    <div>
+                      <label htmlFor="credito-parcelas" className="text-[11px] font-medium text-on-surface-variant block mb-1">Número de parcelas</label>
+                      <input id="credito-parcelas" type="number" min="1" step="1" value={solicitacaoForm.parcelas_credito} onChange={function (e) {
+                        setSolicitacaoForm(Object.assign({}, solicitacaoForm, { parcelas_credito: e.target.value }));
+                        verificarElegibilidade(solicitacaoForm.tipo, solicitacaoForm.valor_credito, e.target.value);
+                      }} placeholder="Ex.: 6" required className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
+                    </div>
+                  </div>
+                  {elegibilidadeCredito && (
+                    <div className={"rounded-lg p-3 border text-[12px] " + (elegibilidadeCredito.elegivel ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700")}>
+                      <p className="font-semibold">{elegibilidadeCredito.elegivel ? "Elegível para crédito" : "Não elegível neste momento"}</p>
+                      <p className="mt-0.5">Prestação estimada: <span className="font-semibold">{Number(elegibilidadeCredito.prestacao_mensal || 0).toFixed(2)} AOA</span> · Limite (30%): {Number(elegibilidadeCredito.limite_mensal || 0).toFixed(2)} AOA</p>
+                      {!elegibilidadeCredito.elegivel && (elegibilidadeCredito.motivos || []).length > 0 && (
+                        <ul className="list-disc pl-4 mt-1 space-y-0.5">
+                          {elegibilidadeCredito.motivos.map(function (motivo, i) { return <li key={i}>{motivo}</li>; })}
+                        </ul>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Fim</label>
-                  <input type="date" value={solicitacaoForm.data_fim} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { data_fim: e.target.value })); }} className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Nº de dias</label>
-                  <input type="number" min="1" value={solicitacaoForm.numero_dias} onChange={function (e) { setSolicitacaoForm(Object.assign({}, solicitacaoForm, { numero_dias: e.target.value })); }} placeholder="Opcional" className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors" />
-                </div>
-                <div className="hidden sm:block" />
-              </div>
-              {solicitacaoForm.data_inicio && solicitacaoForm.data_fim && (
-                <p className="text-[12px] text-on-surface-variant">Total: <span className="font-bold text-primary">{diasEntre(solicitacaoForm.data_inicio, solicitacaoForm.data_fim)} dia(s)</span></p>
               )}
               <div>
                 <label className="text-[11px] font-medium text-on-surface-variant block mb-1">Comprovativo (opcional)</label>
@@ -1330,6 +1572,76 @@ export default function PortalPage() {
           </div>
         </div>
       )}
+
+      {comunicadoAberto && (function () {
+        var estilo = estiloComunicado(comunicadoAberto.tipo);
+        var anexos = Array.isArray(comunicadoAberto.anexos) ? comunicadoAberto.anexos : [];
+        var conteudo = String(comunicadoAberto.conteudo || "").trim();
+        return (
+          <div className="fixed inset-0 z-[210] flex items-end justify-center sm:items-center sm:p-4">
+            <div className="fixed inset-0 bg-black/40" onClick={function () { setComunicadoAberto(null); }} />
+            <div role="dialog" aria-modal="true" aria-labelledby="titulo-comunicado-portal" className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-surface-card shadow-2xl sm:rounded-2xl">
+              <div className="flex items-start gap-3 border-b border-outline-variant/40 p-5">
+                <span className={"flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl " + estilo.badge}>
+                  <span className="material-symbols-outlined text-[21px]" aria-hidden="true">{estilo.icon}</span>
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={"rounded px-2 py-0.5 text-[10px] font-bold " + estilo.badge}>{comunicadoAberto.tipo || "Geral"}</span>
+                    <time dateTime={comunicadoAberto.data_inicio} className="text-[11px] text-outline">{tempoRelativoComunicado(comunicadoAberto.data_inicio)} · {formatDate(comunicadoAberto.data_inicio)}</time>
+                  </div>
+                  <h3 id="titulo-comunicado-portal" className="mt-1 break-words text-[16px] font-semibold leading-snug text-on-surface">{comunicadoAberto.titulo}</h3>
+                  {comunicadoAberto.criador && comunicadoAberto.criador.nome_completo && (
+                    <p className="mt-0.5 text-[11px] text-on-surface-variant/70">Por {comunicadoAberto.criador.nome_completo}</p>
+                  )}
+                </div>
+                <button type="button" onClick={function () { setComunicadoAberto(null); }} aria-label="Fechar comunicado" className="flex-shrink-0 rounded-lg p-1.5 text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                  <span className="material-symbols-outlined text-[20px]" aria-hidden="true">close</span>
+                </button>
+              </div>
+
+              <div className="overflow-y-auto p-5">
+                {conteudo ? (
+                  <p className="whitespace-pre-line break-words text-[13px] leading-relaxed text-on-surface-variant">{conteudo}</p>
+                ) : (
+                  <p className="text-[13px] italic text-on-surface-variant/70">Este comunicado contém apenas imagens.</p>
+                )}
+
+                {anexos.length > 0 && (
+                  <div className="mt-5 space-y-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-on-surface-variant/60">Anexos ({anexos.length})</p>
+                    {anexos.filter(ehImagemComunicado).map(function (anexo) {
+                      return (
+                        <div key={anexo.id} className="overflow-hidden rounded-xl border border-outline-variant/40">
+                          <ImagemComunicadoPortal comunicadoId={comunicadoAberto.id} anexo={anexo} />
+                        </div>
+                      );
+                    })}
+                    {podeDescarregarDocumentos && (
+                      <div className="flex flex-wrap gap-2">
+                        {anexos.map(function (anexo) {
+                          return (
+                            <button key={anexo.id} type="button" onClick={function () { descarregarImagemComunicado(comunicadoAberto, anexo); }} className="inline-flex items-center gap-1.5 rounded-lg border border-outline-variant px-3 py-1.5 text-[11px] font-semibold text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                              <span className="material-symbols-outlined text-[15px]" aria-hidden="true">download</span>
+                              <span className="max-w-[180px] truncate">{anexo.nome || "Anexo"}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end border-t border-outline-variant/40 bg-surface-container/40 p-4">
+                <button type="button" onClick={function () { setComunicadoAberto(null); }} className="rounded-lg bg-primary px-4 py-2 text-[12px] font-semibold text-white hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

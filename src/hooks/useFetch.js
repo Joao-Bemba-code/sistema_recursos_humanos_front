@@ -24,7 +24,7 @@ export default function useFetch(endpoint, options) {
 
   useEffect(() => {
     if (options && options.skip) return;
-    refetch();
+    Promise.resolve().then(function () { refetch(); });
   }, [refetch]);
 
   return { data, loading, error, refetch };

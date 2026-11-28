@@ -143,7 +143,7 @@ export default function RelatoriosPage() {
     }
   };
 
-  useEffect(function () { carregarStats(); }, []);
+  useEffect(function () { Promise.resolve().then(function () { carregarStats(); }); }, []);
 
   useEffect(function () {
     api.get("/api/colaboradores?limit=500").then(function (data) {

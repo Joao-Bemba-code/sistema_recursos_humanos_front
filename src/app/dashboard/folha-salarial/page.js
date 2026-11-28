@@ -149,7 +149,7 @@ export default function FolhaSalarialPage() {
     }
   };
 
-  useEffect(() => { loadColaboradores(); }, []);
+  useEffect(() => { Promise.resolve().then(function () { loadColaboradores(); }); }, []);
   // Recarrega sempre que a aba, a pesquisa ou os filtros mudam (debounce na pesquisa)
   useEffect(() => {
     const timer = setTimeout(() => { carregar(1); }, search ? 400 : 0);
@@ -1115,7 +1115,7 @@ export default function FolhaSalarialPage() {
                         </div>
                       </div>
                       <p className="text-[11px] text-on-surface-variant leading-snug">
-                        Atrasos: <strong>{form.detalhe_faltas.minutos_atraso} min</strong> além das 08:15 (desconto ao minuto) · Faltas completas: <strong>{form.detalhe_faltas.horas_falta} h</strong> (8h por dia) · Total: <strong className="text-error">{helpers.formatCurrency(form.detalhe_faltas.desconto_faltas)}</strong>
+                        Atrasos: <strong>{form.detalhe_faltas.minutos_atraso} min</strong> além das 08:15 (informativo — sem desconto) · Faltas completas: <strong>{form.detalhe_faltas.horas_falta} h</strong> (8h por dia) · Total: <strong className="text-error">{helpers.formatCurrency(form.detalhe_faltas.desconto_faltas)}</strong>
                       </p>
                     </div>
                   )}

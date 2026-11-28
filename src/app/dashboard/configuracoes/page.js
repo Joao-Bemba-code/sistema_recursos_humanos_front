@@ -40,19 +40,19 @@ export default function ConfiguracoesPage() {
   // System state
   var cfg = loadCfg();
   var sys = cfg.sistema || {};
-  const [sistemaIdioma, setSistemaIdioma] = useState("Português");
-  const [sistemaData, setSistemaData] = useState("DD/MM/AAAA");
-  const [sistemaMoeda, setSistemaMoeda] = useState("Kwanza (AOA)");
-  const [sistemaFuso, setSistemaFuso] = useState("Africa/Luanda (GMT+1)");
-  const [sistemaDiasFerias, setSistemaDiasFerias] = useState("30");
-  const [sistemaLimiteFicheiros, setSistemaLimiteFicheiros] = useState("10");
+  const [sistemaIdioma, setSistemaIdioma] = useState(function () { return sys.idioma || "Português"; });
+  const [sistemaData, setSistemaData] = useState(function () { return sys.formatoData || "DD/MM/AAAA"; });
+  const [sistemaMoeda, setSistemaMoeda] = useState(function () { return sys.moeda || "Kwanza (AOA)"; });
+  const [sistemaFuso, setSistemaFuso] = useState(function () { return sys.fuso || "Africa/Luanda (GMT+1)"; });
+  const [sistemaDiasFerias, setSistemaDiasFerias] = useState(function () { return sys.diasFerias || "30"; });
+  const [sistemaLimiteFicheiros, setSistemaLimiteFicheiros] = useState(function () { return sys.limiteFicheiros || "10"; });
 
   // Security state
   var sec = cfg.seguranca || {};
-  const [seg2fa, setSeg2fa] = useState(false);
-  const [segExpiracao, setSegExpiracao] = useState(true);
-  const [segBloqueio, setSegBloqueio] = useState(true);
-  const [segSessao, setSegSessao] = useState(true);
+  const [seg2fa, setSeg2fa] = useState(function () { return !!sec.duasFactores; });
+  const [segExpiracao, setSegExpiracao] = useState(function () { return sec.expiracaoSenha !== false; });
+  const [segBloqueio, setSegBloqueio] = useState(function () { return sec.bloqueioTentativas !== false; });
+  const [segSessao, setSegSessao] = useState(function () { return sec.sessaoInactiva !== false; });
 
   // Email/password change
   const [novoEmail, setNovoEmail] = useState("");
@@ -62,21 +62,6 @@ export default function ConfiguracoesPage() {
   const [confirmarSenha, setConfirmarSenha] = useState("");
 
   useEffect(function() {
-    var c = loadCfg();
-    if (c.sistema) {
-      if (c.sistema.idioma) setSistemaIdioma(c.sistema.idioma);
-      if (c.sistema.formatoData) setSistemaData(c.sistema.formatoData);
-      if (c.sistema.moeda) setSistemaMoeda(c.sistema.moeda);
-      if (c.sistema.fuso) setSistemaFuso(c.sistema.fuso);
-      if (c.sistema.diasFerias) setSistemaDiasFerias(c.sistema.diasFerias);
-      if (c.sistema.limiteFicheiros) setSistemaLimiteFicheiros(c.sistema.limiteFicheiros);
-    }
-    if (c.seguranca) {
-      setSeg2fa(!!c.seguranca.duasFactores);
-      setSegExpiracao(c.seguranca.expiracaoSenha !== false);
-      setSegBloqueio(c.seguranca.bloqueioTentativas !== false);
-      setSegSessao(c.seguranca.sessaoInactiva !== false);
-    }
     api.get("/api/organizacoes").then(function(data) {
       var orgs = data.dados || [];
       setOrganizacoes(orgs);

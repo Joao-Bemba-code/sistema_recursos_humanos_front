@@ -86,18 +86,18 @@ export default function AdvertenciasPage() {
   }, []);
 
   useEffect(function () {
-    carregarColaboradores();
+    Promise.resolve().then(function () { carregarColaboradores(); });
   }, [carregarColaboradores]);
 
   useEffect(function () {
-    carregarOcorrencias(1);
+    Promise.resolve().then(function () { carregarOcorrencias(1); });
   }, [carregarOcorrencias]);
 
   // Debounce da pesquisa (aplica de imediato ao limpar)
   useEffect(function () {
     if (!searchAplicado && !search) return;
     if (!search) {
-      setSearchAplicado("");
+      Promise.resolve().then(function () { setSearchAplicado(""); });
       return;
     }
     var timer = setTimeout(function () { setSearchAplicado(search); }, 350);

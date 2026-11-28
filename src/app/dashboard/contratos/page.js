@@ -57,7 +57,7 @@ export default function ContratosPage() {
     } catch (e) { /* ignore */ }
   };
 
-  useEffect(() => { carregarColaboradores(); }, []);
+  useEffect(() => { Promise.resolve().then(function () { carregarColaboradores(); }); }, []);
 
   // Recarrega sempre que a pesquisa ou os filtros mudam (debounce na pesquisa)
   useEffect(() => {
@@ -278,7 +278,7 @@ export default function ContratosPage() {
                   <td colSpan={7} className="px-6 py-12 text-center">
                     <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">description</span>
                     <p className="text-on-surface-variant font-medium">Nenhum contrato encontrado</p>
-                    <p className="text-[13px] text-outline mt-1">Clique em "Novo Contrato" para adicionar</p>
+                    <p className="text-[13px] text-outline mt-1">Clique em &quot;Novo Contrato&quot; para adicionar</p>
                   </td>
                 </tr>
               ) : (

@@ -176,8 +176,10 @@ export default function AvaliacaoPage() {
   };
 
   useEffect(function () {
-    carregarColaboradores();
-    carregarCiclosParaSelect();
+    Promise.resolve().then(function () {
+      carregarColaboradores();
+      carregarCiclosParaSelect();
+    });
   }, []);
 
   // Recarrega os ciclos quando a pesquisa/filtros mudam (debounce na pesquisa)
@@ -190,7 +192,7 @@ export default function AvaliacaoPage() {
   // Recarrega as avaliacoes quando os filtros mudam
   useEffect(function () {
     if (aba !== "avaliacoes") return;
-    carregarAvaliacoes(1);
+    Promise.resolve().then(function () { carregarAvaliacoes(1); });
   }, [aba, filtroCicloId, filtroColaboradorId, filtroEstadoAval, filtroClassificacao]);
 
   var cicloEstadoOptions = ["Planeado", "Em_curso", "Concluido", "Cancelado"];
@@ -483,7 +485,7 @@ export default function AvaliacaoPage() {
                     <tr><td colSpan={4} className="px-6 py-12 text-center">
                       <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">calendar_month</span>
                       <p className="text-on-surface-variant font-medium">Nenhum ciclo encontrado</p>
-                      <p className="text-[13px] text-outline mt-1">Clique em "Novo Ciclo" para adicionar</p>
+                      <p className="text-[13px] text-outline mt-1">Clique em &quot;Novo Ciclo&quot; para adicionar</p>
                     </td></tr>
                   ) : (
                     ciclos.map(function (c) {
@@ -624,7 +626,7 @@ export default function AvaliacaoPage() {
                     <tr><td colSpan={6} className="px-6 py-12 text-center">
                       <span className="material-symbols-outlined text-[48px] text-outline-variant/40 block mb-3">star</span>
                       <p className="text-on-surface-variant font-medium">Nenhuma avaliação encontrada</p>
-                      <p className="text-[13px] text-outline mt-1">Clique em "Nova Avaliação" para adicionar</p>
+                      <p className="text-[13px] text-outline mt-1">Clique em &quot;Nova Avaliação&quot; para adicionar</p>
                     </td></tr>
                   ) : (
                     avaliacoes.map(function (a) {

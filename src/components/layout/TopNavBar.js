@@ -194,7 +194,8 @@ export default function TopNavBar() {
           <div className="flex items-center gap-4 md:gap-8 min-w-0">
             <button
               onClick={() => setMobileOpen(true)}
-              className="md:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors"
+              aria-label="Abrir menu"
+              className="md:hidden p-1.5 -ml-1 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <span className="material-symbols-outlined text-[24px]">menu</span>
             </button>
@@ -204,7 +205,7 @@ export default function TopNavBar() {
                 <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 border border-primary/15 rounded-full px-2 py-0.5">Plataforma</span>
               ) : null}
             </Link>
-            <nav className="hidden md:flex items-center gap-4 lg:gap-8 overflow-x-auto min-w-0">
+            <nav className="no-scrollbar hidden md:flex items-center gap-4 lg:gap-8 overflow-x-auto min-w-0" aria-label="Navegação principal">
               {mainItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -227,7 +228,7 @@ export default function TopNavBar() {
           <div className="flex items-center gap-3 md:gap-5">
             {!isSuperAdmin && (<>
             {!soColaborador && (
-              <Link href="/dashboard/configuracoes" className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors">
+              <Link href="/dashboard/configuracoes" aria-label="Configurações" title="Configurações" className="p-1.5 rounded-lg hover:bg-surface-container-low text-on-surface-variant transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
                 <span className="material-symbols-outlined text-[22px]">settings</span>
               </Link>
             )}
@@ -247,7 +248,8 @@ export default function TopNavBar() {
               <button
                 onClick={() => { setNotifOpen(!notifOpen); setMenuOpen(false); }}
                 aria-label={notifCount > 0 ? "Notificações (" + notifCount + " por ler)" : "Notificações"}
-                className={"relative flex items-center justify-center w-10 h-10 rounded-full transition-colors " + (notifCount > 0 ? "bg-error-container text-error hover:bg-error-container/70" : "hover:bg-surface-container-high text-on-surface-variant")}
+                aria-expanded={notifOpen}
+                className={"relative flex items-center justify-center w-10 h-10 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 " + (notifCount > 0 ? "bg-error-container text-error hover:bg-error-container/70" : "hover:bg-surface-container-high text-on-surface-variant")}
               >
                 <span className="material-symbols-outlined text-[24px]">notifications</span>
                 {notifCount > 0 && (
@@ -272,7 +274,6 @@ export default function TopNavBar() {
                       </button>
                     )}
                   </div>
-                  <PushNotificationManager key={utilizador ? utilizador.id : "sem-utilizador"} utilizadorId={utilizador ? utilizador.id : null} />
                   {notificacoes.length === 0 ? (
                     <div className="px-4 py-8 text-center">
                       <span className="material-symbols-outlined text-[32px] text-on-surface-variant/20 block mb-2">notifications_none</span>
@@ -281,7 +282,7 @@ export default function TopNavBar() {
                   ) : (
                     <>
                       {modulosDisponiveis.length > 1 && (
-                        <div className="px-4 py-2 border-b border-outline-variant/30 flex items-center gap-1.5 overflow-x-auto">
+                        <div className="no-scrollbar px-4 py-2 border-b border-outline-variant/30 flex items-center gap-1.5 overflow-x-auto">
                           <button onClick={function () { setNotifFiltro(""); }} className={chipNotif(notifFiltro === "")}>Todas</button>
                           {modulosDisponiveis.map(function (m) {
                             return (
@@ -334,7 +335,9 @@ export default function TopNavBar() {
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center gap-3 pl-3 md:pl-4 border-l border-outline-variant/30 cursor-pointer"
+                aria-label="Abrir menu da conta"
+                aria-expanded={menuOpen}
+                className="flex items-center gap-3 pl-3 md:pl-4 border-l border-outline-variant/30 cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 <div className="h-8 w-8 rounded-full border border-outline-variant/50 overflow-hidden bg-primary/10 flex items-center justify-center">
                   <span className="text-[12px] font-bold text-primary">{initials}</span>
@@ -361,6 +364,7 @@ export default function TopNavBar() {
                     </Link>
                   )}
                   <hr className="my-1 border-outline-variant/20" />
+                  <PushNotificationManager key={utilizador ? "push-" + utilizador.id : "push-sem-utilizador"} utilizadorId={utilizador ? utilizador.id : null} modo="painel" />
                   <button onClick={handleLogout} className="flex items-center gap-2.5 w-full px-4 py-2 text-[13px] text-error hover:bg-error/5 transition-colors">
                     <span className="material-symbols-outlined text-[18px]">logout</span>
                     Terminar Sessão
@@ -388,7 +392,7 @@ export default function TopNavBar() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto py-3">
+            <div className="no-scrollbar flex-1 overflow-y-auto py-3">
               {navGroups.map((group) => (
                 <div key={group.titulo} className="mb-3">
                   <p className="px-5 py-1.5 text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">{getGroupLabel(group.titulo)}</p>

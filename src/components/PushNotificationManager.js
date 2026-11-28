@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 
+var CHAVE_LEMBRETE = "sghr-push-lembrete";
+var DIAS_LEMBRETE = 7;
+
 function base64urlParaUint8Array(valor) {
   var texto = String(valor || "").replace(/-/g, "+").replace(/_/g, "/");
   var padding = "=".repeat((4 - (texto.length % 4)) % 4);
@@ -58,6 +61,23 @@ function suportaPush() {
     "Notification" in window;
 }
 
+function instrucoesPermissao() {
+  if (typeof navigator === "undefined") {
+    return "Active as notificações para este site nas definições do navegador e clique em “Já activei, verificar”.";
+  }
+  var ua = navigator.userAgent || "";
+  if (/Firefox\//.test(ua)) {
+    return "Clique no ícone de cadeado/escudo na barra de endereço → “Permissões” → “Notificações” → “Permitir”. Depois clique em “Já activei, verificar”.";
+  }
+  if (/Safari\//.test(ua) && !/Chrome\//.test(ua) && !/Edg\//.test(ua)) {
+    return "Abra Safari → Definições → Web sites → Notificações, escolha “Permitir” para este site e clique em “Já activei, verificar”.";
+  }
+  if (/Edg\//.test(ua)) {
+    return "Clique no cadeado à esquerda do endereço → “Notificações” → “Permitir” (ou Definições → Permissões de site → Notificações). Depois clique em “Já activei, verificar”.";
+  }
+  return "Clique no cadeado à esquerda do endereço → “Notificações” → “Permitir” (ou Definições → Privacidade → Definições do site → Notificações). Depois clique em “Já activei, verificar”.";
+}
+
 function iosSemAplicacaoInstalada() {
   var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -66,7 +86,19 @@ function iosSemAplicacaoInstalada() {
   return ios && !instalada;
 }
 
-export default function PushNotificationManager({ utilizadorId }) {
+function lembreteDispensado() {
+  if (typeof window === "undefined") return false;
+  try {
+    var valor = Number(localStorage.getItem(CHAVE_LEMBRETE) || 0);
+    if (!valor) return false;
+    return Date.now() - valor < DIAS_LEMBRETE * 24 * 60 * 60 * 1000;
+  } catch (e) {
+    return false;
+  }
+}
+
+export default function PushNotificationManager({ utilizadorId, modo = "prompt" }) {
+  var painel = modo === "painel";
   const [suportado, setSuportado] = useState(null);
   const [iosInstalar, setIosInstalar] = useState(false);
   const [permissao, setPermissao] = useState("default");
@@ -75,8 +107,10 @@ export default function PushNotificationManager({ utilizadorId }) {
   const [temSubscricao, setTemSubscricao] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [verificando, setVerificando] = useState(true);
+  const [dispensado, setDispensado] = useState(function () { return lembreteDispensado(); });
   const [mensagem, setMensagem] = useState("");
   const [erro, setErro] = useState("");
+  const [tentativa, setTentativa] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -96,7 +130,7 @@ export default function PushNotificationManager({ utilizadorId }) {
         return;
       }
 
-      if (!suportaPush()) {
+      if (!suportaPush() || !("Notification" in window)) {
         setSuportado(false);
         setIosInstalar(false);
         setVerificando(false);
@@ -163,6 +197,7 @@ export default function PushNotificationManager({ utilizadorId }) {
           if (activo) {
             localStorage.setItem("sghr-push-vapid", config.chave_publica);
             setTemSubscricao(true);
+            localStorage.removeItem(CHAVE_LEMBRETE);
           }
         }
       } catch (e) {
@@ -174,10 +209,31 @@ export default function PushNotificationManager({ utilizadorId }) {
 
     verificar();
     return function () { activo = false; };
-  }, [utilizadorId]);
+  }, [utilizadorId, tentativa]);
+
+  function dispensar() {
+    try { localStorage.setItem(CHAVE_LEMBRETE, String(Date.now())); } catch (e) {}
+    setDispensado(true);
+  }
+
+  // O navegador nao volta a pedir permissao depois de "Bloqueada". Esta acao
+  // so verifica de novo o estado depois de o utilizador mudar nas definicoes.
+  function reverificar() {
+    setMensagem("");
+    setErro("");
+    if (typeof Notification !== "undefined") {
+      setPermissao(Notification.permission);
+    }
+    setTentativa(function (valor) { return valor + 1; });
+  }
 
   async function activar() {
-    if (carregando || !disponivel) return;
+    if (carregando || !disponivel || !suportaPush()) return;
+    if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+      setPermissao("denied");
+      setErro("As notificações estão bloqueadas nas definições deste navegador.");
+      return;
+    }
     setCarregando(true);
     setErro("");
     setMensagem("");
@@ -229,6 +285,8 @@ export default function PushNotificationManager({ utilizadorId }) {
       }
 
       localStorage.setItem("sghr-push-vapid", chavePublica);
+      localStorage.removeItem(CHAVE_LEMBRETE);
+      setDispensado(false);
       setTemSubscricao(true);
       setMensagem("Notificações activadas. Já pode receber avisos com o site fechado.");
     } catch (e) {
@@ -255,6 +313,8 @@ export default function PushNotificationManager({ utilizadorId }) {
       await api.delete("/api/notificacoes/push/subscribe", { endpoint: subscricao.endpoint });
       await subscricao.unsubscribe();
       localStorage.removeItem("sghr-push-vapid");
+      localStorage.setItem(CHAVE_LEMBRETE, String(Date.now()));
+      setDispensado(true);
       setTemSubscricao(false);
       setMensagem("Notificações desactivadas neste dispositivo.");
     } catch (e) {
@@ -264,92 +324,96 @@ export default function PushNotificationManager({ utilizadorId }) {
     }
   }
 
-  async function testar() {
-    if (carregando || !temSubscricao) return;
-    setCarregando(true);
-    setErro("");
-    setMensagem("");
-    try {
-      await api.post("/api/notificacoes/push/test");
-      setMensagem("Notificação de teste enviada. Verifique o telemóvel ou o computador.");
-    } catch (e) {
-      setErro(e.message || "Não foi possível enviar a notificação de teste.");
-    } finally {
-      setCarregando(false);
-    }
-  }
+  if (!utilizadorId || suportado === null || suportado === false) return null;
 
-  if (!utilizadorId || suportado === null || verificando && !iosInstalar) return null;
-  if (suportado === false) return null;
-
-  if (iosInstalar) {
+  // No menu da conta: apenas estado e acoes, sem pedido automatico de permissão.
+  if (painel) {
     return (
-      <div className="px-4 py-3 border-b border-outline-variant/30 bg-primary/5">
-        <p className="text-[12px] font-bold text-on-surface">Notificações no iPhone</p>
-        <p className="text-[11px] text-on-surface-variant mt-1 leading-relaxed">
-          Para receber avisos, toque em Partilhar e escolha “Adicionar ao ecrã principal”. Depois abra o SGHR pela aplicação instalada e active as notificações.
+      <div className="px-4 py-2 border-t border-outline-variant/20 mt-1">
+        <p className="text-[11px] font-bold text-on-surface-variant/70 mb-1.5">
+          Notificações neste dispositivo
         </p>
+        {verificando ? (
+          <p className="text-[11px] text-on-surface-variant/60">A verificar…</p>
+        ) : temSubscricao ? (
+          <div>
+            <p className="text-[11px] text-success">Activadas neste dispositivo.</p>
+            <button type="button" onClick={desactivar} disabled={carregando} className="text-[11px] font-bold text-on-surface-variant hover:underline disabled:opacity-50 mt-1.5">
+              Desactivar neste dispositivo
+            </button>
+          </div>
+        ) : permissao === "denied" ? (
+          <div>
+            <p className="text-[11px] text-error">Bloqueadas nas definições do navegador.</p>
+            <p className="text-[10px] text-on-surface-variant/80 mt-1 leading-relaxed">{instrucoesPermissao()}</p>
+            <button type="button" onClick={reverificar} className="text-[11px] font-bold text-primary hover:underline mt-1.5">
+              Já activei, verificar
+            </button>
+          </div>
+        ) : (
+          <button type="button" onClick={activar} disabled={carregando || !disponivel || iosInstalar} className="text-[11px] font-bold text-primary hover:underline disabled:opacity-50">
+            {carregando ? "A activar…" : "Activar notificações"}
+          </button>
+        )}
+        {mensagem && <p className="text-[11px] text-success mt-1">{mensagem}</p>}
+        {erro && <p className="text-[11px] text-error mt-1">{erro}</p>}
       </div>
     );
   }
 
-  return (
-    <div className="px-4 py-3 border-b border-outline-variant/30 bg-primary/5">
-      <div className="flex items-start gap-2.5">
-        <span className={"material-symbols-outlined text-[20px] flex-shrink-0 " + (temSubscricao ? "text-success" : "text-primary")}>
-          {temSubscricao ? "notifications_active" : "notifications"}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-bold text-on-surface">
-            {temSubscricao ? "Notificações activas neste dispositivo" : "Receber notificações no telemóvel ou computador"}
-          </p>
-          <p className="text-[11px] text-on-surface-variant mt-0.5 leading-relaxed">
-            {temSubscricao ? "Os avisos podem aparecer mesmo com o site fechado." : "O SGHR vai pedir permissão ao navegador."}
-          </p>
+  // Convite global: aparece ao carregar a pagina, nunca a partir do sino.
+  if (verificando || temSubscricao || dispensado) return null;
 
-          {!disponivel ? (
-            <p className="text-[11px] text-error mt-2">{erro || "A verificar disponibilidade…"}</p>
-          ) : permissao === "denied" && !temSubscricao ? (
-            <p className="text-[11px] text-error mt-2">As notificações estão bloqueadas nas definições deste navegador.</p>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              {!temSubscricao && (
-                <button
-                  type="button"
-                  onClick={activar}
-                  disabled={carregando}
-                  className="px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {carregando ? "A activar…" : "Activar notificações"}
+  if (iosInstalar) {
+    return (
+      <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:max-w-sm z-[60] rounded-xl bg-surface-card shadow-2xl border border-outline-variant/40 p-4" role="dialog" aria-label="Notificações no iPhone">
+        <p className="text-[13px] font-bold text-on-surface">Notificações no iPhone</p>
+        <p className="text-[12px] text-on-surface-variant mt-1 leading-relaxed">
+          Para receber avisos, toque em Partilhar e escolha “Adicionar ao ecrã principal”. Depois abra o SGHR pela aplicação instalada e active as notificações.
+        </p>
+        <button type="button" onClick={dispensar} className="mt-3 text-[12px] font-bold text-primary hover:underline">
+          Entendi
+        </button>
+      </div>
+    );
+  }
+
+  if (!disponivel) return null;
+
+  return (
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:max-w-sm z-[60] rounded-xl bg-surface-card shadow-2xl border border-outline-variant/40 p-4" role="dialog" aria-label="Activar notificações">
+      <div className="flex items-start gap-3">
+        <span className="material-symbols-outlined text-[22px] text-primary flex-shrink-0" aria-hidden="true">notifications</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-bold text-on-surface">Receber notificações neste dispositivo?</p>
+          <p className="text-[12px] text-on-surface-variant mt-1 leading-relaxed">
+            Active os avisos para receber pedidos, faltas e comunicações mesmo com o site fechado.
+          </p>
+          {permissao === "denied" ? (
+            <div className="mt-2">
+              <p className="text-[11px] font-bold text-error">As notificações estão bloqueadas nas definições deste navegador.</p>
+              <p className="text-[11px] text-on-surface-variant mt-1 leading-relaxed">{instrucoesPermissao()}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                <button type="button" onClick={reverificar} disabled={carregando} className="px-3 py-1.5 rounded-lg bg-primary text-white text-[12px] font-bold hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                  Já activei, verificar
                 </button>
-              )}
-              {temSubscricao && (
-                <>
-                  <button
-                    type="button"
-                    onClick={testar}
-                    disabled={carregando}
-                    className="px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[11px] font-bold hover:bg-primary/15 disabled:opacity-50"
-                  >
-                    {carregando ? "A enviar…" : "Enviar teste"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={desactivar}
-                    disabled={carregando}
-                    className="px-3 py-1.5 rounded-lg text-on-surface-variant text-[11px] font-bold hover:bg-surface-container-high disabled:opacity-50"
-                  >
-                    Desactivar
-                  </button>
-                </>
-              )}
+                <button type="button" onClick={dispensar} className="px-3 py-1.5 rounded-lg text-[12px] font-bold text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                  Agora não
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <button type="button" onClick={activar} disabled={carregando} className="px-3 py-1.5 rounded-lg bg-primary text-white text-[12px] font-bold hover:bg-primary/90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                {carregando ? "A activar…" : "Activar notificações"}
+              </button>
+              <button type="button" onClick={dispensar} className="px-3 py-1.5 rounded-lg text-[12px] font-bold text-on-surface-variant hover:bg-surface-container-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                Agora não
+              </button>
             </div>
           )}
-
-          {mensagem && <p className="text-[11px] text-success mt-2 leading-relaxed">{mensagem}</p>}
-          {erro && disponivel && !(permissao === "denied" && !temSubscricao) && (
-            <p className="text-[11px] text-error mt-2 leading-relaxed">{erro}</p>
-          )}
+          {erro && <p className="text-[11px] text-error mt-2">{erro}</p>}
+          {mensagem && <p className="text-[11px] text-success mt-2">{mensagem}</p>}
         </div>
       </div>
     </div>

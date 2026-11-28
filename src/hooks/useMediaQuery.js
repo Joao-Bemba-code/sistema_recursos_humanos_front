@@ -12,7 +12,7 @@ export function useMediaQuery(query) {
 
   useEffect(() => {
     const media = window.matchMedia(query);
-    setMatches(media.matches);
+    Promise.resolve().then(function () { setMatches(media.matches); });
 
     const listener = (event) => setMatches(event.matches);
     media.addEventListener("change", listener);

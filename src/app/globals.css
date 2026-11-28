@@ -738,3 +738,13 @@ input[type="checkbox"],
 input[type="radio"] {
   accent-color: var(--color-primary);
 }
+
+
+/* Navegacao e listas rolam sem barra visivel. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

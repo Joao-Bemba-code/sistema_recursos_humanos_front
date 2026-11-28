@@ -153,11 +153,11 @@ useEffect(function () {
 }, [search]);
 
   useEffect(function () {
-    carregarColaboradores();
+    Promise.resolve().then(function () { carregarColaboradores(); });
   }, [carregarColaboradores]);
 
   useEffect(function () {
-    carregar(1);
+    Promise.resolve().then(function () { carregar(1); });
   }, [carregar]);
 
   // Actualizacao automatica (1 em 1 minuto): a lista reflecte as picagens do

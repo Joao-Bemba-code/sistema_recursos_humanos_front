@@ -94,8 +94,10 @@ export default function CreditosPage() {
 
   useEffect(() => {
     if (!pronto) return;
-    loadColaboradores();
-    carregarResumo();
+    Promise.resolve().then(function () {
+      loadColaboradores();
+      carregarResumo();
+    });
   }, [pronto]);
 
   // Recarrega sempre que a pesquisa ou os filtros mudam (debounce na pesquisa)

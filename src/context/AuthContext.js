@@ -5,25 +5,29 @@ import api from "@/lib/api";
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
-  const [utilizador, setUtilizador] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
+function lerSessaoGuardada() {
+  if (typeof window === "undefined") return { utilizador: null, autenticado: false };
+  try {
     const token = localStorage.getItem("token");
     const savedUser = localStorage.getItem("utilizador");
     if (token && savedUser) {
-      try {
-        const user = JSON.parse(savedUser);
-        setUtilizador(user);
-        setIsAuthenticated(true);
-      } catch (e) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("utilizador");
-      }
+      return { utilizador: JSON.parse(savedUser), autenticado: true };
     }
-    setLoading(false);
+  } catch (e) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("utilizador");
+  }
+  return { utilizador: null, autenticado: false };
+}
+
+export function AuthProvider({ children }) {
+  const [sessaoInicial] = useState(lerSessaoGuardada);
+  const [utilizador, setUtilizador] = useState(sessaoInicial.utilizador);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(sessaoInicial.autenticado);
+
+  useEffect(() => {
+    Promise.resolve().then(function () { setLoading(false); });
   }, []);
 
   useEffect(() => {

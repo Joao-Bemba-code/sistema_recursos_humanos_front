@@ -18,6 +18,8 @@ export const metadata = {
     title: "SGHR",
   },
   icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
     apple: "/apple-touch-icon.png",
   },
 };

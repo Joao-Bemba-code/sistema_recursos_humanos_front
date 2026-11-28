@@ -105,18 +105,18 @@ export default function UtilizadoresPage() {
   }, []);
 
   useEffect(function () {
-    carregarPerfis();
+    Promise.resolve().then(function () { carregarPerfis(); });
   }, [carregarPerfis]);
 
   useEffect(function () {
-    carregarUtilizadores(1);
+    Promise.resolve().then(function () { carregarUtilizadores(1); });
   }, [carregarUtilizadores]);
 
   // Debounce da pesquisa (aplica de imediato ao limpar)
   useEffect(function () {
     if (!searchAplicado && !search) return;
     if (!search) {
-      setSearchAplicado("");
+      Promise.resolve().then(function () { setSearchAplicado(""); });
       return;
     }
     var timer = setTimeout(function () { setSearchAplicado(search); }, 350);

@@ -83,12 +83,14 @@ export default function EscalasPage() {
   };
 
   useEffect(function () {
-    carregarEscalas();
+    Promise.resolve().then(function () { carregarEscalas(); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(function () {
-    if (aba === "feriados") carregarFeriados();
+    if (aba === "feriados") {
+      Promise.resolve().then(function () { carregarFeriados(); });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aba]);
 

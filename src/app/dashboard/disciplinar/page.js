@@ -155,7 +155,9 @@ export default function ProcessosDisciplinaresPage() {
     }
   }, []);
 
-  useEffect(function () { carregarColaboradores(); }, [carregarColaboradores]);
+  useEffect(function () {
+    Promise.resolve().then(function () { carregarColaboradores(); });
+  }, [carregarColaboradores]);
 
   var carregarConvocatorias = useCallback(async function (page) {
     setLoadingConv(true);
@@ -213,27 +215,37 @@ export default function ProcessosDisciplinaresPage() {
   }, []);
 
   useEffect(function () {
-    if (aba === "convocatorias") carregarConvocatorias(1);
+    if (aba === "convocatorias") {
+      Promise.resolve().then(function () { carregarConvocatorias(1); });
+    }
   }, [aba, carregarConvocatorias]);
 
   useEffect(function () {
     if (aba === "medidas") {
-      carregarMedidas(1);
-      carregarResumo();
-      carregarSugestoes();
+      Promise.resolve().then(function () {
+        carregarMedidas(1);
+        carregarResumo();
+        carregarSugestoes();
+      });
     }
   }, [aba, carregarMedidas, carregarResumo, carregarSugestoes]);
 
   useEffect(function () {
     if (!convSearchAplicado && !convSearch) return;
-    if (!convSearch) { setConvSearchAplicado(""); return; }
+    if (!convSearch) {
+      Promise.resolve().then(function () { setConvSearchAplicado(""); });
+      return;
+    }
     var t = setTimeout(function () { setConvSearchAplicado(convSearch); }, 350);
     return function () { clearTimeout(t); };
   }, [convSearch]);
 
   useEffect(function () {
     if (!medSearchAplicado && !medSearch) return;
-    if (!medSearch) { setMedSearchAplicado(""); return; }
+    if (!medSearch) {
+      Promise.resolve().then(function () { setMedSearchAplicado(""); });
+      return;
+    }
     var t = setTimeout(function () { setMedSearchAplicado(medSearch); }, 350);
     return function () { clearTimeout(t); };
   }, [medSearch]);

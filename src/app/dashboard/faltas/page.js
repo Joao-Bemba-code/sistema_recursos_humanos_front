@@ -68,13 +68,12 @@ export default function FaltasPage() {
   };
 
   useEffect(() => {
-    carregarColaboradores();
+    Promise.resolve().then(function () { carregarColaboradores(); });
   }, []);
 
   // Recarrega sempre que qualquer filtro muda (inclui "Limpar Tudo" e os chips)
   useEffect(() => {
-    carregarResumo();
-    carregarRegistos(1);
+    Promise.resolve().then(function () { carregarResumo(); carregarRegistos(1); });
   }, [dataInicio, dataFim, filtroColab, filtroTipo]);
 
   const aplicarFiltros = () => {

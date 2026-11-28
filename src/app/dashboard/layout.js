@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { moduloVisivelPara } from "@/lib/constants";
 import TopNavBar from "@/components/layout/TopNavBar";
+import PushNotificationManager from "@/components/PushNotificationManager";
 import PageTransition from "@/components/ui/PageTransition";
 import { ToastProvider } from "@/components/ui/Toast";
 
@@ -123,6 +125,7 @@ export default function DashboardLayout({ children }) {
       <main className="flex-grow max-w-[1440px] w-full mx-auto px-4 sm:px-5 md:px-16 py-4 sm:py-8">
         <ToastProvider><PageTransition>{children}</PageTransition></ToastProvider>
       </main>
+      <PushNotificationManager key={auth && auth.utilizador ? "push-global-" + auth.utilizador.id : "push-global"} utilizadorId={auth && auth.utilizador ? auth.utilizador.id : null} />
       <footer className="bg-surface border-t border-outline-variant/30 w-full py-8 mt-auto">
         <div className="flex flex-col md:flex-row justify-between items-center px-5 md:px-16 w-full max-w-[1440px] mx-auto gap-6">
           <div className="flex items-center gap-3">
@@ -130,9 +133,9 @@ export default function DashboardLayout({ children }) {
             <span className="text-[13px] text-on-surface-variant/60 font-medium">&copy; 2026 {nomeRodape}. Todos os direitos reservados.</span>
           </div>
           <div className="flex flex-wrap justify-center md:justify-end items-center gap-x-6 gap-y-2 md:gap-8 text-center md:text-right">
-            <span className="text-[13px] font-medium text-on-surface-variant/80">Termos e Condições</span>
-            <span className="text-[13px] font-medium text-on-surface-variant/80">Política de Dados</span>
-            <span className="text-[13px] font-medium text-on-surface-variant/80">Canal de Suporte</span>
+            <Link href="/termos" className="text-[13px] font-medium text-on-surface-variant/80 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hover:text-primary transition-colors">Termos e Condições</Link>
+            <Link href="/privacidade" className="text-[13px] font-medium text-on-surface-variant/80 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hover:text-primary transition-colors">Política de Dados</Link>
+            <Link href="/dashboard/mensagens" className="text-[13px] font-medium text-on-surface-variant/80 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 hover:text-primary transition-colors">Canal de Suporte</Link>
           </div>
         </div>
       </footer>

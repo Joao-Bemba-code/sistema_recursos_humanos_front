@@ -11,6 +11,7 @@ var TIPO_LABELS = {
   adiantamento: "Adiantamento",
   justificacao: "Justificação",
   aumento: "Aumento",
+  credito: "Crédito",
   outro: "Outro",
 };
 
@@ -70,6 +71,10 @@ export default function PedidosPage() {
   var [docUrl, setDocUrl] = useState("");
   var [docLoading, setDocLoading] = useState(false);
   var [docErro, setDocErro] = useState("");
+  var [parcelasCredito, setParcelasCredito] = useState("");
+  var [baixandoFicha, setBaixandoFicha] = useState(false);
+  var [baixandoFichaDispensa, setBaixandoFichaDispensa] = useState(false);
+  var [anexandoAssinado, setAnexandoAssinado] = useState(false);
   var docUrlRef = useRef("");
   var [confirmDelete, setConfirmDelete] = useState({ open: false, id: null, titulo: "" });
 
@@ -166,12 +171,71 @@ export default function PedidosPage() {
       });
   };
 
+  var baixarFichaCredito = function () {
+    if (!pedidoDetalhe) return;
+    setBaixandoFicha(true);
+    api.downloadFile(
+      "/api/pedidos/" + pedidoDetalhe.id + "/ficha-credito",
+      "ficha-credito-" + (dadosDetalhe.numero_colaborador || "colaborador") + ".pdf",
+      "Não foi possível gerar a ficha de crédito"
+    ).catch(function (e) {
+      setMsg({ tipo: "erro", texto: e.message || "Não foi possível gerar a ficha de crédito" });
+      setTimeout(function () { setMsg(null); }, 4000);
+    }).finally(function () { setBaixandoFicha(false); });
+  };
+
+  var baixarFichaDispensa = function () {
+    if (!pedidoDetalhe) return;
+    setBaixandoFichaDispensa(true);
+    api.downloadFile(
+      "/api/pedidos/" + pedidoDetalhe.id + "/ficha-dispensa",
+      "ficha-dispensa-" + (dadosDetalhe.numero_colaborador || "colaborador") + ".pdf",
+      "Não foi possível gerar a ficha de dispensa"
+    ).catch(function (e) {
+      setMsg({ tipo: "erro", texto: e.message || "Não foi possível gerar a ficha de dispensa" });
+      setTimeout(function () { setMsg(null); }, 4000);
+    }).finally(function () { setBaixandoFichaDispensa(false); });
+  };
+
+  var anexarFichaAssinada = function (e) {
+    var ficheiro = e.target.files && e.target.files[0];
+    if (!ficheiro || !pedidoDetalhe) return;
+    var formData = new FormData();
+    formData.append("ficheiro", ficheiro);
+    setAnexandoAssinado(true);
+    api.upload("/api/pedidos/" + pedidoDetalhe.id + "/documento-assinado", formData).then(function () {
+      return api.get("/api/pedidos/" + pedidoDetalhe.id);
+    }).then(function (data) {
+      if (data && data.dados) {
+        setPedidoDetalhe(data.dados);
+        var atualizado = data.dados.dados;
+        if (typeof atualizado === "string") {
+          try { atualizado = JSON.parse(atualizado); } catch (e) { atualizado = {}; }
+        }
+        if (atualizado && atualizado.parcelas) setParcelasCredito(String(atualizado.parcelas));
+      }
+      setMsg({ tipo: "sucesso", texto: "Ficha assinada anexada. Já pode aprovar o crédito." });
+      setTimeout(function () { setMsg(null); }, 4000);
+    }).catch(function (err) {
+      setMsg({ tipo: "erro", texto: err.message || "Erro ao anexar a ficha assinada" });
+      setTimeout(function () { setMsg(null); }, 4000);
+    }).finally(function () {
+      setAnexandoAssinado(false);
+      e.target.value = "";
+    });
+  };
+
   var handleVerDetalhe = function (pedido) {
     api.get("/api/pedidos/" + pedido.id).then(function (data) {
       if (data && data.dados) {
         setPedidoDetalhe(data.dados);
         setShowDetalhe(true);
         setComentario("");
+        var dadosPedido = data.dados.dados;
+        if (typeof dadosPedido === "string") {
+          try { dadosPedido = JSON.parse(dadosPedido); } catch (e) { dadosPedido = {}; }
+        }
+        setParcelasCredito(dadosPedido && dadosPedido.parcelas ? String(dadosPedido.parcelas) : "");
         carregarPrevia(data.dados);
       }
     }).catch(function () {});
@@ -187,11 +251,24 @@ export default function PedidosPage() {
   var confirmarDecisao = function (estado) {
     if (!pedidoDetalhe) return;
     setMsg(null);
-    setDecidindo(true);
-    api.put("/api/pedidos/" + pedidoDetalhe.id + "/estado", {
+    var dadosDecisao = pedidoDetalhe.dados;
+    if (typeof dadosDecisao === "string") {
+      try { dadosDecisao = JSON.parse(dadosDecisao); } catch (e) { dadosDecisao = {}; }
+    }
+    if (estado === "aprovado" && pedidoDetalhe.tipo === "credito" && !(dadosDecisao && dadosDecisao.documento_assinado)) {
+      setMsg({ tipo: "erro", texto: "Anexe a ficha de crédito assinada antes de aprovar" });
+      setTimeout(function () { setMsg(null); }, 4000);
+      return;
+    }
+    var corpo = {
       estado: estado,
       comentario: comentario || null,
-    }).then(function () {
+    };
+    if (pedidoDetalhe.tipo === "credito" && parcelasCredito) {
+      corpo.dadosCredito = { parcelas: parcelasCredito };
+    }
+    setDecidindo(true);
+    api.put("/api/pedidos/" + pedidoDetalhe.id + "/estado", corpo).then(function () {
       setShowDetalhe(false);
       setPedidoDetalhe(null);
       setMsg({ tipo: "sucesso", texto: "Pedido " + rotuloDecisao(estado) + " com sucesso" });
@@ -333,6 +410,7 @@ export default function PedidosPage() {
               <option value="adiantamento">Adiantamento</option>
               <option value="justificacao">Justificação</option>
               <option value="aumento">Aumento</option>
+              <option value="credito">Crédito</option>
             </select>
             <button type="submit" className="px-4 py-2 rounded-lg bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors">
               Pesquisar
@@ -644,6 +722,15 @@ export default function PedidosPage() {
                   <p className="text-[11px] text-on-surface-variant/70 bg-surface-container rounded-lg px-3 py-2">
                     Ao aprovar, as saídas antecipadas deste período ficam justificadas automaticamente no Banco de Horas.
                   </p>
+                  <button
+                    type="button"
+                    onClick={baixarFichaDispensa}
+                    disabled={baixandoFichaDispensa}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">{baixandoFichaDispensa ? "hourglass_empty" : "download"}</span>
+                    {baixandoFichaDispensa ? "A gerar..." : "Descarregar ficha de dispensa"}
+                  </button>
                 </div>
               )}
 
@@ -651,6 +738,87 @@ export default function PedidosPage() {
                 <div>
                   <p className="text-[11px] text-outline uppercase tracking-wide">Valor</p>
                   <p className="text-[15px] font-semibold text-on-surface mt-0.5">{Number(dadosDetalhe.valor).toLocaleString("pt-AO")} AOA</p>
+                </div>
+              )}
+
+              {pedidoDetalhe.tipo === "credito" && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Montante pedido</p>
+                      <p className="text-[15px] font-semibold text-on-surface mt-0.5">{Number(dadosDetalhe.valor || 0).toLocaleString("pt-AO", { minimumFractionDigits: 2 })} AOA</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Parcelas</p>
+                      <p className="text-[15px] font-semibold text-on-surface mt-0.5">{dadosDetalhe.parcelas || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Prestação mensal</p>
+                      <p className="text-[13px] font-medium text-on-surface-variant mt-0.5">
+                        {Number(parcelasCredito && Number(dadosDetalhe.valor) > 0 ? Number(dadosDetalhe.valor) / Number(parcelasCredito) : (dadosDetalhe.prestacao_mensal || 0)).toFixed(2)} AOA
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Limite (30%)</p>
+                      <p className="text-[13px] font-medium text-on-surface-variant mt-0.5">
+                        {Number((dadosDetalhe.elegibilidade || {}).limite_mensal || 0).toFixed(2)} AOA
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Faltas (60 dias)</p>
+                      <p className="text-[13px] font-medium text-on-surface-variant mt-0.5">{(dadosDetalhe.elegibilidade || {}).faltas_60d ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-outline uppercase tracking-wide">Atrasos (60 dias)</p>
+                      <p className="text-[13px] font-medium text-on-surface-variant mt-0.5">{(dadosDetalhe.elegibilidade || {}).atrasos_60d ?? "—"}</p>
+                    </div>
+                  </div>
+
+                  {(pedidoDetalhe.estado === "pendente" || pedidoDetalhe.estado === "processando") && (
+                    <>
+                      <div className="bg-surface-container rounded-lg p-3">
+                        <label htmlFor="parcelas-credito" className="text-[11px] font-medium text-on-surface-variant block mb-1">Parcelas definidas pelo RH</label>
+                        <input
+                          id="parcelas-credito"
+                          type="number"
+                          min="1"
+                          value={parcelasCredito}
+                          onChange={function (e) { setParcelasCredito(e.target.value); }}
+                          className="w-full px-3 py-2 rounded-lg border border-outline-variant text-[13px] text-on-surface focus:ring-1 focus:ring-primary/30 focus:border-primary/50 transition-colors"
+                        />
+                        <p className="text-[11px] text-outline mt-1">Ao aprovar, a prestação é recalculada com este número de parcelas.</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={baixarFichaCredito}
+                          disabled={baixandoFicha}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-primary text-white text-[12px] font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">{baixandoFicha ? "hourglass_empty" : "download"}</span>
+                          {baixandoFicha ? "A gerar..." : "Descarregar ficha"}
+                        </button>
+                        <label className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-outline-variant/60 text-[12px] font-semibold text-on-surface-variant cursor-pointer hover:bg-black/5 transition-colors">
+                          <span className="material-symbols-outlined text-[16px]">upload_file</span>
+                          {anexandoAssinado ? "A anexar..." : "Carregar ficha assinada"}
+                          <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={anexarFichaAssinada} disabled={anexandoAssinado} />
+                        </label>
+                      </div>
+                    </>
+                  )}
+
+                  <div className={"rounded-lg px-3 py-2 text-[12px] border " + (dadosDetalhe.documento_assinado ? "bg-green-50 border-green-200 text-green-700" : "bg-amber-50 border-amber-200 text-amber-700")}>
+                    {dadosDetalhe.documento_assinado ? (
+                      <>
+                        <span className="font-semibold">Ficha assinada anexada</span>
+                        {" — "}
+                        <a href={api.urlComToken(dadosDetalhe.documento_assinado)} target="_blank" rel="noopener noreferrer" className="underline">abrir documento</a>
+                        {dadosDetalhe.documento_assinado_em && <span> · {formatDate(dadosDetalhe.documento_assinado_em)}</span>}
+                      </>
+                    ) : (
+                      <span className="font-semibold">A ficha assinada é obrigatória para aprovar o crédito.</span>
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -25,7 +25,7 @@ export default function AvisoAdvertenciaPage() {
   };
 
   useEffect(() => {
-    carregarColaboradores();
+    Promise.resolve().then(function () { carregarColaboradores(); });
   }, []);
 
   const gerarPdf = async () => {

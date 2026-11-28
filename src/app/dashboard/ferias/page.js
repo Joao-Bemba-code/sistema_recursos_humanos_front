@@ -86,7 +86,7 @@ export default function FeriasPage() {
   };
 
   useEffect(() => {
-    carregarColaboradores();
+    Promise.resolve().then(function () { carregarColaboradores(); });
   }, []);
 
   // Recarrega sempre que a pesquisa ou os filtros mudam (debounce na pesquisa)
