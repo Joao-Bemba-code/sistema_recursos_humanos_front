@@ -86,6 +86,8 @@ export default function AssiduidadePage() {
     data: "",
     hora_entrada: "",
     hora_saida: "",
+    hora_saida_almoco: "",
+    hora_entrada_almoco: "",
     estado: "Presente",
     metodo: "Manual",
     observacoes: "",
@@ -214,6 +216,8 @@ useEffect(function () {
       data: (r.data || "").slice(0, 10),
       hora_entrada: (r.hora_entrada || "").slice(0, 5),
       hora_saida: (r.hora_saida || "").slice(0, 5),
+      hora_saida_almoco: (r.hora_saida_almoco || "").slice(0, 5),
+      hora_entrada_almoco: (r.hora_entrada_almoco || "").slice(0, 5),
       estado: r.estado || "Presente",
       metodo: r.metodo || "Manual",
       observacoes: r.observacoes || "",
@@ -271,6 +275,8 @@ useEffect(function () {
         data: form.data,
         hora_entrada: form.hora_entrada || null,
         hora_saida: form.hora_saida || null,
+        hora_saida_almoco: form.hora_saida_almoco || null,
+        hora_entrada_almoco: form.hora_entrada_almoco || null,
         estado: form.estado,
         metodo: form.metodo,
         observacoes: form.observacoes,
@@ -487,6 +493,8 @@ useEffect(function () {
                 <th className="px-6 py-4 font-medium text-on-surface-variant/70 w-[260px]">Colaborador</th>
                 <th className="px-4 py-4 font-medium text-on-surface-variant/70">Data</th>
                 <th className="px-4 py-4 font-medium text-on-surface-variant/70">Entrada</th>
+                <th className="px-4 py-4 font-medium text-on-surface-variant/70" title="Saída para o almoço (12:00)">Saída Almoço</th>
+                <th className="px-4 py-4 font-medium text-on-surface-variant/70" title="Volta do almoço (13:00)">Volta Almoço</th>
                 <th className="px-4 py-4 font-medium text-on-surface-variant/70">Saída</th>
                 <th className="px-4 py-4 font-medium text-on-surface-variant/70">Horas</th>
                 <th className="px-4 py-4 font-medium text-on-surface-variant/70">Estado</th>
@@ -499,7 +507,7 @@ useEffect(function () {
                 [1, 2, 3, 4, 5, 6, 7].map(function (i) {
                   return (
                     <tr key={i}>
-                      <td colSpan={8} className="px-6 py-4">
+                      <td colSpan={10} className="px-6 py-4">
                         <Skeleton className="h-10 w-full" />
                       </td>
                     </tr>
@@ -507,7 +515,7 @@ useEffect(function () {
                 })
               ) : registos.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={10}>
                     {dataInvertida ? (
                       <EmptyState
                         icon="event_busy"
@@ -556,6 +564,12 @@ useEffect(function () {
                       </td>
                       <td className="px-4 py-4">
                         <span className="text-on-surface font-mono text-[13px]">{r.hora_entrada || "—"}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-on-surface font-mono text-[13px]">{r.hora_saida_almoco || "—"}</span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-on-surface font-mono text-[13px]">{r.hora_entrada_almoco || "—"}</span>
                       </td>
                       <td className="px-4 py-4">
                         <span className="text-on-surface font-mono text-[13px]">{r.hora_saida || "—"}</span>
@@ -668,7 +682,15 @@ useEffect(function () {
                   <input name="hora_entrada" type="time" value={form.hora_entrada || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Hora Saída</label>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Saída para Almoço</label>
+                  <input name="hora_saida_almoco" type="time" value={form.hora_saida_almoco || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Volta do Almoço</label>
+                  <input name="hora_entrada_almoco" type="time" value={form.hora_entrada_almoco || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-on-surface-variant/70 px-1 block mb-1">Hora Saída Final</label>
                   <input name="hora_saida" type="time" value={form.hora_saida || ""} onChange={handleInput} className="w-full px-3 py-2.5 bg-background border border-outline-variant/50 rounded-lg text-[14px] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
 
@@ -718,7 +740,7 @@ useEffect(function () {
                 <div className="sm:col-span-2 flex items-start gap-2 bg-info/5 border border-info/20 rounded-lg p-3">
                   <span className="material-symbols-outlined text-[18px] text-info mt-px">info</span>
                   <p className="text-[12px] text-on-surface-variant leading-snug">
-                    Ao gravar, este registo fica marcado como <strong>ajustado manualmente</strong>: a ponte do biómetro deixa de alterar a hora e o estado. Use isto quando alguém se esquecer de passar o dedo — ponha a entrada/saída à mão e escolha <strong>Presente</strong> ou <strong>Atrasado</strong> conforme o caso.
+                    Ao gravar, este registo fica marcado como <strong>ajustado manualmente</strong>: a ponte do biómetro deixa de alterar a hora e o estado. Use isto quando alguém se esquecer de passar o dedo — ponha a entrada/saída à mão e escolha <strong>Presente</strong> ou <strong>Atrasado</strong> conforme o caso. Os horários do almoço são apenas de registo: <strong>não são descontados</strong> das horas trabalhadas (a jornada continua entre entrada e saída final).
                   </p>
                 </div>
               </div>
@@ -772,7 +794,9 @@ useEffect(function () {
                   {[
                     ["Data", registoView.data ? helpers.formatDate(registoView.data) : null],
                     ["Hora Entrada", registoView.hora_entrada || null],
-                    ["Hora Saída", registoView.hora_saida || null],
+                    ["Saída p/ Almoço", registoView.hora_saida_almoco || null],
+                    ["Volta do Almoço", registoView.hora_entrada_almoco || null],
+                    ["Hora Saída Final", registoView.hora_saida || null],
                     ["Horas Trabalhadas", (parseFloat(registoView.horas_trabalhadas) > 0 ? registoView.horas_trabalhadas : null) || calcularHoras(registoView.hora_entrada, registoView.hora_saida) || null],
                     ["Horas Extras", (parseFloat(registoView.horas_extras) || 0) > 0 ? registoView.horas_extras : null],
                     ["Método", registoView.metodo || null],
